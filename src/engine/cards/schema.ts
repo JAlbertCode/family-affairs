@@ -301,6 +301,12 @@ export function validateStuff(d: StuffDef): Issue[] {
   if (!d.id || !/^[a-z0-9]+$/.test(d.id)) err('id', 'Needs a lowercase alphanumeric id.')
   if (!d.text?.trim()) err('text', 'Needs rules text.')
   if (d.copies < 1 || d.copies > 4) err('copies', 'Between 1 and 4 copies in the deck.')
+  if (d.subtype === 'Food' && !(d.limitGain?.food)) {
+    out.push({
+      card: n, severity: 'warn', field: 'limitGain',
+      message: 'Food with no food gain. The engine adds +1 anyway — say so on the card so the text matches what happens.',
+    })
+  }
   if (d.edible && !['Gear', 'Ride', 'Pet'].includes(d.subtype)) {
     err('edible', 'Food, Drink and Smoke are already consumable — `edible` is for Gear and Rides.')
   }

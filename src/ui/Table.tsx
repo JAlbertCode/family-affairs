@@ -88,6 +88,17 @@ export function Table({
   useEffect(() => { if (battle || minigame) { setTargeting(null); setSelected(null); setPickAttacker(false) } }, [!!battle, !!minigame])
   useEffect(() => { if (!targeting) setPeek(false) }, [!!targeting])
 
+  // Choosing a target is useless if the target is off-screen. The opponents
+  // live in a scrolling column above your own family, so bring the first legal
+  // one into view rather than making the player go looking for it.
+  useEffect(() => {
+    if (!targeting && !pickAttacker) return
+    const t = setTimeout(() => {
+      document.querySelector('.tok.target')?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    }, 60)
+    return () => clearTimeout(t)
+  }, [targeting?.kind, (targeting as any)?.iid, (targeting as any)?.char, pickAttacker])
+
   // Any sheet left open belongs to the player who opened it. When the device
   // changes hands — or the turn moves on — clear the lot, or the next player
   // inherits somebody else's open card.
@@ -457,7 +468,7 @@ export function Table({
               state={state} you={you} ch={selCh}
               send={send}
               onTarget={(t) => { setTargeting(t); setSelected(null) }}
-              onInspect={() => setInspect(selCh.iid)}
+              onInspect={() => { setSelected(null); setInspect(selCh.iid) }}
               onClose={() => setSelected(null)}
               onOpenItem={(iid, char) => setItemCard({ iid, char })}
             />
@@ -598,24 +609,17 @@ export function Table({
         </div>
       )}
 
-      {handCard && (
-        <div className="sheet-bg" onClick={() => setHandCard(null)}>
-          <div className="cardsheet" onClick={(e) => e.stopPropagation()}>
-            <div className="cardsheet-face"><CardFace state={state} iid={handCard} focused /></div>
-            {(() => {
-              const p = playabilityOf(handCard)
-              return (
-                <div className="cardsheet-actions">
-                  <button className="btn" disabled={!p.ok} onClick={() => playCard(handCard)}>
-                    {p.ok ? `Play ${cardLabel(state, handCard)}` : (p.why ?? 'Cannot play')}
-                  </button>
-                  <button className="btn ghost narrow" onClick={() => setHandCard(null)}>Close</button>
-                </div>
-              )
-            })()}
-          </div>
-        </div>
-      )}
+      {handCard && (() => {
+        const p = playabilityOf(handCard)
+        return (
+          <CardSheet state={state} iid={handCard} onClose={() => setHandCard(null)} actions={<>
+            <button className="btn" disabled={!p.ok} onClick={() => playCard(handCard)}>
+              {p.ok ? `Play ${cardLabel(state, handCard)}` : (p.why ?? 'Cannot play')}
+            </button>
+            <button className="btn ghost narrow" onClick={() => setHandCard(null)}>Close</button>
+          </>} />
+        )
+      })()}
 
       {itemCard && (() => {
         const inst = state.stuff[itemCard.iid]
@@ -633,35 +637,34 @@ export function Table({
         const need = ab ? needsTarget(ab.effects) : null
         const close = () => setItemCard(null)
         return (
-          <div className="sheet-bg" onClick={close}>
-            <div className="cardsheet" onClick={(e) => e.stopPropagation()}>
-              <div className="cardsheet-face"><CardFace state={state} iid={itemCard.iid} focused /></div>
-              <div className="cardsheet-actions">
-                {ab && (
-                  <button className="btn" disabled={onCd || me.actionsLeft < ab.actionCost}
-                    onClick={() => {
-                      close(); setSelected(null)
-                      if (need) setTargeting({ kind: 'useItem', char: itemCard.char, iid: itemCard.iid, scope: need })
-                      else send({ k: 'useItem', char: itemCard.char, iid: itemCard.iid })
-                    }}>
-                    {onCd ? 'On cooldown' : `Use ${ab.name}${need ? ' —' : ''}`}
-                  </button>
-                )}
-                {eatable && (
-                  <button className="btn" disabled={blockedEat}
-                    onClick={() => { close(); setSelected(null); send({ k: 'consume', char: itemCard.char, iid: itemCard.iid }) }}>
-                    {blockedEat ? 'Not right now' : `${getCharacterDef(holder.defId).name} takes it`}
-                  </button>
-                )}
-                <button className="btn ghost narrow" onClick={close}>Close</button>
-              </div>
-            </div>
-          </div>
+          <CardSheet state={state} iid={itemCard.iid} onClose={close} actions={<>
+            {ab && (
+              <button className="btn" disabled={onCd || me.actionsLeft < ab.actionCost}
+                onClick={() => {
+                  close(); setSelected(null)
+                  if (need) setTargeting({ kind: 'useItem', char: itemCard.char, iid: itemCard.iid, scope: need })
+                  else send({ k: 'useItem', char: itemCard.char, iid: itemCard.iid })
+                }}>
+                {onCd ? 'On cooldown' : `Use ${ab.name}${need ? ' —' : ''}`}
+              </button>
+            )}
+            {eatable && (
+              <button className="btn" disabled={blockedEat}
+                onClick={() => { close(); setSelected(null); send({ k: 'consume', char: itemCard.char, iid: itemCard.iid }) }}>
+                {blockedEat ? 'Not right now' : `${getCharacterDef(holder.defId).name} takes it`}
+              </button>
+            )}
+            <button className="btn ghost narrow" onClick={close}>Close</button>
+          </>} />
         )
       })()}
 
-      {inspect && (
-        <InspectSheet state={state} iid={inspect} onClose={() => setInspect(null)} />
+      {inspect && state.characters[inspect] && (
+        <CardSheet
+          state={state} iid={inspect} onClose={() => setInspect(null)}
+          detail={<CharacterNumbers state={state} ch={state.characters[inspect]} />}
+          actions={<button className="btn ghost" onClick={() => setInspect(null)}>Close</button>}
+        />
       )}
 
       {showLog && (
@@ -680,6 +683,66 @@ export function Table({
 
       {error && <div className="toast">{error}</div>}
     </div>
+  )
+}
+
+
+/**
+ * Every full-card popup in the game: a card in hand, an item on the board, and
+ * inspecting a Character. They were three separate implementations and two of
+ * them could be open at once — the styled card sheet with the plain inspect
+ * panel stacked on top, showing the same rules text twice in worse type.
+ */
+function CardSheet({
+  state, iid, detail, actions, onClose,
+}: {
+  state: GameState
+  iid: InstanceId
+  detail?: React.ReactNode
+  actions: React.ReactNode
+  onClose: () => void
+}) {
+  return (
+    <div className="sheet-bg" onClick={onClose}>
+      <div className="cardsheet" onClick={(e) => e.stopPropagation()}>
+        <div className="cardsheet-face"><CardFace state={state} iid={iid} focused /></div>
+        {detail && <div className="cardsheet-detail">{detail}</div>}
+        <div className="cardsheet-actions">{actions}</div>
+      </div>
+    </div>
+  )
+}
+
+/** The numbers behind a Character, shown under their card while inspecting. */
+function CharacterNumbers({ state, ch }: { state: GameState; ch: any }) {
+  const def = getCharacterDef(ch.defId)
+  const auras = auraSummary(state, ch)
+  return (
+    <>
+      <div className="bd-pair">
+        <StatBreakdown state={state} ch={ch} stat="attack" />
+        <StatBreakdown state={state} ch={ch} stat="defense" />
+      </div>
+      <div className="limitbox">
+        <span className="field-label">How they are holding up</span>
+        <LimitMeters ch={ch} />
+        <div className="limitnames">
+          <i>{limitTierName(ch, 'alcohol')}</i>
+          <i>{limitTierName(ch, 'weed')}</i>
+          <i>{limitTierName(ch, 'food')}</i>
+        </div>
+        <p className="limitnote">
+          Tolerance {def.tolerance.alcohol} 🍺 · {def.tolerance.weed} 🌿 · {def.tolerance.food} 🍔.
+          The last pip is their line — crossing it turns a bonus into a problem.
+        </p>
+      </div>
+      {auras.length > 0 && (
+        <div className="aurabox">
+          <span className="field-label">Where they sit matters</span>
+          {auras.map((a, i) => <p key={i}>◈ {a}</p>)}
+        </div>
+      )}
+    </>
   )
 }
 
@@ -858,62 +921,6 @@ function StatBreakdown({ state, ch, stat }: { state: GameState; ch: any; stat: '
   )
 }
 
-function InspectSheet({ state, iid, onClose }: { state: GameState; iid: InstanceId; onClose: () => void }) {
-  const ch = state.characters[iid]
-  if (!ch) return null
-  const def = getCharacterDef(ch.defId)
-  const auras = auraSummary(state, ch)
-
-  return (
-    <div className="sheet-bg" onClick={onClose}>
-      <div className="sheet" onClick={(e) => e.stopPropagation()}>
-        <div className="sheet-head">
-          <CharacterPortrait defId={def.id} />
-          <div>
-            <h3 style={{ color: def.color }}>{def.name}</h3>
-            <div className="sub">{def.title}<br />{def.tags.join(' · ')}</div>
-          </div>
-        </div>
-
-        <div className="bd-pair">
-          <StatBreakdown state={state} ch={ch} stat="attack" />
-          <StatBreakdown state={state} ch={ch} stat="defense" />
-        </div>
-
-        <div className="limitbox">
-          <span className="field-label">How they are holding up</span>
-          <LimitMeters ch={ch} />
-          <div className="limitnames">
-            <i>{limitTierName(ch, 'alcohol')}</i>
-            <i>{limitTierName(ch, 'weed')}</i>
-            <i>{limitTierName(ch, 'food')}</i>
-          </div>
-          <p className="limitnote">
-            Tolerance {def.tolerance.alcohol} 🍺 · {def.tolerance.weed} 🌿 · {def.tolerance.food} 🍔.
-            The last pip is their line — crossing it is what turns a bonus into a problem.
-          </p>
-        </div>
-
-        {auras.length > 0 && (
-          <div className="aurabox">
-            <span className="field-label">Where they sit matters</span>
-            {auras.map((a, i) => <p key={i}>◈ {a}</p>)}
-          </div>
-        )}
-
-        <div className="inspect">
-          {def.passive && <p className="face-rule"><strong>{def.passive.name}</strong> {def.passive.text}</p>}
-          {def.ability && <p className="face-rule"><strong>{def.ability.name}</strong> {def.ability.text}</p>}
-          {def.powerMove && <p className="face-rule power"><strong>★ {def.powerMove.name}</strong> {def.powerMove.text}</p>}
-          {def.flaw && <p className="face-rule flaw"><strong>{def.flaw.name}</strong> {def.flaw.text}</p>}
-        </div>
-
-        <button className="btn ghost" style={{ marginTop: 12 }} onClick={onClose}>Close</button>
-      </div>
-    </div>
-  )
-}
-
 // ---------------------------------------------------------------------------
 
 function BattleBar({
@@ -957,6 +964,13 @@ function BattleBar({
           })}
         </div>
       )}
+      <p className="bb-explain">
+        {passed
+          ? 'Waiting on the rest of the table before the dice are rolled.'
+          : canInterfere
+            ? 'Before the dice: anyone at the table may throw in one Interfere card. Play one, or let it happen.'
+            : 'Before the dice: anyone holding an Interfere card may throw it in. You have none, so this is just your nod.'}
+      </p>
       <button className="btn" disabled={passed} onClick={() => send({ k: 'passInterference' })}>
         {passed
           ? `Waiting for ${state.players.length - b.passed.length} more…`

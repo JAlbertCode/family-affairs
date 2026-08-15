@@ -438,10 +438,17 @@ export function consumeCard(state: GameState, ch: CharacterInstance, iid: Instan
   log(state, `${chDef.name} consumes ${def.name}.`, 'play')
 
   const innerCtx: EffectCtx = { ...ctx, eventTarget: ch.iid }
-  if (def.limitGain) {
-    for (const [track, amt] of Object.entries(def.limitGain)) {
-      applyLimit(state, ch, track as LimitTrack, amt as number, innerCtx)
-    }
+
+  // Food is food. Eating always moves the Food track whether or not the card
+  // bothered to say so — leaving it to each author meant a card could quietly
+  // opt out of the one rule its whole subtype exists to express. Drink and
+  // Smoke are deliberately NOT defaulted: a Red Bull is not alcohol and a
+  // cigarette is not weed, and those cards mean their empty limitGain.
+  const gains: Partial<Record<LimitTrack, number>> = { ...(def.limitGain ?? {}) }
+  if (def.subtype === 'Food' && !gains.food) gains.food = 1
+
+  for (const [track, amt] of Object.entries(gains)) {
+    applyLimit(state, ch, track as LimitTrack, amt as number, innerCtx)
   }
   runEffects(state, def.effects, innerCtx)
 

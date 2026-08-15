@@ -210,9 +210,13 @@ export function stuffChips(def: StuffDef): EffectChip[] {
   for (const m of def.equipMods ?? []) {
     out.push({ label: `${STAT_GLYPH[m.stat] ?? m.stat}${sign(m.amount)}`, tone: m.amount > 0 ? 'good' : 'bad' })
   }
-  for (const [track, amt] of Object.entries(def.limitGain ?? {})) {
+  // Mirror the engine's rule that eating always moves the Food track, so the
+  // chip cannot promise something different from what happens.
+  const gains: Record<string, number> = { ...(def.limitGain ?? {}) }
+  if (def.subtype === 'Food' && !gains.food) gains.food = 1
+  for (const [track, amt] of Object.entries(gains)) {
     if (!amt) continue
-    out.push({ label: `${TRACK_GLYPH[track] ?? track}${sign(amt as number)}`, tone: 'note' })
+    out.push({ label: `${TRACK_GLYPH[track] ?? track}${sign(amt)}`, tone: 'note' })
   }
   walk(def.effects ?? [], out, false)
   if (def.activated) walk(def.activated.effects, out, false)

@@ -148,16 +148,6 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
-.viewswitch { display: flex; gap: 8px; padding: 8px 12px 6px; flex: none; }
-.viewswitch button {
-  flex: 1; min-height: 44px; border-radius: 12px; font-weight: 900; font-size: .88rem;
-  background: #150a14; border: 1px solid var(--line); color: var(--muted);
-}
-.viewswitch button[aria-selected="true"] {
-  background: linear-gradient(180deg, #ff6fae, #e03583); color: #fff; border-color: transparent;
-}
-.viewswitch b { font-weight: 900; opacity: .85; }
-
 .targetbar {
   display: flex; align-items: center; gap: 10px; padding: 9px 12px; flex: none;
   background: #4a3410; border-top: 1px solid #6b4d15; border-bottom: 1px solid #6b4d15;
@@ -307,7 +297,7 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
   background: #ffffff14; box-shadow: inset 0 0 0 1px #ffffff0d;
 }
 .m-pips b.over { background: #ffffff0a; box-shadow: inset 0 0 0 1px #ffffff22; }
-.m-alcohol .m-pips b.on, .meter.m-alcohol .m-pips b.on { background: #e07b3c; }
+.meter.m-alcohol .m-pips b.on { background: #e07b3c; }
 .meter.m-alcohol .m-pips b.on.over { background: #ff5d5d; }
 .meter.m-weed .m-pips b.on { background: #6d9f52; }
 .meter.m-weed .m-pips b.on.over { background: #9ae06a; }
@@ -459,6 +449,14 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
    flex item resolves to auto in practice, so the card kept growing to its
    content height and ran straight through the Play button underneath it. */
 .cardsheet-face { flex: 1 1 auto; min-height: 0; position: relative; overflow: hidden; }
+/* The numbers behind a Character, under their card while inspecting. Capped so
+   the card itself never gets squeezed out of the sheet. */
+.cardsheet-detail {
+  flex: 0 1 auto; max-height: 42%; overflow-y: auto;
+  background: #150a16; border: 1px solid var(--line); border-radius: 14px;
+  padding: 10px 11px 4px;
+}
+.cardsheet-detail .limitbox, .cardsheet-detail .aurabox { margin-bottom: 8px; }
 .cardsheet-face > .face { position: absolute; inset: 0; width: auto; }
 .cardsheet-actions { flex: none; display: flex; gap: 8px; }
 .cardsheet-actions .btn { flex: 1; min-height: 52px; }
@@ -658,8 +656,6 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
   border-top: 1px solid var(--line);
   display: flex; flex-direction: column; gap: 8px;
 }
-.bar2 { display: flex; gap: 8px; }
-.bar2 .btn { flex: 1; }
 .btn.narrow { flex: 0 0 34%; }
 .actionbar .btn { min-height: 52px; }
 .waiting { text-align: center; color: var(--muted); font-size: .86rem; padding: 14px 0; font-weight: 700; }
@@ -722,8 +718,6 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
 @keyframes slideUp { from { transform: translateY(60px); opacity: .4 } }
 .sheet h3 { margin: 0 0 2px; font-size: 1.2rem; font-weight: 900; }
 .sheet .sub { color: var(--muted); font-size: .8rem; line-height: 1.45; }
-.sheet-head { display: flex; gap: 12px; align-items: center; margin-bottom: 14px; }
-.sheet-head .portrait { width: 66px; height: 66px; border-radius: 14px; }
 .inspect { padding-top: 4px; }
 
 .opt {
@@ -769,7 +763,6 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
 .player-row:last-child { border-bottom: none; }
 .pill { font-size: .66rem; padding: 3px 9px; border-radius: 999px; background: var(--panel-2); color: var(--muted); font-weight: 700; }
 
-@media (min-height: 780px) { .railitem { flex-basis: 84%; } }
 @media (max-height: 680px) {
   .face-head h2 { font-size: 1.05rem }
   .fstat b { font-size: 1rem }
@@ -989,4 +982,18 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
 }
 @media (max-height: 640px) {
   .face-art { flex: 0 1 26%; }
+}
+
+/* While choosing a target, everything that is not a legal target gets out of
+   the way. Hunting for the one tappable thing is the slowest part of a turn. */
+.app:has(.targetbar) .tok:not(.target):not(.selected) { opacity: .38; filter: saturate(.5); }
+.tok.target { animation: targetPulse 1.5s ease-in-out infinite; }
+@keyframes targetPulse {
+  0%, 100% { box-shadow: 0 0 0 2px var(--gold); }
+  50%      { box-shadow: 0 0 0 4px color-mix(in srgb, var(--gold) 55%, transparent); }
+}
+
+.bb-explain {
+  margin: 6px 0 8px; font-size: .68rem; line-height: 1.4;
+  color: var(--muted); text-align: center;
 }

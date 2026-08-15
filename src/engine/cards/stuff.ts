@@ -423,7 +423,8 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'hotsauce', name: 'Hot Sauce', subtype: 'Food', copies: 3, giftable: true, icon: '🌶️', color: FOOD,
-    text: 'Goes on everything. +2 Attack for the Round. Does not count toward Food.',
+    text: 'Goes on everything and everything is better. +1 Food and +2 Attack for the Round.',
+    limitGain: { food: 1 },
     effects: [{ k: 'statMod', target: { scope: 'eventTarget' }, stat: 'attack', amount: 2, duration: 'round' }],
   },
   {
