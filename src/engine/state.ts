@@ -1,0 +1,982 @@
+import type {
+  GameState, PlayerId, Intent, InstanceId, CharacterInstance, StuffInstance,
+  Slot, LimitTrack, PlayerState, BattleState,
+} from './types'
+import {
+  buildFamilyDeckDefIds, buildAffairsDeckDefIds, getCharacterDef, getStuffDef,
+  getAffairDef, CHARACTERS_BY_ID, STUFF_BY_ID,
+} from './cards/deck'
+import { d6, shuffle } from './rng'
+import {
+  acrossFrom, activeCharacters, adjacentAllies, allActiveEveryone, canAct, canAttack, charmBlocks, currentPlayer,
+  countAttached, effectiveStat, familySize, gearSlots, hasStatus, hasTag, limitTier, itemCap, totalItemCap,
+  openSlots, rideSlots, isCurrentPlayer,
+} from './selectors'
+import {
+  applyDamage, applyLimit, applyStatMod, applyStatus, awardClout, consumeCard,
+  drawCards, discardRandom, log, needsTarget, removeStatus, rollBadLuck, runEffects,
+  type EffectCtx,
+} from './effects'
+
+export const HAND_LIMIT = 7          // §41
+export const ACTIONS_PER_TURN = 2    // §8 Phase 3
+export const CARDS_PER_TURN = 2      // §8 Phase 2
+export const STARTING_HAND = 5       // §6
+
+/**
+ * §2 offers 7 / 10 / 15 as Quick / Standard / Long. A flat number does not
+ * hold up across player counts: more players means more turns per Round, so
+ * the same threshold takes twice as long at a table of 6. Measured medians at
+ * ~20s per turn: 2P/10 = 29min, 4P/8 = 29min, 6P/7 = 34min. This keeps every
+ * table inside the 30-60 minute target. The host can still override it.
+ */
+export function defaultCloutToWin(playerCount: number): number {
+  if (playerCount <= 3) return 10
+  if (playerCount <= 5) return 8
+  return 7
+}
+
+let idCounter = 0
+function nid(prefix: string) { return `${prefix}${(idCounter++).toString(36)}` }
+
+// ---------------------------------------------------------------------------
+// Game creation (§6)
+// ---------------------------------------------------------------------------
+
+export function createGame(
+  players: { id: PlayerId; name: string }[],
+  opts: { seed?: number; cloutToWin?: number; useKitchenTable?: boolean } = {},
+): GameState {
+  idCounter = 0
+  const seed0 = opts.seed ?? 12345
+
+  const state: GameState = {
+    version: 1,
+    seed: seed0,
+    cloutToWin: opts.cloutToWin ?? 10,
+    players: players.map((p) => p.id),
+    playerState: {},
+    characters: {},
+    stuff: {},
+    familyDeck: [],
+    familyDiscard: [],
+    affairsDeck: [],
+    affairsDiscard: [],
+    kitchenTable: [null, null, null],
+    useKitchenTable: opts.useKitchenTable ?? false,
+    currentAffair: null,
+    round: 1,
+    turnIndex: 0,
+    phase: 'draw',
+    battle: null,
+    pending: null,
+    finalRound: false,
+    reachedThreshold: [],
+    winner: null,
+    achievementsScored: {},
+    cloutSources: {},
+    turnOrder: [],
+    log: [],
+    tick: 0,
+  }
+  for (const p of players) {
+    state.achievementsScored[p.id] = []
+    state.cloutSources[p.id] = { combat: 0, achievement: 0, other: 0 }
+  }
+
+  for (const p of players) {
+    state.playerState[p.id] = {
+      id: p.id, name: p.name, clout: 0, hand: [],
+      field: [null, null, null], bench: [],
+      actionsLeft: ACTIONS_PER_TURN, cardsPlayedThisTurn: 0,
+      interferedThisBattle: 0, connected: true,
+    }
+  }
+
+  // Build the Family Deck as concrete instances
+  const defIds = buildFamilyDeckDefIds(players.length)
+  const instances: InstanceId[] = []
+  for (const defId of defIds) {
+    if (CHARACTERS_BY_ID[defId]) {
+      const def = CHARACTERS_BY_ID[defId]
+      const iid = nid('c')
+      state.characters[iid] = {
+        iid, defId, owner: '', hp: def.stats.hp, maxHp: def.stats.hp,
+        limits: { alcohol: 0, weed: 0, food: 0 },
+        statuses: [], mods: [], attached: [],
+        actedThisTurn: false, koRecoveryTurns: 0,
+        zone: 'bench', slot: null, cooldowns: {},
+        achievementsScored: [], scratch: {},
+      }
+      instances.push(iid)
+    } else {
+      const iid = nid('s')
+      state.stuff[iid] = { iid, defId, owner: '', attachedTo: null }
+      instances.push(iid)
+    }
+  }
+
+  const sh = shuffle(instances, state.seed)
+  state.familyDeck = sh.arr
+  state.seed = sh.seed
+
+  const sa = shuffle(buildAffairsDeckDefIds(), state.seed)
+  state.affairsDeck = sa.arr
+  state.seed = sa.seed
+
+  // Deal 5, guaranteeing at least one Character (§6)
+  for (const p of players) dealOpeningHand(state, p.id)
+
+  const firstOrder = shuffle(state.players, state.seed)
+  state.turnOrder = firstOrder.arr
+  state.seed = firstOrder.seed
+
+  if (state.useKitchenTable) refillKitchenTable(state)
+
+  log(state, `Family Affairs — ${players.length} players, first to ${state.cloutToWin} Clout.`)
+  revealAffair(state)
+  log(state, `Round 1 turn order: ${state.turnOrder.map((p) => state.playerState[p].name).join(' -> ')}`)
+  return state
+}
+
+function dealOpeningHand(state: GameState, pid: PlayerId) {
+  const ps = state.playerState[pid]
+  for (let attempt = 0; attempt < 20; attempt++) {
+    ps.hand = []
+    drawCards(state, pid, STARTING_HAND)
+    const hasChar = ps.hand.some((i) => !!state.characters[i])
+    if (hasChar) break
+    // reveal, reshuffle, redraw (§6)
+    state.familyDeck.push(...ps.hand)
+    const r = shuffle(state.familyDeck, state.seed)
+    state.familyDeck = r.arr
+    state.seed = r.seed
+  }
+  // ownership stamp
+  for (const i of ps.hand) claim(state, i, pid)
+}
+
+function claim(state: GameState, iid: InstanceId, pid: PlayerId) {
+  if (state.characters[iid]) state.characters[iid].owner = pid
+  else if (state.stuff[iid]) state.stuff[iid].owner = pid
+}
+
+function refillKitchenTable(state: GameState) {
+  for (let i = 0; i < 3; i++) {
+    if (!state.kitchenTable[i]) {
+      const c = state.familyDeck.shift()
+      state.kitchenTable[i] = c ?? null
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Family Affairs (§29)
+// ---------------------------------------------------------------------------
+
+function revealAffair(state: GameState) {
+  if (state.affairsDeck.length === 0) {
+    const r = shuffle(state.affairsDiscard, state.seed)
+    state.affairsDeck = r.arr
+    state.seed = r.seed
+    state.affairsDiscard = []
+  }
+  const id = state.affairsDeck.shift()
+  if (!id) return
+  if (state.currentAffair) state.affairsDiscard.push(state.currentAffair)
+  state.currentAffair = id
+
+  const def = getAffairDef(id)
+  log(state, `FAMILY AFFAIR: ${def.name} — ${def.text}`, 'affair')
+
+  // Grandma "I Knew It" bookkeeping: she reacts to anything that hits her
+  const before = new Map(allActiveEveryone(state).map((c) => [c.iid, c.hp]))
+
+  runEffects(state, def.effects, { controller: currentPlayer(state) })
+
+  for (const c of allActiveEveryone(state)) {
+    if (getCharacterDef(c.defId).id !== 'grandma') continue
+    const hurt = (before.get(c.iid) ?? c.hp) > c.hp || c.statuses.length > 0 || c.mods.some((m) => m.amount < 0)
+    if (hurt && !c.scratch.iKnewIt) {
+      c.scratch.iKnewIt = 1
+      applyStatMod(state, c, 'attack', 1, 'round')
+      log(state, 'Grandma knew it. +1 Attack for the Round.', 'status')
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Bad Luck proneness (§28)
+// ---------------------------------------------------------------------------
+
+function badLuckThreshold(state: GameState, ch: CharacterInstance): number {
+  let t = 0
+  const s = ch.statuses.find((x) => x.name === 'Bad Luck')
+  if (s) t = Math.max(t, s.threshold ?? 1)
+  // Chi Chi — Bad Influence: anyone beside her, and anyone across from her,
+  // triggers Bad Luck on a natural 1-2. It catches her own family too. (§28)
+  for (const a of adjacentAllies(state, ch.iid)) {
+    if (getCharacterDef(a.defId).id === 'chichi') t = Math.max(t, 2)
+  }
+  for (const e of acrossFrom(state, ch.iid)) {
+    if (getCharacterDef(e.defId).id === 'chichi') t = Math.max(t, 2)
+  }
+  return t
+}
+
+// ---------------------------------------------------------------------------
+// Confusion / Wasted action-failure check (§21, §27)
+// ---------------------------------------------------------------------------
+
+function actionFails(state: GameState, ch: CharacterInstance): boolean {
+  const confused = hasStatus(ch, 'Confused')
+  const wasted = limitTier(ch, 'alcohol') === 3
+  if (!confused && !wasted) return false
+  const r = d6(state.seed)
+  state.seed = r.seed
+  const failed = r.face <= 2
+  log(
+    state,
+    `${getCharacterDef(ch.defId).name} is ${wasted ? 'Wasted' : 'Confused'} — rolled ${r.face}. ${failed ? 'The Action fails.' : 'It works.'}`,
+    'status',
+  )
+  return failed
+}
+
+// ---------------------------------------------------------------------------
+// Reducer
+// ---------------------------------------------------------------------------
+
+export interface ApplyResult { state: GameState; error?: string }
+
+export function applyIntent(prev: GameState, pid: PlayerId, intent: Intent): ApplyResult {
+  const state: GameState = structuredClone(prev)
+  try {
+    const err = handle(state, pid, intent)
+    if (err) return { state: prev, error: err }
+    checkAchievements(state)
+    return { state }
+  } catch (e: any) {
+    return { state: prev, error: e?.message ?? String(e) }
+  }
+}
+
+function handle(state: GameState, pid: PlayerId, intent: Intent): string | undefined {
+  if (state.phase === 'gameover') return 'The game is over.'
+  const ps = state.playerState[pid]
+  if (!ps) return 'Unknown player.'
+
+  // --- interference is the only thing legal while a battle is open ---
+  if (state.battle && !['interfere', 'passInterference', 'confirmRolls'].includes(intent.k)) {
+    return 'A battle is in progress — resolve it first.'
+  }
+
+  switch (intent.k) {
+    // ------------------------------------------------------------- DRAW ----
+    case 'drawCard': {
+      if (!isCurrentPlayer(state, pid)) return 'Not your turn.'
+      if (state.phase !== 'draw') return 'You have already drawn.'
+      if (intent.fromKitchenTable != null && state.useKitchenTable) {
+        const idx = intent.fromKitchenTable
+        const card = state.kitchenTable[idx]
+        if (!card) return 'That Kitchen Table slot is empty.'
+        state.kitchenTable[idx] = null
+        ps.hand.push(card)
+        claim(state, card, pid)
+        refillKitchenTable(state)
+        log(state, `${ps.name} takes a card from the Kitchen Table.`, 'play')
+      } else {
+        drawCards(state, pid, 1)
+        const last = ps.hand[ps.hand.length - 1]
+        if (last) claim(state, last, pid)
+        log(state, `${ps.name} draws.`, 'play')
+      }
+      state.phase = 'main'
+      return
+    }
+
+    // ------------------------------------------------------- PLAY A CARD ----
+    case 'playCard': {
+      if (!isCurrentPlayer(state, pid)) return 'Not your turn.'
+      if (state.phase !== 'main') return 'You must draw first.'
+      if (!ps.hand.includes(intent.iid)) return 'That card is not in your hand.'
+      if (ps.cardsPlayedThisTurn >= CARDS_PER_TURN) return `You may only play ${CARDS_PER_TURN} cards per Turn.`
+      return playCard(state, pid, intent.iid, intent.targetChar, intent.slot)
+    }
+
+    // ------------------------------------------------------------ ATTACK ----
+    case 'attack': {
+      if (!isCurrentPlayer(state, pid)) return 'Not your turn.'
+      if (state.phase !== 'main') return 'You must draw first.'
+      return declareAttack(state, pid, intent.attacker, intent.defender)
+    }
+
+    // ----------------------------------------------------------- ABILITY ----
+    case 'useAbility': {
+      if (!isCurrentPlayer(state, pid)) return 'Not your turn.'
+      if (state.phase !== 'main') return 'You must draw first.'
+      return useAbility(state, pid, intent.char, intent.which, intent.targetChar)
+    }
+
+    // ----------------------------------------------------------- CONSUME ----
+    // Free (no Family Action) but once per Character per Turn, so feeding stays
+    // fast at the table while attached Stuff remains a real, raidable board state.
+    case 'consume': {
+      if (!isCurrentPlayer(state, pid)) return 'Not your turn.'
+      const ch = state.characters[intent.char]
+      if (!ch || ch.owner !== pid) return 'Not your Character.'
+      if (ch.zone !== 'active') return 'That Character is not on the field.'
+      if (hasStatus(ch, 'Asleep')) return 'Asleep.'
+      if (ch.scratch.consumedThisTurn) return `${getCharacterDef(ch.defId).name} has already consumed this Turn.`
+      if (!ch.attached.includes(intent.iid)) return 'That item is not attached to this Character.'
+      const si = state.stuff[intent.iid]
+      if (!si) return 'Unknown item.'
+      const sd = getStuffDef(si.defId)
+      if (!['Food', 'Drink', 'Smoke'].includes(sd.subtype)) return `${sd.name} is not consumable.`
+      // §23: a Stuffed Character cannot voluntarily eat more Food
+      if (sd.subtype === 'Food' && limitTier(ch, 'food') === 3) {
+        return `${getCharacterDef(ch.defId).name} is Stuffed and cannot voluntarily eat.`
+      }
+      ch.scratch.consumedThisTurn = 1
+      consumeCard(state, ch, intent.iid, { controller: pid, sourceChar: ch.iid, eventTarget: ch.iid })
+      return
+    }
+
+    // -------------------------------------------------------------- SWAP ----
+    case 'swap': {
+      if (!isCurrentPlayer(state, pid)) return 'Not your turn.'
+      if (ps.actionsLeft < 1) return 'No Family Actions left.'
+      const a = state.characters[intent.activeChar]
+      const b = state.characters[intent.benchChar]
+      if (!a || a.owner !== pid || a.zone !== 'active') return 'Invalid Active Character.'
+      if (!b || b.owner !== pid || b.zone !== 'bench') return 'Invalid Benched Character.'
+      const slot = a.slot!
+      ps.field[slot] = b.iid
+      ps.bench = ps.bench.filter((x) => x !== b.iid).concat(a.iid)
+      b.zone = 'active'; b.slot = slot
+      a.zone = 'bench'; a.slot = null
+      ps.actionsLeft -= 1
+      log(state, `${ps.name} swaps ${getCharacterDef(a.defId).name} for ${getCharacterDef(b.defId).name}.`, 'play')
+      return
+    }
+
+    // ------------------------------------------------- RECOVER A STATUS ----
+    case 'recoverStatus': {
+      if (!isCurrentPlayer(state, pid)) return 'Not your turn.'
+      if (ps.actionsLeft < 1) return 'No Family Actions left.'
+      const ch = state.characters[intent.char]
+      if (!ch || ch.owner !== pid) return 'Not your Character.'
+      if (!hasStatus(ch, intent.status)) return 'That Character does not have that status.'
+      if (!['Confused', 'Busy', 'Charmed'].includes(intent.status)) return 'That status cannot be shaken off.'
+      removeStatus(state, ch, intent.status)
+      ps.actionsLeft -= 1
+      log(state, `${getCharacterDef(ch.defId).name} shakes off ${intent.status}.`, 'status')
+      return
+    }
+
+    // --------------------------------------------------------- INTERFERE ----
+    case 'interfere': {
+      if (!state.battle) return 'There is no battle to interfere with.'
+      if (ps.interferedThisBattle >= 1) return 'You have already interfered in this battle (§16).'
+      if (!ps.hand.includes(intent.iid)) return 'That card is not in your hand.'
+      const inst = state.stuff[intent.iid]
+      if (!inst) return 'Characters cannot be played as Interfere.'
+      const def = getStuffDef(inst.defId)
+      if (!def.interfere) return `${def.name} is not an Interfere card.`
+
+      ps.hand = ps.hand.filter((x) => x !== intent.iid)
+      state.familyDiscard.push(intent.iid)
+      ps.interferedThisBattle += 1
+
+      const b = state.battle
+      log(state, `${ps.name} interferes: ${def.name}.`, 'combat')
+      runEffects(state, def.effects, {
+        controller: pid,
+        attacker: b.attackerChar,
+        defender: b.defenderChar,
+        eventTarget: intent.targetChar ?? b.defenderChar,
+        chosen: intent.targetChar ? [intent.targetChar] : [],
+      })
+      // playing an interfere re-opens the window for everyone else
+      state.battle.passed = [pid]
+      maybeResolveBattle(state)
+      return
+    }
+
+    case 'passInterference': {
+      if (!state.battle) return 'There is no battle.'
+      if (!state.battle.passed.includes(pid)) state.battle.passed.push(pid)
+      maybeResolveBattle(state)
+      return
+    }
+
+    case 'confirmRolls': {
+      if (!state.battle) return 'There is no battle.'
+      resolveBattle(state)
+      return
+    }
+
+    // ------------------------------------------------------------ CHOICE ----
+    case 'resolveChoice':
+      return 'No pending choice.'
+
+    // ---------------------------------------------------------- END TURN ----
+    case 'endTurn': {
+      if (!isCurrentPlayer(state, pid)) return 'Not your turn.'
+      if (ps.hand.length > HAND_LIMIT) return `Discard down to ${HAND_LIMIT} cards first.`
+      endTurn(state, pid, intent.recover)
+      return
+    }
+
+    case 'discardDown': {
+      if (!isCurrentPlayer(state, pid)) return 'Not your turn.'
+      for (const iid of intent.iids) {
+        if (!ps.hand.includes(iid)) continue
+        ps.hand = ps.hand.filter((x) => x !== iid)
+        state.familyDiscard.push(iid)
+      }
+      log(state, `${ps.name} discards down to ${ps.hand.length}.`, 'play')
+      return
+    }
+
+    case 'startGame':
+      return 'Game already started.'
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Playing cards (§8 Phase 2)
+// ---------------------------------------------------------------------------
+
+function playCard(
+  state: GameState, pid: PlayerId, iid: InstanceId, targetChar?: InstanceId, slot?: Slot,
+): string | undefined {
+  const ps = state.playerState[pid]
+
+  // ---- Character: recruit ----
+  if (state.characters[iid]) {
+    const ch = state.characters[iid]
+    const def = getCharacterDef(ch.defId)
+    if (familySize(state, pid) >= 5) return 'Maximum Family size is 5 (3 Active + 2 Bench).'
+    ch.owner = pid
+    ch.hp = def.stats.hp
+    ch.maxHp = def.stats.hp
+
+    const free = openSlots(state, pid)
+    const want = slot != null && free.includes(slot) ? slot : free[0]
+    if (want != null) {
+      ps.field[want] = iid
+      ch.zone = 'active'; ch.slot = want
+      log(state, `${ps.name} recruits ${def.name} to the ${['LEFT', 'CENTER', 'RIGHT'][want]} slot.`, 'play')
+    } else {
+      if (ps.bench.length >= 2) return 'Bench is full (2 Characters).'
+      ps.bench.push(iid)
+      ch.zone = 'bench'; ch.slot = null
+      log(state, `${ps.name} recruits ${def.name} to the Bench.`, 'play')
+    }
+    ps.hand = ps.hand.filter((x) => x !== iid)
+    ps.cardsPlayedThisTurn += 1
+    return
+  }
+
+  // ---- Stuff ----
+  const inst = state.stuff[iid]
+  if (!inst) return 'Unknown card.'
+  const def = getStuffDef(inst.defId)
+
+  if (def.interfere && !targetChar) {
+    // interfere cards may also be played on your own turn as a normal card
+  }
+
+  const target = targetChar ? state.characters[targetChar] : undefined
+  const ctx: EffectCtx = { controller: pid, sourceChar: targetChar, eventTarget: targetChar, chosen: targetChar ? [targetChar] : [] }
+
+  switch (def.subtype) {
+    case 'Gear':
+    case 'Ride': {
+      if (!target) return `${def.name} must be equipped to a Character.`
+      if (target.owner !== pid) return 'You can only equip your own Characters.'
+      if (target.zone === 'recovering') return 'That Character is recovering.'
+      const limit = def.subtype === 'Gear' ? gearSlots(target) : rideSlots(target)
+      if (countAttached(state, target, def.subtype) >= limit) {
+        return `${getCharacterDef(target.defId).name} can only carry ${limit} ${def.subtype}.`
+      }
+      target.attached.push(iid)
+      inst.attachedTo = target.iid
+      inst.owner = pid
+      log(state, `${getCharacterDef(target.defId).name} equips ${def.name}.`, 'play')
+      break
+    }
+
+    case 'Food':
+    case 'Drink':
+    case 'Smoke': {
+      // Consumables ATTACH to the Character and sit there until eaten. That is
+      // what makes them stealable, force-feedable, and worth fighting over —
+      // and it is what Amanda's "up to 4 Items attached / max 2 Food" implies.
+      if (!target) return `${def.name} must be given to a Character.`
+      if (target.zone === 'recovering') return 'That Character is recovering.'
+      if (countAttached(state, target, def.subtype) >= itemCap(target, def.subtype)) {
+        return `${getCharacterDef(target.defId).name} cannot hold another ${def.subtype}.`
+      }
+      if (target.attached.length >= totalItemCap(target)) {
+        return `${getCharacterDef(target.defId).name} is carrying too much already.`
+      }
+      inst.owner = pid
+      target.attached.push(iid)
+      inst.attachedTo = target.iid
+      log(state, `${ps.name} gives ${def.name} to ${getCharacterDef(target.defId).name}.`, 'play')
+      break
+    }
+
+    case 'Consumable': {
+      log(state, `${ps.name} plays ${def.name}.`, 'play')
+      runEffects(state, def.effects, ctx)
+      state.familyDiscard.push(iid)
+      break
+    }
+  }
+
+  ps.hand = ps.hand.filter((x) => x !== iid)
+  ps.cardsPlayedThisTurn += 1
+  return
+}
+
+// ---------------------------------------------------------------------------
+// Abilities (§8 Phase 3)
+// ---------------------------------------------------------------------------
+
+function useAbility(
+  state: GameState, pid: PlayerId, charIid: InstanceId, which: 'ability' | 'powerMove', targetChar?: InstanceId,
+): string | undefined {
+  const ps = state.playerState[pid]
+  const ch = state.characters[charIid]
+  if (!ch || ch.owner !== pid) return 'Not your Character.'
+
+  const def = getCharacterDef(ch.defId)
+  const ability = which === 'ability' ? def.ability : def.powerMove
+  if (!ability) return 'That Character has no such ability.'
+
+  const act = canAct(state, ch)
+  if (!act.ok) return act.why
+
+  if (ability.actionCost > 0 && ps.actionsLeft < ability.actionCost) return 'No Family Actions left.'
+
+  if (ability.oncePerGame && ch.cooldowns[ability.name] === -1) return `${ability.name} is once per game.`
+  if (ability.cooldown && (ch.cooldowns[ability.name] ?? -99) > state.round) {
+    return `${ability.name} is on cooldown until Round ${ch.cooldowns[ability.name]}.`
+  }
+  if (ability.requiresLimit) {
+    for (const [track, min] of Object.entries(ability.requiresLimit)) {
+      if (ch.limits[track as LimitTrack] < (min as number)) {
+        return `${def.name} needs ${track} ${min}+ to use ${ability.name}.`
+      }
+    }
+  }
+
+  const need = needsTarget(ability.effects)
+  if (need && !targetChar) return `${ability.name} needs a target.`
+  if (targetChar) {
+    const t = state.characters[targetChar]
+    if (!t) return 'Invalid target.'
+    if (need === 'enemy' && t.owner === pid) return 'That ability targets an enemy.'
+    if (need === 'ally' && t.owner !== pid) return 'That ability targets an ally.'
+  }
+
+  // pay first
+  ps.actionsLeft -= ability.actionCost
+  ch.actedThisTurn = true
+
+  log(state, `${def.name} uses ${ability.name}.`, 'play')
+
+  if (actionFails(state, ch)) return
+
+  if (ability.oncePerGame) ch.cooldowns[ability.name] = -1
+  else if (ability.cooldown) ch.cooldowns[ability.name] = state.round + ability.cooldown
+
+  runEffects(state, ability.effects, {
+    controller: pid,
+    sourceChar: charIid,
+    eventTarget: targetChar ?? charIid,
+    chosen: targetChar ? [targetChar] : [],
+  })
+  return
+}
+
+// ---------------------------------------------------------------------------
+// Combat (§14)
+// ---------------------------------------------------------------------------
+
+function declareAttack(
+  state: GameState, pid: PlayerId, attackerIid: InstanceId, defenderIid: InstanceId,
+): string | undefined {
+  const ps = state.playerState[pid]
+  const atk = state.characters[attackerIid]
+  const dfn = state.characters[defenderIid]
+  if (!atk || atk.owner !== pid) return 'Not your Character.'
+  if (!dfn) return 'Invalid target.'
+  if (dfn.owner === pid) return 'You cannot attack your own Family.'
+  if (dfn.zone !== 'active') return 'You can only attack Active Characters.'
+  if (hasStatus(dfn, 'Away')) return 'That Character is Away.'
+
+  const free = ((atk.scratch.freeAttacks as number) ?? 0) > 0
+  const check = free
+    ? (atk.zone === 'active' && !hasStatus(atk, 'Asleep') && !hasStatus(atk, 'Away') ? { ok: true as const } : { ok: false as const, why: 'Cannot act' })
+    : canAttack(state, atk)
+  if (!check.ok) return check.why
+  if (charmBlocks(atk, defenderIid)) return 'Charmed — cannot attack that Character.'
+  if (!free && ps.actionsLeft < 1) return 'No Family Actions left.'
+
+  if (free) {
+    atk.scratch.freeAttacks = ((atk.scratch.freeAttacks as number) ?? 0) - 1
+  } else {
+    ps.actionsLeft -= 1
+    atk.actedThisTurn = true
+  }
+
+  // Titi The Bum "Attention Hunger" bookkeeping
+  atk.scratch.engaged = 1
+  dfn.scratch.engaged = 1
+
+  const battle: BattleState = {
+    attackerPlayer: pid,
+    attackerChar: attackerIid,
+    defenderPlayer: dfn.owner,
+    defenderChar: defenderIid,
+    stage: 'declared',
+    passed: [],
+    attackRoll: null, defenseRoll: null,
+    attackScore: null, defenseScore: null,
+    attackMod: (atk.scratch.freeAttackMod as number) ?? 0,
+    defenseMod: 0,
+    damageDealt: null,
+    isFree: free,
+    log: [],
+  }
+  if (free) atk.scratch.freeAttackMod = 0
+
+  state.battle = battle
+  for (const p of state.players) state.playerState[p].interferedThisBattle = 0
+
+  log(
+    state,
+    `${getCharacterDef(atk.defId).name} attacks ${getCharacterDef(dfn.defId).name}. Interference window is open.`,
+    'combat',
+  )
+
+  maybeResolveBattle(state)
+  return
+}
+
+/** A player auto-passes if they hold no playable Interfere card or already used theirs. */
+function canStillInterfere(state: GameState, pid: PlayerId): boolean {
+  const ps = state.playerState[pid]
+  if (ps.interferedThisBattle >= 1) return false
+  return ps.hand.some((i) => {
+    const s = state.stuff[i]
+    return s && getStuffDef(s.defId).interfere
+  })
+}
+
+function maybeResolveBattle(state: GameState) {
+  const b = state.battle
+  if (!b) return
+  for (const p of state.players) {
+    if (!b.passed.includes(p) && !canStillInterfere(state, p)) b.passed.push(p)
+  }
+  if (b.passed.length >= state.players.length) resolveBattle(state)
+}
+
+function resolveBattle(state: GameState) {
+  const b = state.battle
+  if (!b) return
+  const atk = state.characters[b.attackerChar]
+  const dfn = state.characters[b.defenderChar]
+  if (!atk || !dfn || dfn.hp <= 0 || atk.hp <= 0) {
+    state.battle = null
+    return
+  }
+
+  const atkDef = getCharacterDef(atk.defId)
+  const dfnDef = getCharacterDef(dfn.defId)
+
+  // Amanda — Momma Bird: redirect onto her, once per Round
+  let realDefender = dfn
+  for (const ally of adjacentAllies(state, dfn.iid)) {
+    if (getCharacterDef(ally.defId).id === 'amanda' && !ally.scratch.mommaBirdUsed && ally.owner === dfn.owner) {
+      ally.scratch.mommaBirdUsed = 1
+      realDefender = ally
+      log(state, `Momma Bird — Amanda takes the hit for ${dfnDef.name}.`, 'combat')
+      break
+    }
+  }
+
+  // Confusion / Wasted check happens at the moment of the attack
+  if (actionFails(state, atk)) {
+    log(state, `${atkDef.name}'s attack falls apart.`, 'combat')
+    state.battle = null
+    return
+  }
+
+  // Step 3 & 4 — rolls (§14)
+  let r = d6(state.seed); state.seed = r.seed
+  const attackRoll = r.face
+  r = d6(state.seed); state.seed = r.seed
+  const defenseRoll = r.face
+
+  const atkStat = effectiveStat(state, atk, 'attack')
+  const dfnStat = effectiveStat(state, realDefender, 'defense')
+
+  let attackScore = atkStat + attackRoll + b.attackMod
+  const defenseScore = dfnStat + defenseRoll + b.defenseMod
+
+  const pacifistPenalty = 0
+
+  b.attackRoll = attackRoll
+  b.defenseRoll = defenseRoll
+  b.attackScore = attackScore
+  b.defenseScore = defenseScore
+  b.stage = 'resolved'
+
+  log(
+    state,
+    `${atkDef.name} ${atkStat}+${attackRoll}${b.attackMod ? `${b.attackMod > 0 ? '+' : ''}${b.attackMod}` : ''} = ${attackScore}  vs  ${getCharacterDef(realDefender.defId).name} ${dfnStat}+${defenseRoll}${b.defenseMod ? `${b.defenseMod > 0 ? '+' : ''}${b.defenseMod}` : ''} = ${defenseScore}`,
+    'combat',
+  )
+
+  // Step 5 — damage (§14)
+  const raw = attackScore - defenseScore
+  const damage = Math.max(0, raw - pacifistPenalty)
+  b.damageDealt = damage
+
+  const ctx: EffectCtx = {
+    controller: b.attackerPlayer,
+    sourceChar: atk.iid,
+    attacker: atk.iid,
+    defender: realDefender.iid,
+    eventTarget: realDefender.iid,
+  }
+
+  if (damage > 0) {
+    applyDamage(state, realDefender, damage, ctx)
+    // Grandma achievement: KO with Abuela's Wrath is handled in the ability;
+    // Gabby achievement: KO while holding Gear
+    if (realDefender.hp <= 0 && atkDef.id === 'gabby' && countAttached(state, atk, 'Gear') > 0) {
+      atk.scratch.koWithGear = 1
+    }
+  } else {
+    log(state, 'No damage — the Defense held.', 'combat')
+  }
+
+  // Natural rolls (§14)
+  const atkBL = badLuckThreshold(state, atk)
+  if (atkBL > 0 && attackRoll <= atkBL) rollBadLuck(state, atk, ctx)
+  const dfnBL = badLuckThreshold(state, realDefender)
+  if (dfnBL > 0 && defenseRoll <= dfnBL) rollBadLuck(state, realDefender, { ...ctx, attacker: undefined })
+
+  state.battle = null
+}
+
+// ---------------------------------------------------------------------------
+// End of turn / round (§7, §8 Phase 4, §24)
+// ---------------------------------------------------------------------------
+
+function endTurn(state: GameState, pid: PlayerId, recover?: LimitTrack) {
+  const ps = state.playerState[pid]
+
+  // Limit recovery: one track down by 1 (§24)
+  for (const ch of Object.values(state.characters)) {
+    if (ch.owner !== pid || ch.zone === 'recovering') continue
+    const track = recover ?? pickRecoveryTrack(ch)
+    if (track && ch.limits[track] > 0) {
+      ch.limits[track] -= 1
+    }
+  }
+
+  // Expire 'turn' modifiers and 0-duration statuses
+  for (const ch of Object.values(state.characters)) {
+    ch.mods = ch.mods.filter((m) => m.duration !== 'turn')
+    // duration -1 = until removed; otherwise tick down on the owner's turn end
+    ch.statuses = ch.statuses
+      .map((s) => (ch.owner === pid && s.duration > 0 ? { ...s, duration: s.duration - 1 } : s))
+      .filter((s) => s.duration === -1 || s.duration > 0)
+    ch.actedThisTurn = false
+    delete ch.scratch.freeAttacks
+    delete ch.scratch.freeAttackMod
+    delete ch.scratch.consumedThisTurn
+  }
+
+  // KO recovery (§15)
+  for (const ch of Object.values(state.characters)) {
+    if (ch.owner !== pid || ch.zone !== 'recovering') continue
+    ch.koRecoveryTurns -= 1
+    if (ch.koRecoveryTurns <= 0) {
+      const def = getCharacterDef(ch.defId)
+      ch.hp = def.stats.hp
+      const free = openSlots(state, pid)
+      if (free.length > 0) {
+        ps.field[free[0]] = ch.iid
+        ch.zone = 'active'; ch.slot = free[0]
+      } else if (ps.bench.length < 2) {
+        ps.bench.push(ch.iid)
+        ch.zone = 'bench'; ch.slot = null
+      } else {
+        ch.koRecoveryTurns = 1
+        continue
+      }
+      log(state, `${def.name} recovers and returns at full HP.`, 'status')
+    }
+  }
+
+  // Grandma / Gabby "must eat" flaw
+  for (const ch of activeCharacters(state, pid)) {
+    const def = getCharacterDef(ch.defId)
+    if ((def.id === 'grandma' || def.id === 'gabby') && ch.limits.food === 0) {
+      applyStatMod(state, ch, 'attack', def.id === 'gabby' ? -2 : -1, 'round')
+      log(state, `${def.name} is hungry and not in the mood.`, 'status')
+    }
+  }
+
+  ps.actionsLeft = ACTIONS_PER_TURN
+  ps.cardsPlayedThisTurn = 0
+  ps.interferedThisBattle = 0
+
+  log(state, `${ps.name} ends their Turn.`)
+
+  // advance
+  state.turnIndex = (state.turnIndex + 1) % state.turnOrder.length
+  if (state.turnIndex === 0) {
+    if (state.finalRound) { finishGame(state); return }
+    startNewRound(state)
+  }
+
+  state.phase = state.phase === 'gameover' ? 'gameover' : 'draw'
+  if (state.phase !== 'gameover') {
+    log(state, `${state.playerState[currentPlayer(state)].name}'s Turn.`)
+  }
+}
+
+/** Highest Clout wins; ties go to whoever crossed the threshold first. */
+function finishGame(state: GameState) {
+  const ranked = [...state.players].sort((a, b) => {
+    const d = state.playerState[b].clout - state.playerState[a].clout
+    if (d !== 0) return d
+    const ia = state.reachedThreshold.indexOf(a)
+    const ib = state.reachedThreshold.indexOf(b)
+    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib)
+  })
+  state.winner = ranked[0]
+  state.phase = 'gameover'
+  const ps = state.playerState[state.winner]
+  log(state, `${ps.name} wins with ${ps.clout} Clout!`, 'clout')
+}
+
+function pickRecoveryTrack(ch: CharacterInstance): LimitTrack | null {
+  const tiers: [LimitTrack, number][] = [
+    ['alcohol', limitTier(ch, 'alcohol')],
+    ['weed', limitTier(ch, 'weed')],
+    ['food', limitTier(ch, 'food')],
+  ]
+  tiers.sort((a, b) => b[1] - a[1])
+  return tiers[0][1] > 0 ? tiers[0][0] : null
+}
+
+function startNewRound(state: GameState) {
+  state.round += 1
+
+  // Re-roll seating every Round. With a fixed order the last seat always swings
+  // at the most-softened board and farms the kills; the sim had seat 6 taking
+  // 1.38 KOs a game against seat 1's 0.54. Rotating removes that entirely and
+  // fits a family that has never once started anything on time.
+  const ro = shuffle(state.players, state.seed)
+  state.turnOrder = ro.arr
+  state.seed = ro.seed
+
+  // Titi The Bum — Attention Hunger
+  for (const ch of allActiveEveryone(state)) {
+    if (getCharacterDef(ch.defId).id === 'titibum' && !ch.scratch.engaged) {
+      applyStatMod(state, ch, 'attack', -1, 'round')
+      log(state, 'Titi The Bum was ignored all Round. -1 Attack.', 'status')
+    }
+  }
+
+  // expire round modifiers, clear per-round scratch
+  for (const ch of Object.values(state.characters)) {
+    ch.mods = ch.mods.filter((m) => m.duration === 'permanent')
+    ch.scratch = {}
+  }
+
+  log(state, `--- Round ${state.round} --- order: ${state.turnOrder.map((p) => state.playerState[p].name).join(' -> ')}`)
+  revealAffair(state)
+}
+
+// ---------------------------------------------------------------------------
+// Achievements (§2)
+// ---------------------------------------------------------------------------
+
+function checkAchievements(state: GameState) {
+  for (const ch of Object.values(state.characters)) {
+    const def = getCharacterDef(ch.defId)
+    const a = def.achievement
+    if (!a || !ch.owner) continue
+    // Scored per PLAYER, not per card instance — a 6-player deck holds two
+    // copies of every Character and double-dipping was a real Clout leak.
+    const scored = state.achievementsScored[ch.owner] ?? (state.achievementsScored[ch.owner] = [])
+    if (scored.includes(a.key)) continue
+    if (!achievementMet(state, ch, a.key)) continue
+    scored.push(a.key)
+    ch.achievementsScored.push(a.key)
+    awardClout(state, ch.owner, a.clout, `${def.name}: ${a.name}`)
+  }
+}
+
+function achievementMet(state: GameState, ch: CharacterInstance, key: string): boolean {
+  const mine = activeCharacters(state, ch.owner)
+  switch (key) {
+    case 'hotbox':
+      return mine.length === 3 && mine.every((c) => c.limits.weed >= 2)
+    case 'cleanPlateClub':
+      return ((ch.scratch.foodsThisRound as string[]) ?? []).length >= 3
+    case 'maximumChaos': {
+      const enemies = state.players.filter((p) => p !== ch.owner).flatMap((p) => activeCharacters(state, p))
+      return new Set(enemies.filter((c) => c.statuses.length > 0).map((c) => c.owner)).size >= 3
+    }
+    case 'respectBigSexy':
+      return ch.zone === 'active' && ch.hp > 0 && ch.hp <= 5 && state.round >= 3
+    case 'respectYourElders':
+      return !!ch.scratch.kos && (ch.scratch.kos as number) >= 1
+    case 'playItYourWay':
+      return mine.length === 3 && mine.every((c) => c.mods.some((m) => m.amount > 0))
+    case 'familyFeast':
+      return mine.length === 3 && mine.every((c) => c.limits.food >= 1)
+    case 'turnIntoAShot':
+      return ((ch.scratch.kos as number) ?? 0) >= 2
+    case 'kindnessWinsSouls':
+      return ((ch.scratch.healed as number) ?? 0) >= 8
+    case 'pineapplePower':
+      return !!ch.scratch.koWithGear
+    case 'victoryIsControl':
+      return ((ch.scratch.statusedTargets as string[]) ?? []).length >= 4
+    case 'collectAndKeep': {
+      const owned = Object.values(state.characters).filter((c) => c.owner === ch.owner)
+      return owned.reduce((n, c) => n + c.attached.length, 0) >= 3
+    }
+    default:
+      return false
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Redaction — each client only sees its own hand (§ hidden information)
+// ---------------------------------------------------------------------------
+
+export function redactFor(state: GameState, viewer: PlayerId): GameState {
+  const s: GameState = structuredClone(state)
+  for (const pid of s.players) {
+    if (pid === viewer) continue
+    const ps = s.playerState[pid]
+    ps.hand = ps.hand.map((_, i) => `hidden:${pid}:${i}`)
+  }
+  s.familyDeck = s.familyDeck.map((_, i) => `deck:${i}`)
+  return s
+}
