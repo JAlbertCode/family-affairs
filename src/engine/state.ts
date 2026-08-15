@@ -1133,6 +1133,10 @@ function achievementMet(state: GameState, ch: CharacterInstance, key: string): b
       return mine.length === 3 && mine.every((c) => c.limits.weed >= 2)
     case 'cleanPlateClub':
       return ((ch.scratch.foodsThisRound as string[]) ?? []).length >= 3
+    case 'thatsAWrap': {
+      const enemies = state.players.filter((p) => p !== ch.owner).flatMap((p) => activeCharacters(state, p))
+      return enemies.filter((c) => c.statuses.some((st) => st.name === 'Confused')).length >= 3
+    }
     case 'maximumChaos': {
       const enemies = state.players.filter((p) => p !== ch.owner).flatMap((p) => activeCharacters(state, p))
       return new Set(enemies.filter((c) => c.statuses.length > 0).map((c) => c.owner)).size >= 3

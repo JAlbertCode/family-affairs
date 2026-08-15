@@ -117,6 +117,9 @@ export type Effect =
   | { k: 'damage'; target: TargetSpec; amount: number; ignoreDefense?: boolean }
   | { k: 'heal'; target: TargetSpec; amount: number }
   | { k: 'statMod'; target: TargetSpec; stat: StatName; amount: number; duration: StatMod['duration'] }
+  /** Trade Attack and Defense for the Round. Expressed as a swap rather than
+   *  two statMods because the amounts depend on the Character it lands on. */
+  | { k: 'swapStats'; target: TargetSpec }
   | { k: 'status'; target: TargetSpec; status: StatusName; duration: number; threshold?: number }
   | { k: 'removeStatus'; target: TargetSpec; status: StatusName }
   | { k: 'limit'; target: TargetSpec; track: LimitTrack; amount: number }

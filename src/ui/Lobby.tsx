@@ -14,6 +14,7 @@ export function Lobby({
   busy: boolean
 }) {
   const [localCount, setLocalCount] = useState(4)
+  const [localNames, setLocalNames] = useState<string[]>([])
   const [name, setName] = useState(() => localStorage.getItem('fa.name') ?? '')
   const [code, setCode] = useState('')
   const [screen, setScreen] = useState<'home' | 'join' | 'local'>('home')
@@ -154,10 +155,25 @@ export function Lobby({
                 <button key={n} aria-pressed={localCount === n} onClick={() => setLocalCount(n)}>{n}</button>
               ))}
             </div>
+            <span className="field-label" style={{ marginTop: 12 }}>Who is playing?</span>
+            <div className="namelist">
+              {Array.from({ length: localCount }, (_, i) => (
+                <input
+                  key={i} type="text" className="name-input" maxLength={14}
+                  value={localNames[i] ?? ''}
+                  placeholder={`Player ${i + 1}`}
+                  autoCapitalize="words" autoCorrect="off"
+                  onChange={(e) => setLocalNames((ns) => {
+                    const next = [...ns]
+                    next[i] = e.target.value
+                    return next
+                  })}
+                />
+              ))}
+            </div>
             <div className="lobby-tag" style={{ marginTop: 8 }}>
-              Everyone plays on this screen, one turn at a time. A gold banner at the top always
-              says whose turn it is, so you know when to hand it over. You can also play all the
-              seats yourself to learn the game.
+              Names are optional, but the game says whose turn it is by name — so on one screen it
+              is a lot easier to know who to hand it to. A gold banner at the top always shows it.
               <br /><br />
               First to {defaultCloutToWin(localCount)} Clout wins — roughly 30-40 minutes.
             </div>
@@ -165,7 +181,7 @@ export function Lobby({
           <button
             className="btn gold" data-testid="start-local"
             onClick={() => onLocal(
-              Array.from({ length: localCount }, (_, i) => `Player ${i + 1}`),
+              Array.from({ length: localCount }, (_, i) => (localNames[i] ?? '').trim() || `Player ${i + 1}`),
               defaultCloutToWin(localCount), false,
             )}
           >Start game</button>

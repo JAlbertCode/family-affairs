@@ -149,11 +149,20 @@ export const AFFAIRS: AffairDef[] = [
     ],
   },
   {
-    kind: 'affair', id: 'roadtrip', name: 'Road Trip', duration: 'round', color: C,
-    text: 'Everyone piles in. All Wheel Gang Characters gain +2 Defense and +1 Attack. Everyone without a Ride loses 1 Speed.',
+    kind: 'affair', id: 'summervacation', name: 'Summer Vacation', duration: 'round', color: C,
+    text: 'School is out. Every Kid at the table gets a burst of energy and +2 Attack for the Round, and the Adults gain +1 Defense from bracing for it.',
     effects: [
-      { k: 'statMod', target: { scope: 'allActiveEveryone', withTag: 'Wheel Gang' }, stat: 'attack', amount: 2, duration: 'round' },
+      { k: 'statMod', target: { scope: 'allActiveEveryone', withTag: 'Kid' }, stat: 'attack', amount: 2, duration: 'round' },
+      { k: 'statMod', target: { scope: 'allActiveEveryone', withoutTag: 'Kid' }, stat: 'defense', amount: 1, duration: 'round' },
+    ],
+  },
+  {
+    kind: 'affair', id: 'roadtrip', name: 'Road Trip', duration: 'round', color: C,
+    text: 'Everyone piles in. All Wheel Gang Characters gain +2 Defense and +1 Attack. Everyone without a Ride is squashed in the back: -1 Attack.',
+    effects: [
+      { k: 'statMod', target: { scope: 'allActiveEveryone', withTag: 'Wheel Gang' }, stat: 'defense', amount: 2, duration: 'round' },
       { k: 'statMod', target: { scope: 'allActiveEveryone', withTag: 'Wheel Gang' }, stat: 'attack', amount: 1, duration: 'round' },
+      { k: 'statMod', target: { scope: 'allActiveEveryone', withoutTag: 'Wheel Gang' }, stat: 'attack', amount: -1, duration: 'round' },
     ],
   },
   {

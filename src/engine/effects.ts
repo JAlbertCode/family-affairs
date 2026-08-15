@@ -273,6 +273,13 @@ export function removeStatus(state: GameState, target: CharacterInstance, name: 
 
 export function applyLimit(state: GameState, target: CharacterInstance, track: LimitTrack, amount: number, ctx: EffectCtx) {
   const def = getCharacterDef(target.defId)
+
+  // Elias — Empty Stomach. Drinking on nothing hits twice as hard, which is
+  // why somebody handing him tequila before dinner is a real decision.
+  if (def.id === 'elias' && track === 'alcohol' && amount > 0 && target.limits.food === 0) {
+    amount += 1
+    log(state, 'Elias drank on an empty stomach. That one counts double.', 'status')
+  }
   const before = limitTier(target, track)
   const cap = def.tolerance[track] + 1
   target.limits[track] = Math.max(0, Math.min(cap, target.limits[track] + amount))
@@ -287,6 +294,20 @@ export function applyLimit(state: GameState, target: CharacterInstance, track: L
   if (track === 'food' && def.id === 'dorian' && target.limits.food > def.tolerance.food) {
     applyStatus(state, target, 'Asleep', 1, ctx)
     log(state, 'Dorian enters Food Coma.', 'status')
+  }
+
+  // Elias — What Were We Making? Crossing into Stoned sends him to the fridge
+  // whether or not that was the plan. Eating a Food only moves the Food track,
+  // so this cannot re-enter itself.
+  if (track === 'weed' && def.id === 'elias' && before < 2 && after >= 2) {
+    const food = target.attached.find((i) => {
+      const st = state.stuff[i]
+      return st && getStuffDef(st.defId).subtype === 'Food'
+    })
+    if (food) {
+      log(state, 'Munchies. Elias forgets the script entirely and eats.', 'status')
+      consumeCard(state, target, food, ctx)
+    }
   }
 }
 
@@ -471,6 +492,16 @@ function runEffect(state: GameState, e: Effect, ctx: EffectCtx) {
     }
     case 'removeStatus': {
       for (const t of resolveTargets(state, e.target, ctx)) removeStatus(state, t, e.status)
+      break
+    }
+    case 'swapStats': {
+      for (const t of resolveTargets(state, e.target, ctx)) {
+        const a = effectiveStat(state, t, 'attack')
+        const d = effectiveStat(state, t, 'defense')
+        applyStatMod(state, t, 'attack', d - a, 'round')
+        applyStatMod(state, t, 'defense', a - d, 'round')
+        log(state, `${getCharacterDef(t.defId).name}'s defence is doing the hitting now.`, 'status')
+      }
       break
     }
     case 'limit': {

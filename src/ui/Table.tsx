@@ -40,6 +40,10 @@ export function Table({
   const [selected, setSelected] = useState<InstanceId | null>(null)   // my character, inline actions
   const [inspect, setInspect] = useState<InstanceId | null>(null)     // any character, read-only sheet
   const [handCard, setHandCard] = useState<InstanceId | null>(null)   // full-size card sheet
+  // An item already on the board opens the same way a card in hand does:
+  // read it first, act second. Firing on the first tap meant looking at a
+  // beer was indistinguishable from drinking it.
+  const [itemCard, setItemCard] = useState<{ iid: InstanceId; char: InstanceId } | null>(null)
   const [showLog, setShowLog] = useState(false)
   const [affairOpen, setAffairOpen] = useState(false)
   const [turnFlash, setTurnFlash] = useState(false)
@@ -75,6 +79,7 @@ export function Table({
     setInspect(null)
     setSelected(null)
     setHandCard(null)
+    setItemCard(null)
     setTargeting(null)
     setShowLog(false)
   }, [you, state.turnIndex, state.round])
@@ -130,9 +135,9 @@ export function Table({
       return
     }
     const def = getStuffDef(state.stuff[iid].defId)
-    if (def.subtype === 'Consumable') { send({ k: 'playCard', iid }); return }
-    const t = legalTargets(iid)
-    if (t.length === 1) { send({ k: 'playCard', iid, targetChar: t[0] }); return }
+    if (def.subtype === 'Consumable' && !needsTarget(def.effects)) { send({ k: 'playCard', iid }); return }
+    // Even when only one Character can legally take it, make the player point
+    // at them. Skipping the step reads as the card playing itself.
     setTargeting({ kind: 'playStuff', iid })
   }
 
@@ -198,6 +203,17 @@ export function Table({
   })
   const nothingToDo = isMyTurn && state.phase === 'main' && !battle && !minigame
     && !anyPlayable && !anyActor
+
+  // Attacking is a thing you do by tapping one of your own Characters. Nothing
+  // on screen said so, so a first-time player could finish a whole game without
+  // ever discovering combat. Say it out loud, every Turn, until they have.
+  const readyCount = activeCharacters(state, you).filter((c) =>
+    !c.actedThisTurn && !hasStatus(c, 'Asleep') && !hasStatus(c, 'Away')).length
+  const turnHint = me.actionsLeft > 0 && readyCount > 0
+    ? `${me.actionsLeft} action${me.actionsLeft === 1 ? '' : 's'} left — tap one of your Characters to attack or use an ability`
+    : anyPlayable
+      ? 'No actions left. You can still play a card from your hand.'
+      : 'Nothing left to spend.'
 
   // If the Turn is genuinely dead — nothing playable, nobody able to act —
   // there is no decision left to make, so the game makes it. Sitting on a
@@ -302,10 +318,12 @@ export function Table({
         {/* ------------------------------------- YOUR SIDE (bottom) ------ */}
         <div className="myzone">
           <div className="fam-head">
-            <span className="fam-label">Your family</span>
+            <span className="fam-label">{isMyTurn ? `${me.name} — your family` : `${me.name}'s family`}</span>
             <span className="fam-budget">
               <i className={me.cardsPlayedThisTurn < 2 && isMyTurn ? 'on' : ''}>{2 - me.cardsPlayedThisTurn} plays</i>
-              <i className={me.actionsLeft > 0 && isMyTurn ? 'on' : ''}>{me.actionsLeft} actions</i>
+              <i className={me.actionsLeft > 0 && isMyTurn ? 'on' : 'spent'}>
+                {me.actionsLeft === 0 ? 'no actions left' : `${me.actionsLeft} actions`}
+              </i>
             </span>
           </div>
 
@@ -331,6 +349,7 @@ export function Table({
                   mode={tokenMode(iid, true)}
                   onClick={() => tapToken(iid, true)}
                   showAura
+                  ready={isMyTurn && !targeting && me.actionsLeft > 0}
                 />
               )
             })}
@@ -349,18 +368,26 @@ export function Table({
             </div>
           )}
 
-          {/* inline actions for the selected character — no modal needed */}
-          {selCh && !targeting && (
+        </div>
+      </div>
+
+      {/* The selected Character's actions. This used to sit inside the board,
+          which has a fixed height and clips — so on a phone the attack button
+          was underneath the hand strip and simply could not be reached. */}
+      {selCh && !targeting && (
+        <div className="actionsheet-bg" onClick={() => setSelected(null)}>
+          <div className="actionsheet" onClick={(e) => e.stopPropagation()}>
             <CharacterActions
               state={state} you={you} ch={selCh}
               send={send}
               onTarget={(t) => { setTargeting(t); setSelected(null) }}
               onInspect={() => setInspect(selCh.iid)}
               onClose={() => setSelected(null)}
+              onOpenItem={(iid, char) => setItemCard({ iid, char })}
             />
-          )}
+          </div>
         </div>
-      </div>
+      )}
 
       {targetPrompt && (
         <div className="targetbar">
@@ -423,12 +450,15 @@ export function Table({
         ) : targeting ? (
           <button className="btn ghost" onClick={() => setTargeting(null)}>Cancel</button>
         ) : isMyTurn ? (
+          <>
+          {!autoPass && <div className="turnhint">{turnHint}</div>}
           <button className={`btn ${autoPass ? 'gold passing' : ''}`} data-testid="end-turn" onClick={() => {
             if (me.hand.length > HAND_LIMIT) {
               send({ k: 'discardDown', iids: me.hand.slice(0, me.hand.length - HAND_LIMIT) })
             }
             send({ k: 'endTurn' })
           }}>{autoPass ? 'Nothing you can do — passing…' : 'End turn'}</button>
+          </>
         ) : (
           <div className="waiting">Waiting for {state.playerState[currentPlayer(state)].name}…</div>
         )}
@@ -439,7 +469,7 @@ export function Table({
       {minigame && <Minigame state={state} you={you} send={send} />}
 
       {affairOpen && affair && (
-        <div className="sheet-bg" onClick={() => setAffairOpen(false)}>
+        <div className="sheet-bg affair-bg" onClick={() => setAffairOpen(false)}>
           <div className="affair-card" onClick={(e) => e.stopPropagation()}>
             <span className="ac-kicker">Family Affair</span>
             <h2>{affair.name}</h2>
@@ -469,6 +499,49 @@ export function Table({
         </div>
       )}
 
+      {itemCard && (() => {
+        const inst = state.stuff[itemCard.iid]
+        const holder = state.characters[itemCard.char]
+        if (!inst || !holder) return null
+        const sd = getStuffDef(inst.defId)
+        const ab = sd.activated
+        const eatable = ['Food', 'Drink', 'Smoke'].includes(sd.subtype)
+        const cdKey = `item:${sd.id}`
+        const onCd = ab ? (ab.oncePerGame
+          ? holder.cooldowns[cdKey] === -1
+          : (ab.cooldown ? (holder.cooldowns[cdKey] ?? -99) > state.round : false)) : false
+        const blockedEat = !!holder.scratch.consumedThisTurn
+          || (sd.subtype === 'Food' && limitTier(holder, 'food') === 3)
+        const need = ab ? needsTarget(ab.effects) : null
+        const close = () => setItemCard(null)
+        return (
+          <div className="sheet-bg" onClick={close}>
+            <div className="cardsheet" onClick={(e) => e.stopPropagation()}>
+              <div className="cardsheet-face"><CardFace state={state} iid={itemCard.iid} focused /></div>
+              <div className="cardsheet-actions">
+                {ab && (
+                  <button className="btn" disabled={onCd || me.actionsLeft < ab.actionCost}
+                    onClick={() => {
+                      close(); setSelected(null)
+                      if (need) setTargeting({ kind: 'useItem', char: itemCard.char, iid: itemCard.iid, scope: need })
+                      else send({ k: 'useItem', char: itemCard.char, iid: itemCard.iid })
+                    }}>
+                    {onCd ? 'On cooldown' : `Use ${ab.name}${need ? ' —' : ''}`}
+                  </button>
+                )}
+                {eatable && (
+                  <button className="btn" disabled={blockedEat}
+                    onClick={() => { close(); setSelected(null); send({ k: 'consume', char: itemCard.char, iid: itemCard.iid }) }}>
+                    {blockedEat ? 'Not right now' : `${getCharacterDef(holder.defId).name} takes it`}
+                  </button>
+                )}
+                <button className="btn ghost narrow" onClick={close}>Close</button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
       {inspect && (
         <InspectSheet state={state} iid={inspect} onClose={() => setInspect(null)} />
       )}
@@ -497,20 +570,36 @@ export function Table({
 // ---------------------------------------------------------------------------
 
 function CharacterActions({
-  state, you, ch, send, onTarget, onInspect, onClose,
+  state, you, ch, send, onTarget, onInspect, onClose, onOpenItem,
 }: {
   state: GameState; you: PlayerId; ch: any
   send: (i: Intent) => void
   onTarget: (t: Targeting) => void
   onInspect: () => void
   onClose: () => void
+  onOpenItem: (iid: InstanceId, char: InstanceId) => void
 }) {
   const me = state.playerState[you]
   const def = getCharacterDef(ch.defId)
   const act = canAct(state, ch)
   const atk = canAttack(state, ch)
   const free = ((ch.scratch.freeAttacks as number) ?? 0) > 0
-  const canSwing = (atk.ok || free) && (free || me.actionsLeft >= 1)
+
+  // An action with nobody to point it at is not an action. Offering the flow
+  // and then dead-ending on an empty target list teaches the player nothing.
+  const enemyTargets = state.players
+    .filter((p) => p !== you)
+    .flatMap((p) => activeCharacters(state, p))
+    .filter((c) => c.hp > 0).length
+  const allyTargets = activeCharacters(state, you).filter((c) => c.iid !== ch.iid && c.hp > 0).length
+  const anyTargets = enemyTargets + allyTargets + 1
+  const haveTargets = (scope: 'enemy' | 'ally' | 'any' | null) =>
+    scope === 'enemy' ? enemyTargets > 0
+    : scope === 'ally' ? allyTargets > 0
+    : scope === 'any' ? anyTargets > 0
+    : true
+
+  const canSwing = (atk.ok || free) && (free || me.actionsLeft >= 1) && enemyTargets > 0
 
   const consumables = ch.attached.filter((i: string) => {
     const s = state.stuff[i]
@@ -528,8 +617,9 @@ function CharacterActions({
       : (ab.cooldown ? (ch.cooldowns[ab.name] ?? -99) > state.round : false)
     const limitOk = !ab.requiresLimit
       || Object.entries(ab.requiresLimit).every(([t, m]) => ch.limits[t as 'food'] >= (m as number))
-    const disabled = !act.ok || me.actionsLeft < ab.actionCost || onCd || !limitOk
     const need = needsTarget(ab.effects)
+    const noTarget = !haveTargets(need)
+    const disabled = !act.ok || me.actionsLeft < ab.actionCost || onCd || !limitOk || noTarget
     return (
       <button className={`chip ${which === 'powerMove' ? 'power' : ''}`} disabled={disabled}
         onClick={() => {
@@ -537,7 +627,10 @@ function CharacterActions({
           else { send({ k: 'useAbility', char: ch.iid, which }); onClose() }
         }}>
         <b>{which === 'powerMove' ? '★' : '✦'} {ab.name}</b>
-        <i>{onCd ? 'On cooldown' : !limitOk ? 'Needs more' : ab.text.slice(0, 46) + (ab.text.length > 46 ? '…' : '')}</i>
+        <i>{onCd ? 'On cooldown'
+          : noTarget ? (need === 'enemy' ? 'Nobody to aim at' : 'Nobody to use it on')
+          : !limitOk ? 'Needs more'
+          : ab.text.slice(0, 46) + (ab.text.length > 46 ? '…' : '')}</i>
       </button>
     )
   }
@@ -561,6 +654,7 @@ function CharacterActions({
           <b>⚔ Attack{free ? ' (free)' : ''}</b>
           <i>{canSwing
             ? `Swing at ${effectiveStat(state, ch, 'attack')} Attack${free ? '' : ' · 1 action'}`
+            : enemyTargets === 0 ? 'Nobody on the other side of the table yet'
             : (atk.why ?? 'No actions left')}</i>
         </button>
         {abilityChip('ability')}
@@ -573,13 +667,10 @@ function CharacterActions({
           const onCd = ab.oncePerGame ? ch.cooldowns[cdKey] === -1
             : (ab.cooldown ? (ch.cooldowns[cdKey] ?? -99) > state.round : false)
           const need = needsTarget(ab.effects)
-          const disabled = !act.ok || me.actionsLeft < ab.actionCost || onCd
+          const disabled = !act.ok || me.actionsLeft < ab.actionCost || onCd || !haveTargets(need)
           return (
             <button key={i} className="chip item" disabled={disabled}
-              onClick={() => {
-                if (need) onTarget({ kind: 'useItem', char: ch.iid, iid: i, scope: need })
-                else { send({ k: 'useItem', char: ch.iid, iid: i }); onClose() }
-              }}>
+              onClick={() => onOpenItem(i, ch.iid)}>
               <b>{sd.icon} {ab.name}</b>
               <i>{onCd ? 'On cooldown' : ab.text.slice(0, 44) + (ab.text.length > 44 ? '…' : '')}</i>
             </button>
@@ -592,9 +683,9 @@ function CharacterActions({
             || (sd.subtype === 'Food' && limitTier(ch, 'food') === 3)
           return (
             <button key={i} className="chip eat" disabled={blocked}
-              onClick={() => { send({ k: 'consume', char: ch.iid, iid: i }); onClose() }}>
-              <b>{sd.icon} Eat {sd.name}</b>
-              <i>Free, once per turn</i>
+              onClick={() => onOpenItem(i, ch.iid)}>
+              <b>{sd.icon} {sd.name}</b>
+              <i>{blocked ? 'Not right now' : 'Tap to read it, then eat it'}</i>
             </button>
           )
         })}

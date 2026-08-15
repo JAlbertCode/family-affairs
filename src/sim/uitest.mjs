@@ -40,6 +40,7 @@ const click = async (loc) => {
 }
 const closeSheet = async () => {
   if (await click(page.locator('.cardsheet-actions .btn.ghost'))) return true
+  if (await click(page.locator('.ai-close'))) return true
   if (await click(page.locator('.sheet .btn.ghost'))) return true
   try { await page.mouse.click(207, 12) } catch {}
   return false
@@ -81,7 +82,7 @@ for (let i = 0; i < STEPS; i++) {
     }
     // a board token's sheet: attack, ability or Power Move. The glyph prefixes
     // are part of the button label, so match on those, not on the bare word.
-    const act = page.locator('button:not([disabled])', { hasText: /^(⚔ Attack|✦ |★ )/ })
+    const act = page.locator('button:not([disabled])', { hasText: /^(⚔ Attack|✦ |★ |🍺|🍔|🌿|Use )/ })
     if (await act.count()) {
       const k = await act.count()
       const pick = act.nth(i % k)
@@ -93,7 +94,7 @@ for (let i = 0; i < STEPS; i++) {
       if (label.startsWith('⚔')) attacks++; else abilities++
       idle = 0; continue
     }
-    if (await page.locator('.sheet-bg, .cardsheet').count()) { await closeSheet(); continue }
+    if (await page.locator('.sheet-bg, .cardsheet, .actionsheet').count()) { await closeSheet(); continue }
   }
 
   // play something out of hand

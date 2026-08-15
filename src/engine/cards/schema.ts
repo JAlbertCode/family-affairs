@@ -93,6 +93,9 @@ export function effectCost(e: Effect): number {
       if (onSelf(e.target)) return BAD_STATUSES.has(e.status) ? -2.5 : 2.5
       return 2.5 * spread(e.target)
     case 'removeStatus': return 1.0 * spread(e.target)
+    // Worth a lot on a wall, worth nothing on a glass cannon. Priced at what
+    // a deliberate build can get out of it, not at the average.
+    case 'swapStats': return 2.5 * spread(e.target)
     case 'limit': {
       // pushing your OWN character toward a Limit threshold is a real risk
       if (onSelf(e.target) && e.amount > 0) return -e.amount * 0.5

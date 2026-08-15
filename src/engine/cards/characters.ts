@@ -685,6 +685,56 @@ export const CHARACTERS: CharacterDef[] = [
       key: 'colourCoded',
     },
   },
+
+  // ----------------------------------------------------------------- ELIAS --
+  // The whole kit is built around one idea: Elias is better on his own and
+  // better after a drink, and worse the second anyone else gets involved.
+  {
+    kind: 'character',
+    id: 'elias',
+    name: 'Elias',
+    title: 'The One-Man Production',
+    archetype: 'Trickster',
+    stats: { hp: 12, attack: 3, defense: 5 },
+    tags: ['Brother', 'Trickster', 'Collector', 'Adult'],
+    tolerance: T(4, 2, 3), // drinks well, cannot handle weed at all
+    color: '#c94f7c',
+    art: 'elias.webp',
+    passive: {
+      name: 'One-Man Production',
+      text: 'Elias works alone. While no allied Character sits beside him he gains +1 Attack and +1 Defense. Every Stoned Character beside him costs him 1 of each — they are ruining the shot.',
+      hooks: ['oneManProduction', 'ruiningTheShot'],
+    },
+    ability: {
+      name: "You're In The Scene",
+      text: 'Elias directs an opposing Character. They become Confused for the Round: whatever they try may not come out the way they meant it.',
+      actionCost: 1,
+      effects: [
+        { k: 'status', target: { scope: 'chosenEnemyActive' }, status: 'Confused', duration: 1 },
+      ],
+    },
+    powerMove: {
+      name: 'Authentic Reaction',
+      text: 'Elias pulls a prop gun on the family. BANG — a little flag comes out. Every opposing Active Character becomes Confused, and Elias gains +2 Attack for the Round because the reaction was perfect. Cooldown 2 Rounds.',
+      actionCost: 1,
+      cooldown: 2,
+      effects: [
+        { k: 'status', target: { scope: 'allEnemyActive' }, status: 'Confused', duration: 1 },
+        { k: 'statMod', target: { scope: 'self' }, stat: 'attack', amount: 2, duration: 'round' },
+      ],
+    },
+    flaw: {
+      name: 'Empty Stomach',
+      text: 'Elias cannot drink on nothing. Any Alcohol he gains at Food 0 counts double. Getting Stoned is worse: he immediately eats a Food he is carrying and forgets what he was directing.',
+      hooks: ['emptyStomach', 'whatWereWeMaking'],
+    },
+    achievement: {
+      name: 'That’s A Wrap',
+      text: 'Have three different opposing Characters Confused at the same time. +1 Clout.',
+      clout: 1,
+      key: 'thatsAWrap',
+    },
+  },
 ]
 
 export const CHARACTERS_BY_ID: Record<string, CharacterDef> = Object.fromEntries(

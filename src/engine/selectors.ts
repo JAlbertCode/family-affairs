@@ -84,11 +84,21 @@ export function limitTierName(ch: CharacterInstance, track: LimitTrack): string 
 /** Stat deltas contributed by the three Limit tracks. */
 function limitStatDelta(ch: CharacterInstance): Record<StatName, number> {
   const d: Record<StatName, number> = { attack: 0, defense: 0 }
+  const isElias = getCharacterDef(ch.defId).id === 'elias'
 
   // Alcohol (§21)
   const a = limitTier(ch, 'alcohol')
-  if (a === 1) d.attack += 1
-  if (a === 2 || a === 3) { d.attack += 2; d.defense -= 1 }
+  if (isElias) {
+    // Drunken Flow. Everyone else trades Defense for swing when they drink;
+    // Elias gets sharper. He is the only Character whose alcohol curve goes up
+    // all the way, which is the whole joke.
+    if (a === 1) d.attack += 1
+    if (a === 2) { d.attack += 2; d.defense += 1 }
+    if (a === 3) { d.attack += 3; d.defense += 1 }
+  } else {
+    if (a === 1) d.attack += 1
+    if (a === 2 || a === 3) { d.attack += 2; d.defense -= 1 }
+  }
 
   // Weed (§22) — buys Defense, costs the ability to hit anything
   const w = limitTier(ch, 'weed')
@@ -147,6 +157,15 @@ export function effectiveStat(state: GameState, ch: CharacterInstance, stat: Sta
       if (sd.id === 'bigsexychain' && stat === 'attack') v += 1
       if (sd.id === 'momvan' && stat === 'defense') v += 1
     }
+  }
+
+  // ---- Elias: One-Man Production / You're Ruining The Shot ----
+  if (def.id === 'elias') {
+    const neighbours = adjacentAllies(state, ch.iid)
+    // Nobody helping him means nobody in his way.
+    if (neighbours.length === 0) v += 1
+    // Every Stoned neighbour is one more person wandering through the shot.
+    for (const n of neighbours) if (limitTier(n, 'weed') >= 2) v -= 1
   }
 
   // ---- Titi Bibi: enemies across from her suffer -1 Attack (No Violence) ----
@@ -301,10 +320,17 @@ export function explainStat(state: GameState, ch: CharacterInstance, stat: StatN
   }
 
   const a = limitTier(ch, 'alcohol')
-  if (stat === 'attack' && a === 1) parts.push({ label: '🍺 Buzzed', amount: 1, kind: 'limit' })
-  if (a >= 2) {
-    if (stat === 'attack') parts.push({ label: a === 3 ? '🍺 Wasted' : '🍺 Drunk', amount: 2, kind: 'limit' })
-    if (stat === 'defense') parts.push({ label: a === 3 ? '🍺 Wasted' : '🍺 Drunk', amount: -1, kind: 'limit' })
+  if (getCharacterDef(ch.defId).id === 'elias') {
+    if (a >= 1 && stat === 'attack') {
+      parts.push({ label: '🎬 Drunken Flow', amount: a === 1 ? 1 : a === 2 ? 2 : 3, kind: 'limit' })
+    }
+    if (a >= 2 && stat === 'defense') parts.push({ label: '🎬 Drunken Flow', amount: 1, kind: 'limit' })
+  } else {
+    if (stat === 'attack' && a === 1) parts.push({ label: '🍺 Buzzed', amount: 1, kind: 'limit' })
+    if (a >= 2) {
+      if (stat === 'attack') parts.push({ label: a === 3 ? '🍺 Wasted' : '🍺 Drunk', amount: 2, kind: 'limit' })
+      if (stat === 'defense') parts.push({ label: a === 3 ? '🍺 Wasted' : '🍺 Drunk', amount: -1, kind: 'limit' })
+    }
   }
   const w = limitTier(ch, 'weed')
   if (w === 1 && stat === 'defense') parts.push({ label: '🌿 High', amount: 1, kind: 'limit' })
@@ -321,6 +347,16 @@ export function explainStat(state: GameState, ch: CharacterInstance, stat: StatN
 
   if (stat === 'attack' && hasStatus(ch, 'Fired Up')) {
     parts.push({ label: '🔥 Fired Up', amount: 2, kind: 'status' })
+  }
+
+  if (getCharacterDef(ch.defId).id === 'elias') {
+    const ns = adjacentAllies(state, ch.iid)
+    if (ns.length === 0) parts.push({ label: '🎥 One-Man Production', amount: 1, kind: 'aura' })
+    for (const n of ns) {
+      if (limitTier(n, 'weed') >= 2) {
+        parts.push({ label: `🌿 ${getCharacterDef(n.defId).name} is ruining the shot`, amount: -1, kind: 'aura' })
+      }
+    }
   }
 
   for (const ally of adjacentAllies(state, ch.iid)) {
@@ -349,15 +385,46 @@ export function explainStat(state: GameState, ch: CharacterInstance, stat: StatN
 export function auraSummary(state: GameState, ch: CharacterInstance): string[] {
   const def = getCharacterDef(ch.defId)
   const out: string[] = []
-  if (def.id === 'mikeymoe') out.push('Neighbours get +1 Defense')
-  if (def.id === 'manny') out.push('Neighbours get +1 Attack')
-  if (def.id === 'chichi') out.push('Neighbours suffer Bad Luck on 1-2')
-  if (def.id === 'titibibi') out.push('Enemies opposite lose 1 Attack')
-  if (def.id === 'amanda') out.push('Can take a hit for a neighbour')
+  if (def.id === 'mikeymoe') out.push('Neighbours +1 Defense')
+  if (def.id === 'manny') out.push('Neighbours +1 Attack')
+  if (def.id === 'chichi') out.push('Neighbours: Bad Luck on a 1')
+  if (def.id === 'titibibi') out.push('Enemies opposite -1 Attack')
+  if (def.id === 'amanda') out.push('Takes a hit for a neighbour')
+  if (def.id === 'elias') out.push('Better alone, worse beside a stoner')
   for (const s of attachedStuff(state, ch)) {
     const sd = getStuffDef(s.defId)
     if (sd.id === 'bigsexychain') out.push('Neighbours get +1 Attack')
     if (sd.id === 'momvan') out.push('Neighbours get +1 Defense')
+  }
+  return out
+}
+
+/** What the neighbours are doing TO this Character, in plain words. The board
+ *  showed what a card gave out but never what it was getting, so the effect of
+ *  where you place somebody was invisible. */
+export function incomingAuras(state: GameState, ch: CharacterInstance): string[] {
+  const out: string[] = []
+  for (const a of adjacentAllies(state, ch.iid)) {
+    const ad = getCharacterDef(a.defId)
+    if (ad.id === 'mikeymoe') out.push(`+1 🛡 from ${ad.name}`)
+    if (ad.id === 'manny') out.push(`+1 ⚔ from ${ad.name}`)
+    if (ad.id === 'chichi') out.push(`Bad Luck risk from ${ad.name}`)
+    if (ad.id === 'amanda') out.push(`${ad.name} may take a hit for them`)
+    for (const s of attachedStuff(state, a)) {
+      const sd = getStuffDef(s.defId)
+      if (sd.id === 'bigsexychain') out.push(`+1 ⚔ from ${sd.name}`)
+      if (sd.id === 'momvan') out.push(`+1 🛡 from ${sd.name}`)
+    }
+  }
+  for (const e of acrossFrom(state, ch.iid)) {
+    if (getCharacterDef(e.defId).id === 'titibibi') out.push('-1 ⚔ from Titi Bibi opposite')
+  }
+  if (getCharacterDef(ch.defId).id === 'elias') {
+    const ns = adjacentAllies(state, ch.iid)
+    if (ns.length === 0) out.push('+1 ⚔ +1 🛡 working alone')
+    for (const n of ns) {
+      if (limitTier(n, 'weed') >= 2) out.push(`-1 ⚔ -1 🛡 — ${getCharacterDef(n.defId).name} is ruining the shot`)
+    }
   }
   return out
 }

@@ -378,10 +378,17 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
 
 .cardsheet {
   width: 100%; max-width: 460px; padding: 0 14px calc(14px + var(--safe-b));
-  display: flex; flex-direction: column; gap: 10px; max-height: 94dvh;
+  display: flex; flex-direction: column; gap: 10px;
+  /* A definite height, not a max: the card is pinned inside the space left
+     over after the buttons, and flex-grow needs real free space to hand it. */
+  height: 94dvh;
   animation: slideUp .24s cubic-bezier(.2,1.1,.3,1);
 }
-.cardsheet-face { flex: 1 1 auto; min-height: 0; display: flex; }
+/* The card is pinned to this box absolutely. A percentage max-height against a
+   flex item resolves to auto in practice, so the card kept growing to its
+   content height and ran straight through the Play button underneath it. */
+.cardsheet-face { flex: 1 1 auto; min-height: 0; position: relative; overflow: hidden; }
+.cardsheet-face > .face { position: absolute; inset: 0; width: auto; }
 .cardsheet-actions { flex: none; display: flex; gap: 8px; }
 .cardsheet-actions .btn { flex: 1; min-height: 52px; }
 .cardsheet-actions .btn.narrow { flex: 0 0 32%; }
@@ -485,6 +492,10 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
 
 .face {
   display: flex; flex-direction: column; width: 100%; max-height: 100%;
+  /* A flex item's default min-height is its CONTENT height, which beats
+     max-height and lets a long card grow straight through the buttons
+     underneath it. This is the line that keeps the card inside its slot. */
+  min-height: 0;
   border-radius: 18px; overflow: hidden;
   background: linear-gradient(180deg, #2d1832, #180c1a);
   border: 3px solid color-mix(in srgb, var(--accent) 60%, #2c1a32);
@@ -493,7 +504,7 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
 }
 .face.focused { box-shadow: 0 14px 34px rgba(0,0,0,.6), 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent); }
 
-.face-art { position: relative; flex: 1 1 auto; min-height: 0; overflow: hidden; }
+.face-art { position: relative; flex: 1 1 46%; min-height: 96px; overflow: hidden; }
 .face-art img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 14%; display: block; }
 .face-art-fade { position: absolute; inset: 0; background: linear-gradient(180deg, transparent 55%, #180c1a 100%); }
 .face-hp {
@@ -521,7 +532,12 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
 .fstat i { font-style: normal; font-size: .48rem; letter-spacing: .1em; color: var(--muted); font-weight: 800; }
 .fstat.a b { color: #ff8b8b } .fstat.d b { color: #8bd4ff } .fstat.s b { color: #8bf0a4 }
 
-.face-body { padding: 9px 13px 13px; flex: none; overflow-y: auto; }
+.face-body {
+  padding: 9px 13px 13px; flex: 1 1 auto; min-height: 0;
+  overflow-y: auto; -webkit-overflow-scrolling: touch;
+  /* a soft edge at the bottom so it reads as "more text below", not "cut off" */
+  mask-image: linear-gradient(180deg, #000 calc(100% - 14px), transparent);
+}
 .face-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
 .ftag {
   font-size: .58rem; font-weight: 800; padding: 3px 8px; border-radius: 999px;
@@ -545,7 +561,7 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
   background: var(--gold); border-radius: 8px; padding: 6px 9px;
 }
 
-.face-char { height: 100%; }
+.face-char { height: 100%; min-height: 0; }
 .face-stuff { height: auto; }
 .face-glyph {
   flex: none; height: 190px; display: grid; place-items: center;
@@ -701,3 +717,78 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
   100% { opacity: 1; }
 }
 .handstrip.predraw { opacity: .45; pointer-events: none; }
+
+/* -------------------------------------------------- SELECTED CHARACTER -- */
+/* The chips used to live inside .board, which has a fixed height and clips.
+   On a phone that put the attack button underneath the hand strip. They are
+   an overlay now, so they can never be cut off by whatever is below them. */
+.actionsheet-bg {
+  position: fixed; inset: 0; z-index: 45;
+  background: rgba(6,3,7,.55); backdrop-filter: blur(2px);
+  display: flex; align-items: flex-end; justify-content: center;
+  animation: fade .16s ease;
+}
+.actionsheet {
+  width: 100%; max-width: 620px; max-height: 72dvh; overflow-y: auto;
+  padding: 0 10px calc(10px + var(--safe-b));
+  animation: slideUp .2s cubic-bezier(.2,1.1,.3,1);
+}
+.actionsheet .actions-inline {
+  margin: 0; border-radius: 16px; padding: 11px;
+  box-shadow: 0 -10px 30px rgba(0,0,0,.55);
+}
+/* stacked, not a horizontal scroller — a row that scrolls sideways hides the
+   actions past the third one, which is where Power Moves live */
+.actionsheet .chips { flex-direction: column; overflow-x: visible; }
+.actionsheet .chip { min-width: 0; width: 100%; }
+
+/* A Character who can still act reads as tappable. Combat was undiscoverable
+   because nothing on the board suggested you could touch anything. */
+.tok.ready { box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 55%, transparent); }
+.tok.ready .tok-art::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit;
+  box-shadow: inset 0 0 0 2px #ffffff22;
+  animation: readypulse 2.4s ease-in-out infinite;
+}
+@keyframes readypulse { 0%,100% { opacity: .25 } 50% { opacity: .85 } }
+
+.turnhint {
+  width: 100%; text-align: center; font-size: .68rem; line-height: 1.35;
+  color: var(--muted); padding: 0 4px 6px;
+}
+
+/* -------------------------------------------- ADJACENCY, SAID OUT LOUD -- */
+/* Where you put somebody is a real decision, and the board used to express it
+   as a single ◈ with a tooltip. These strips say what the Character gives to
+   the people beside them, and what those people are giving back. */
+.tok-effects {
+  display: flex; flex-direction: column; gap: 2px; width: 100%;
+  margin-top: 3px; padding: 0 4px;
+}
+.tok-effects i {
+  font-style: normal; font-size: .5rem; line-height: 1.3; font-weight: 800;
+  border-radius: 4px; padding: 2px 4px; text-align: left;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.tok-effects i.give { background: #3a2a1088; color: var(--gold); }
+.tok-effects i.get  { background: #10283a88; color: #9ed0ff; }
+.tok-incoming {
+  position: absolute; left: 4px; top: 4px; font-size: .52rem; font-weight: 900;
+  background: #10283add; color: #9ed0ff; border-radius: 5px; padding: 1px 4px;
+}
+
+/* The Family Affair is the loudest thing that happens; it should not be
+   pinned to the bottom edge where the hand strip already lives. */
+.sheet-bg.affair-bg { align-items: center; }
+
+/* Running out of actions is the reason a Turn ends. Say it, do not imply it. */
+.fam-budget i.spent {
+  background: #4a1420; border-color: #a8384a; color: #ffc9d1; opacity: 1;
+}
+
+.namelist { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+.name-input {
+  width: 100%; min-height: 44px; border-radius: 10px; padding: 8px 11px;
+  background: var(--panel-2); border: 1px solid var(--line); color: #fff;
+  font-size: .92rem; font-weight: 700;
+}

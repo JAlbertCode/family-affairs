@@ -535,6 +535,38 @@ export const STUFF: StuffDef[] = [
     effects: [],
   },
   {
+    kind: 'stuff', id: 'souppot', name: "Liv's Soup Pot", subtype: 'Gear', copies: 2, icon: '🍲', color: GEAR,
+    text: 'Equip. Nobody is sure what is in it. Whoever eats it comes out swinging with the wrong half of themselves: Attack and Defense trade places for the Round, and they are Confused about it.',
+    equipMods: [],
+    activated: {
+      name: 'What Is In This',
+      text: 'Pick anyone at the table. For the Round their Attack and Defense swap, and they become Confused.',
+      actionCost: 1,
+      cooldown: 2,
+      effects: [
+        { k: 'swapStats', target: { scope: 'chosenAnyActive' } },
+        { k: 'status', target: { scope: 'chosenAnyActive' }, status: 'Confused', duration: 1 },
+      ],
+    },
+    effects: [],
+  },
+  {
+    kind: 'stuff', id: 'ginastire', name: "Gina's Tire", subtype: 'Ride', copies: 2, icon: '🛞', color: RIDE,
+    text: 'Equip. +1 Defense. There is a bite out of it and everybody knows whose. Bite it yourself: +2 Attack for the Round and +2 Food, because a tire is not a meal.',
+    equipMods: [{ stat: 'defense', amount: 1 }],
+    activated: {
+      name: 'Bite The Tire',
+      text: 'Sink your teeth in. +2 Attack for the Round, +2 Food. Nobody asks why.',
+      actionCost: 1,
+      cooldown: 2,
+      effects: [
+        { k: 'statMod', target: { scope: 'self' }, stat: 'attack', amount: 2, duration: 'round' },
+        { k: 'limit', target: { scope: 'self' }, track: 'food', amount: 2 },
+      ],
+    },
+    effects: [],
+  },
+  {
     kind: 'stuff', id: 'karaokemic', name: 'The Karaoke Mic', subtype: 'Gear', copies: 2, icon: '🎤', color: GEAR,
     text: 'Equip. Grab the mic and take the floor: everybody in your family gets +1 Attack for the Round, and one rival is too busy watching to do anything.',
     equipMods: [],

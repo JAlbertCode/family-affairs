@@ -1,6 +1,6 @@
 import type { GameState, CharacterInstance } from '../engine/types'
 import { getCharacterDef, getStuffDef } from '../engine/cards/deck'
-import { effectiveStats, limitTier, auraSummary } from '../engine/selectors'
+import { effectiveStats, limitTier, auraSummary, incomingAuras } from '../engine/selectors'
 
 const BASE = import.meta.env.BASE_URL
 
@@ -10,7 +10,7 @@ const BASE = import.meta.env.BASE_URL
  * them", so that is all this shows. Full detail lives one tap away.
  */
 export function BoardToken({
-  state, ch, onClick, mode, size = 'md', showAura,
+  state, ch, onClick, mode, size = 'md', showAura, ready,
 }: {
   state: GameState
   ch: CharacterInstance
@@ -18,6 +18,9 @@ export function BoardToken({
   mode?: 'target' | 'selected' | null
   size?: 'sm' | 'md'
   showAura?: boolean
+  /** This Character can still do something this Turn — say so visually,
+   *  or combat stays a secret the player has to be told about. */
+  ready?: boolean
 }) {
   const def = getCharacterDef(ch.defId)
   const st = effectiveStats(state, ch)
@@ -25,12 +28,13 @@ export function BoardToken({
   const hurt = pct <= 33
   const items = ch.attached.map((i) => state.stuff[i]).filter(Boolean)
   const auras = auraSummary(state, ch)
+  const incoming = incomingAuras(state, ch)
 
   const buffed = (cur: number, base: number) => (cur > base ? 'up' : cur < base ? 'down' : '')
 
   return (
     <button
-      className={`tok tok-${size} ${mode ?? ''} ${ch.actedThisTurn ? 'acted' : ''}`}
+      className={`tok tok-${size} ${mode ?? ''} ${ch.actedThisTurn ? 'acted' : ''} ${ready && !ch.actedThisTurn && !mode ? 'ready' : ''}`}
       style={{ '--accent': def.color } as React.CSSProperties}
       onClick={onClick}
       disabled={!onClick}
@@ -53,6 +57,9 @@ export function BoardToken({
         {ch.actedThisTurn && <span className="tok-done">✓</span>}
         {showAura && auras.length > 0 && (
           <span className="tok-aura" title={auras.join(' · ')}>◈</span>
+        )}
+        {incoming.length > 0 && (
+          <span className="tok-incoming" title={incoming.join(' · ')}>↓{incoming.length}</span>
         )}
       </span>
 
@@ -82,6 +89,13 @@ export function BoardToken({
           </span>
         )
       })()}
+
+      {size === 'md' && (auras.length > 0 || incoming.length > 0) && (
+        <span className="tok-effects">
+          {auras.map((a, i) => <i key={`o${i}`} className="give">{a}</i>)}
+          {incoming.map((a, i) => <i key={`i${i}`} className="get">{a}</i>)}
+        </span>
+      )}
 
       <span className="tok-stats">
         <s className={buffed(st.attack, def.stats.attack)}>⚔{st.attack}</s>
