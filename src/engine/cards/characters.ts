@@ -20,7 +20,7 @@ export const CHARACTERS: CharacterDef[] = [
     name: 'Chi Chi',
     title: 'The Trickster',
     archetype: 'Trickster',
-    stats: { hp: 13, attack: 5, defense: 3 },
+    stats: { hp: 15, attack: 5, defense: 3 },
     tags: ['Sister', 'Stoner', 'Troublemaker', 'Trickster'],
     tolerance: T(3, 4, 3), // Professional (§52)
     color: '#7c5cbf',
@@ -643,7 +643,7 @@ export const CHARACTERS: CharacterDef[] = [
     name: 'Nani',
     title: 'The One With The Spreadsheet',
     archetype: 'Support',
-    stats: { hp: 15, attack: 3, defense: 5 },
+    stats: { hp: 17, attack: 3, defense: 5 },
     tags: ['Sister', 'Caretaker', 'Athlete', 'Collector', 'Adult'],
     tolerance: { alcohol: 3, weed: 3, food: 3 },
     color: '#3fa87d',
@@ -734,6 +734,62 @@ export const CHARACTERS: CharacterDef[] = [
       text: 'Have three different opposing Characters Confused at the same time. +1 Clout.',
       clout: 1,
       key: 'thatsAWrap',
+    },
+  },
+
+  // ----------------------------------------------------------------- KEVIN --
+  // The only Character in the game who WANTS the Food meter maxed. Everyone
+  // else is trying not to get Stuffed; Kevin's whole loop is eat, stuff,
+  // destroy, and the two things the rest of the table runs on — drink and
+  // smoke — take him apart. See limitStatDelta for the inverted curve.
+  {
+    kind: 'character',
+    id: 'kevin',
+    name: 'Kevin',
+    title: 'The Tech Tank',
+    archetype: 'Tank',
+    stats: { hp: 14, attack: 3, defense: 5 },
+    tags: ['Brother', 'Athlete', 'Tech', 'Heavyweight', 'Adult'],
+    tolerance: T(2, 2, 3), // eats like it is a job, cannot handle the rest
+    color: '#c0392b',
+    art: 'kevin.webp',
+    gearSlots: 2,
+    passive: {
+      name: 'Always Fed',
+      text: 'Food makes Kevin stronger instead of slower. Fed: +1 Attack. Stuffed: +2 Defense and nothing gets through. Alcohol costs him Defense and Weed costs him Attack — he does not drink and he does not smoke.',
+      hooks: ['alwaysFed', 'iDontEvenDrink', 'whyAmIHere'],
+    },
+    ability: {
+      name: 'Protein Shake',
+      text: 'Kevin drinks his own thing. +1 Food, and +1 Attack and +1 Defense for the Round. Nobody else wants any.',
+      actionCost: 1,
+      effects: [
+        { k: 'limit', target: { scope: 'self' }, track: 'food', amount: 1 },
+        { k: 'statMod', target: { scope: 'self' }, stat: 'attack', amount: 1, duration: 'round' },
+        { k: 'statMod', target: { scope: 'self' }, stat: 'defense', amount: 1, duration: 'round' },
+      ],
+    },
+    powerMove: {
+      name: 'Powerlift',
+      text: 'Requires Food 2+. Kevin picks an Active enemy up off the ground and puts them back down. 4 damage, and they are Busy for the Round. Cooldown 2 Rounds.',
+      actionCost: 1,
+      cooldown: 2,
+      requiresLimit: { food: 2 },
+      effects: [
+        { k: 'damage', target: { scope: 'chosenEnemyActive' }, amount: 4 },
+        { k: 'status', target: { scope: 'chosenEnemyActive' }, status: 'Busy', duration: 1 },
+      ],
+    },
+    flaw: {
+      name: 'Overfed',
+      text: 'Two full Rounds Stuffed and the third is a food coma: Kevin falls Asleep, heals 4 and wakes up empty. Any Round he starts at Food 0 he also loses 1 Attack until he eats. Eat, stuff, destroy, destroy, rest.',
+      hooks: ['overfed', 'legDay'],
+    },
+    achievement: {
+      name: 'Absolute Unit',
+      text: 'Have Kevin Stuffed at the end of your Turn with at least 12 HP. +1 Clout.',
+      clout: 1,
+      key: 'absoluteUnit',
     },
   },
 ]

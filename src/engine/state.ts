@@ -13,7 +13,7 @@ import {
   openSlots, rideSlots, isCurrentPlayer,
 } from './selectors'
 import {
-  applyDamage, applyLimit, applyStatMod, applyStatus, awardClout, consumeCard,
+  applyDamage, applyHeal, applyLimit, applyStatMod, applyStatus, awardClout, consumeCard,
   drawCards, discardRandom, log, needsTarget, removeStatus, rollBadLuck, runEffects,
   type EffectCtx,
 } from './effects'
@@ -1144,6 +1144,30 @@ function startNewRound(state: GameState) {
       applyStatMod(state, ch, 'attack', -1, 'round')
       log(state, 'Titi The Bum was ignored all Round. -1 Attack.', 'status')
     }
+    // Kevin — Never Skip Leg Day. His entire kit scales off Food, so running
+    // on empty is the one state that actually slows him down.
+    if (getCharacterDef(ch.defId).id === 'kevin' && ch.limits.food === 0) {
+      applyStatMod(state, ch, 'attack', -1, 'round')
+      log(state, 'Kevin has not eaten. -1 Attack until he does.', 'status')
+    }
+
+    // Kevin — OVERFED. Staying Stuffed is his whole gameplan, and without a
+    // ceiling it is simply the best deal in the game: he ran 29% win-share in
+    // 150 six-player games as the strongest Character in the deck. Two full
+    // Rounds at Stuffed and the third one is a Food Coma. Eat, stuff, destroy,
+    // destroy, rest — the rhythm is the balance.
+    if (getCharacterDef(ch.defId).id === 'kevin') {
+      const stuffed = limitTier(ch, 'food') >= 2
+      const rounds = stuffed ? ((ch.cooldowns.overfedRounds ?? 0) + 1) : 0
+      ch.cooldowns.overfedRounds = rounds
+      if (rounds >= 3) {
+        ch.cooldowns.overfedRounds = 0
+        ch.limits.food = 0
+        applyStatus(state, ch, 'Asleep', 1, { controller: ch.owner })
+        applyHeal(state, ch, 4, { controller: ch.owner })
+        log(state, 'Kevin is Overfed. Food coma — he rests and comes back empty.', 'status')
+      }
+    }
   }
 
   // expire round modifiers, clear per-round scratch
@@ -1183,6 +1207,8 @@ function achievementMet(state: GameState, ch: CharacterInstance, key: string): b
       return mine.length === 3 && mine.every((c) => c.limits.weed >= 2)
     case 'cleanPlateClub':
       return ((ch.scratch.foodsThisRound as string[]) ?? []).length >= 3
+    case 'absoluteUnit':
+      return limitTier(ch, 'food') >= 2 && ch.hp >= 12 && ch.zone === 'active'
     case 'thatsAWrap': {
       const enemies = state.players.filter((p) => p !== ch.owner).flatMap((p) => activeCharacters(state, p))
       return enemies.filter((c) => c.statuses.some((st) => st.name === 'Confused')).length >= 3

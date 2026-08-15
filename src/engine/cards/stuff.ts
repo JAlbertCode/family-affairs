@@ -763,6 +763,241 @@ export const STUFF: StuffDef[] = [
     },
     effects: [],
   },
+  // ------------------------------------------------- THE DRINKS TROLLEY --
+  {
+    kind: 'stuff', id: 'mimosa', name: 'Mimosas', subtype: 'Drink', copies: 3, giftable: true, icon: '🥂', color: DRINK,
+    text: 'It is basically juice, which is how everybody ends up having four. +1 Alcohol and heal 2.',
+    limitGain: { alcohol: 1 },
+    effects: [{ k: 'heal', target: { scope: 'self' }, amount: 2 }],
+  },
+  {
+    kind: 'stuff', id: 'budlight', name: 'Bud Light', subtype: 'Drink', copies: 3, giftable: true, icon: '🍺', color: DRINK,
+    text: 'Cold, wet, and there are thirty of them. +1 Alcohol.',
+    limitGain: { alcohol: 1 },
+    effects: [],
+  },
+  {
+    kind: 'stuff', id: 'corona', name: 'Coronas', subtype: 'Drink', copies: 3, giftable: true, icon: '🍾', color: DRINK,
+    text: 'With the lime, obviously. +1 Alcohol and +1 Attack for the Round.',
+    limitGain: { alcohol: 1 },
+    effects: [{ k: 'statMod', target: { scope: 'self' }, stat: 'attack', amount: 1, duration: 'round' }],
+  },
+  {
+    kind: 'stuff', id: 'germanshot', name: 'German Chocolate Cake Shot', subtype: 'Drink', copies: 2, giftable: true, icon: '🥃', color: DRINK,
+    text: 'Tastes like dessert, which is the trap. +2 Alcohol, because one is never enough.',
+    limitGain: { alcohol: 2 },
+    effects: [],
+  },
+  {
+    kind: 'stuff', id: 'redbull', name: 'Red Bull', subtype: 'Drink', copies: 3, giftable: true, icon: '🐂', color: DRINK,
+    text: 'No Alcohol. +2 Attack for the Round and shake off Asleep — somebody has to stay up.',
+    limitGain: {},
+    effects: [
+      { k: 'statMod', target: { scope: 'self' }, stat: 'attack', amount: 2, duration: 'round' },
+      { k: 'removeStatus', target: { scope: 'self' }, status: 'Asleep' },
+    ],
+  },
+  {
+    kind: 'stuff', id: 'coffee', name: 'A Fresh Pot', subtype: 'Drink', copies: 3, giftable: true, icon: '☕', color: DRINK,
+    text: 'Somebody made coffee at 9pm. Shake off Confused and Busy, and clear 1 Alcohol.',
+    limitGain: {},
+    effects: [
+      { k: 'removeStatus', target: { scope: 'self' }, status: 'Confused' },
+      { k: 'removeStatus', target: { scope: 'self' }, status: 'Busy' },
+      { k: 'limit', target: { scope: 'self' }, track: 'alcohol', amount: -1 },
+    ],
+  },
+  {
+    kind: 'stuff', id: 'teramana', name: "Bry's Teramana Bottle", subtype: 'Drink', copies: 2, giftable: true, icon: '🍶', color: DRINK,
+    text: 'Hand it to somebody and they are having two. Any Character gains +2 Alcohol. In the wrong hands it is also just a heavy bottle: 2 damage.',
+    limitGain: {},
+    effects: [
+      { k: 'limit', target: { scope: 'chosenAnyActive' }, track: 'alcohol', amount: 2 },
+      { k: 'damage', target: { scope: 'chosenAnyActive' }, amount: 2 },
+    ],
+  },
+
+  // ------------------------------------------------------- SMOKE & WORSE --
+  {
+    kind: 'stuff', id: 'joint', name: 'A Rolled Joint', subtype: 'Smoke', copies: 3, icon: '🚬', color: SMOKE,
+    text: 'Somebody put in the work. +1 Weed and +1 Defense for the Round.',
+    limitGain: { weed: 1 },
+    effects: [{ k: 'statMod', target: { scope: 'self' }, stat: 'defense', amount: 1, duration: 'round' }],
+  },
+  {
+    kind: 'stuff', id: 'madsnails', name: 'Mad Snails Disease', subtype: 'Smoke', copies: 2, icon: '🐌', color: SMOKE,
+    text: 'Nobody says the word. You just look at their eyes and you know. +2 Weed, and they cannot keep a straight face: Confused for the Round.',
+    limitGain: { weed: 2 },
+    effects: [{ k: 'status', target: { scope: 'self' }, status: 'Confused', duration: 1 }],
+  },
+  {
+    kind: 'stuff', id: 'angeldust', name: "Fake Sugar That's Angel Dust", subtype: 'Smoke', copies: 2, giftable: true, icon: '🧂', color: SMOKE,
+    text: 'It was in a sugar packet. It was not sugar. +2 Weed, 2 damage, and +3 Attack for the Round because they have stopped negotiating.',
+    limitGain: { weed: 2 },
+    effects: [
+      { k: 'damage', target: { scope: 'self' }, amount: 2 },
+      { k: 'statMod', target: { scope: 'self' }, stat: 'attack', amount: 3, duration: 'round' },
+    ],
+  },
+
+  // --------------------------------------------------------------- FOOD --
+  {
+    kind: 'stuff', id: 'dogfood', name: 'Dog Food', subtype: 'Food', copies: 2, giftable: true, icon: '🥫', color: FOOD,
+    text: 'It was on the counter and nobody labelled it. +1 Food, 1 damage, and they are not talking about it: -1 Attack for the Round.',
+    limitGain: { food: 1 },
+    effects: [
+      { k: 'damage', target: { scope: 'self' }, amount: 1 },
+      { k: 'statMod', target: { scope: 'self' }, stat: 'attack', amount: -1, duration: 'round' },
+    ],
+  },
+  {
+    kind: 'stuff', id: 'chichisundae', name: "Chi Chi's Sundae", subtype: 'Food', copies: 3, giftable: true, icon: '🍨', color: FOOD,
+    text: 'Built at midnight out of whatever was in the freezer. Heal 3 and +1 Food.',
+    limitGain: { food: 1 },
+    effects: [{ k: 'heal', target: { scope: 'self' }, amount: 3 }],
+  },
+  {
+    kind: 'stuff', id: 'garbageplate', name: "Dorian's Garbage Plate", subtype: 'Food', copies: 2, giftable: true, icon: '🍽️', color: FOOD,
+    text: 'Everything on one plate, on purpose. +2 Food and heal 4. Straight to Stuffed for almost anybody.',
+    limitGain: { food: 2 },
+    effects: [{ k: 'heal', target: { scope: 'self' }, amount: 4 }],
+  },
+  {
+    kind: 'stuff', id: 'proteinpowder', name: "Kevin's Protein Powder", subtype: 'Food', copies: 3, giftable: true, icon: '🥤', color: FOOD,
+    text: 'Thirty grams, chalk flavour. +1 Food and +2 Attack for the Round.',
+    limitGain: { food: 1 },
+    effects: [{ k: 'statMod', target: { scope: 'self' }, stat: 'attack', amount: 2, duration: 'round' }],
+  },
+  {
+    kind: 'stuff', id: 'weedbutter', name: "Chi Chi's Weed Butter", subtype: 'Food', copies: 2, giftable: true, icon: '🧈', color: FOOD,
+    text: 'She puts it on everything and tells nobody. +2 Food and +2 Weed at once — Stuffed and Stoned in a single sitting.',
+    limitGain: { food: 2, weed: 2 },
+    effects: [],
+  },
+
+  // ---------------------------------------------------------- THE ARSENAL --
+  {
+    kind: 'stuff', id: 'woodenspoon', name: "Grandma's Wooden Spoon", subtype: 'Gear', copies: 2, icon: '🥄', color: GEAR,
+    text: 'It has been in that drawer longer than you have been alive. Equip. +2 Attack, and everybody straightens up.',
+    equipMods: [{ stat: 'attack', amount: 2 }],
+    activated: {
+      name: 'You Know What You Did',
+      text: 'One Active enemy takes 2 damage and is Busy for the Round. No further discussion.',
+      actionCost: 1,
+      cooldown: 2,
+      effects: [
+        { k: 'damage', target: { scope: 'chosenEnemyActive' }, amount: 2 },
+        { k: 'status', target: { scope: 'chosenEnemyActive' }, status: 'Busy', duration: 1 },
+      ],
+    },
+    effects: [],
+  },
+  {
+    kind: 'stuff', id: 'thebelt', name: 'The Belt', subtype: 'Gear', copies: 2, icon: '🩹', color: GEAR,
+    text: 'Good old fashioned. Equip. +2 Attack. It comes off the loops and the room goes quiet.',
+    equipMods: [{ stat: 'attack', amount: 2 }],
+    effects: [],
+  },
+  {
+    kind: 'stuff', id: 'baseballbat', name: 'The Baseball Bat', subtype: 'Gear', copies: 2, icon: '🏏', color: GEAR,
+    text: 'It lives behind the door and it is not for baseball. Equip. +3 Attack, -1 Defense — you are committed either way.',
+    equipMods: [{ stat: 'attack', amount: 3 }, { stat: 'defense', amount: -1 }],
+    effects: [],
+  },
+  {
+    kind: 'stuff', id: 'poolstick', name: "Papito Carlitos' Pool Stick", subtype: 'Gear', copies: 2, icon: '🎱', color: GEAR,
+    text: 'Nobody else is allowed to touch it. Equip. +2 Attack, +1 Defense. He knows exactly where it is at all times.',
+    equipMods: [{ stat: 'attack', amount: 2 }, { stat: 'defense', amount: 1 }],
+    effects: [],
+  },
+  {
+    kind: 'stuff', id: 'paintballgun', name: 'The Paintball Gun', subtype: 'Gear', copies: 2, icon: '🔫', color: GEAR,
+    text: 'Equip. Welt somebody from across the yard: 3 damage and -1 Attack for the Round, because it genuinely hurts.',
+    equipMods: [],
+    activated: {
+      name: 'Point Blank',
+      text: 'An Active enemy takes 3 damage and loses 1 Attack for the Round.',
+      actionCost: 1,
+      cooldown: 2,
+      effects: [
+        { k: 'damage', target: { scope: 'chosenEnemyActive' }, amount: 3 },
+        { k: 'statMod', target: { scope: 'chosenEnemyActive' }, stat: 'attack', amount: -1, duration: 'round' },
+      ],
+    },
+    effects: [],
+  },
+  {
+    kind: 'stuff', id: 'taser', name: 'The Taser', subtype: 'Gear', copies: 2, icon: '⚡', color: GEAR,
+    text: 'Somebody ordered it online and nobody should be allowed near it. Equip. Drop an Active enemy: 2 damage and Busy for the Round.',
+    equipMods: [],
+    activated: {
+      name: 'Messing Around',
+      text: 'Zap an Active enemy for 2 damage. They are Busy for the Round and so is the wielder — it was funnier in theory.',
+      actionCost: 1,
+      cooldown: 2,
+      effects: [
+        { k: 'damage', target: { scope: 'chosenEnemyActive' }, amount: 2 },
+        { k: 'status', target: { scope: 'chosenEnemyActive' }, status: 'Busy', duration: 1 },
+        { k: 'status', target: { scope: 'self' }, status: 'Busy', duration: 1 },
+      ],
+    },
+    effects: [],
+  },
+  {
+    kind: 'stuff', id: 'dadbod', name: "Chris's Dad Bod", subtype: 'Gear', copies: 2, icon: '🫃', color: GEAR,
+    text: 'Equip. +3 Defense. Built over years of consistent effort in the opposite direction.',
+    equipMods: [{ stat: 'defense', amount: 3 }],
+    effects: [],
+  },
+  {
+    kind: 'stuff', id: 'trumpsocks', name: "Chi Chi's Trump Socks", subtype: 'Gear', copies: 2, giftable: true, icon: '🧦', color: GEAR,
+    text: 'A gift. Nobody has ever established from whom. Equip. +1 Attack, and everybody has an opinion: adjacent Characters lose 1 Attack arguing about it.',
+    equipMods: [{ stat: 'attack', amount: 1 }],
+    activated: {
+      name: 'Start Something',
+      text: 'The Characters beside the wearer lose 1 Attack for the Round. Nobody wanted this conversation.',
+      actionCost: 1,
+      cooldown: 2,
+      effects: [{ k: 'statMod', target: { scope: 'adjacentAllies' }, stat: 'attack', amount: -1, duration: 'round' }],
+    },
+    effects: [],
+  },
+
+  // --------------------------------------------------------- PURE COMEDY --
+  {
+    kind: 'stuff', id: 'kneeslapper', name: 'The Knee Slapper', subtype: 'Consumable', copies: 3, icon: '🦵', color: UTIL,
+    text: 'A joke so corny the target cannot recover. One Active enemy is Confused for the Round and loses 1 Attack. They did laugh, though.',
+    effects: [
+      { k: 'status', target: { scope: 'chosenEnemyActive' }, status: 'Confused', duration: 1 },
+      { k: 'statMod', target: { scope: 'chosenEnemyActive' }, stat: 'attack', amount: -1, duration: 'round' },
+    ],
+  },
+  {
+    kind: 'stuff', id: 'nutslapper', name: 'The Nut Slapper', subtype: 'Consumable', copies: 2, icon: '🥜', color: UTIL,
+    text: 'A cheap shot and everybody saw it. 3 damage to an Active enemy and they are Busy for the Round.',
+    effects: [
+      { k: 'damage', target: { scope: 'chosenEnemyActive' }, amount: 3 },
+      { k: 'status', target: { scope: 'chosenEnemyActive' }, status: 'Busy', duration: 1 },
+    ],
+  },
+  {
+    kind: 'stuff', id: 'stickyfingers', name: 'Twins Sticky Fingers', subtype: 'Consumable', copies: 3, icon: '🤏', color: UTIL,
+    text: 'It was in their pocket and now it is in yours. Take one item off an Active enemy.',
+    effects: [{ k: 'stealStuff', from: { scope: 'chosenEnemyActive' } }],
+  },
+  {
+    kind: 'stuff', id: 'glasselephant', name: "Titi's Glass Elephant", subtype: 'Gear', copies: 2, icon: '🐘', color: GEAR,
+    text: 'It has sat on that shelf untouched for thirty years. Equip. +2 Defense — nobody dares come near it.',
+    equipMods: [{ stat: 'defense', amount: 2 }],
+    activated: {
+      name: 'Do Not Touch That',
+      text: 'One of your Active Characters gains an extra action this Turn. Careful.',
+      actionCost: 1,
+      cooldown: 2,
+      effects: [{ k: 'grantAction', target: { scope: 'chosenAllyActive' }, n: 1 }],
+    },
+    effects: [],
+  },
   {
     kind: 'stuff', id: 'souppot', name: "Liv's Soup Pot", subtype: 'Gear', copies: 2, icon: '🍲', color: GEAR,
     text: 'Equip. Nobody is sure what is in it. Whoever eats it comes out swinging with the wrong half of themselves: Attack and Defense trade places for the Round, and they are Confused about it.',

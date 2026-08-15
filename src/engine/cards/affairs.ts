@@ -149,6 +149,79 @@ export const AFFAIRS: AffairDef[] = [
     ],
   },
   {
+    kind: 'affair', id: 'ranoutofbooze', name: 'Ran Out Of Booze', duration: 'round', color: C,
+    text: 'Somebody has to make a run. Every Active Character sobers up 1 Alcohol, and whoever was furthest gone is Busy all Round sitting in the car.',
+    effects: [
+      { k: 'limit', target: { scope: 'allActiveEveryone' }, track: 'alcohol', amount: -1 },
+      { k: 'status', target: { scope: 'allActiveEveryone', withTag: 'Party Animal' }, status: 'Busy', duration: 1 },
+    ],
+  },
+  {
+    kind: 'affair', id: 'goingtothepark', name: 'Going To The Park', duration: 'round', color: C,
+    text: 'The Kids are outside and unsupervised. Every Kid gains +2 Attack for the Round. The Adults gain +1 Defense and a headache.',
+    effects: [
+      { k: 'statMod', target: { scope: 'allActiveEveryone', withTag: 'Kid' }, stat: 'attack', amount: 2, duration: 'round' },
+      { k: 'statMod', target: { scope: 'allActiveEveryone', withoutTag: 'Kid' }, stat: 'defense', amount: 1, duration: 'round' },
+    ],
+  },
+  {
+    kind: 'affair', id: 'companyscoming', name: "Company's Coming Over", duration: 'round', color: C,
+    text: 'The good towels are out and nobody is allowed to sit down. Every Caretaker is Busy cleaning. Everyone else gains +1 Defense from the tidy house.',
+    effects: [
+      { k: 'status', target: { scope: 'allActiveEveryone', withTag: 'Caretaker' }, status: 'Busy', duration: 1 },
+      { k: 'statMod', target: { scope: 'allActiveEveryone', withoutTag: 'Caretaker' }, stat: 'defense', amount: 1, duration: 'round' },
+    ],
+  },
+  {
+    kind: 'affair', id: 'goldencorral', name: 'Trip To Golden Corral', duration: 'round', color: C,
+    text: 'It is a buffet and it is a competition. Every Active Character gains +2 Food. Whoever cannot handle it will find out.',
+    effects: [{ k: 'limit', target: { scope: 'allActiveEveryone' }, track: 'food', amount: 2 }],
+  },
+  {
+    kind: 'affair', id: 'covid', name: 'Somebody Brought Covid', duration: 'round', color: C,
+    text: 'One cough at the table and the whole room turns. Every Elder is Asleep in the back room. Everybody else takes 2 damage and loses 1 Attack.',
+    effects: [
+      { k: 'status', target: { scope: 'allActiveEveryone', withTag: 'Elder' }, status: 'Asleep', duration: 1 },
+      { k: 'damage', target: { scope: 'allActiveEveryone', withoutTag: 'Elder' }, amount: 2 },
+      { k: 'statMod', target: { scope: 'allActiveEveryone', withoutTag: 'Elder' }, stat: 'attack', amount: -1, duration: 'round' },
+    ],
+  },
+  {
+    kind: 'affair', id: 'doordash', name: 'Complete The DoorDash Order', duration: 'round', color: C,
+    text: 'It arrived, it is cold, and it is far too much. Every Foodie gains +2 Food and heals 3. Everyone else gains +1 Food picking at it.',
+    effects: [
+      { k: 'limit', target: { scope: 'allActiveEveryone', withTag: 'Foodie' }, track: 'food', amount: 2 },
+      { k: 'heal', target: { scope: 'allActiveEveryone', withTag: 'Foodie' }, amount: 3 },
+      { k: 'limit', target: { scope: 'allActiveEveryone', withoutTag: 'Foodie' }, track: 'food', amount: 1 },
+    ],
+  },
+  {
+    kind: 'affair', id: 'nerfwar', name: 'Nerf Gun Blast', duration: 'round', color: C,
+    text: 'It started as a joke and it is now a war. Every Kid gains +2 Attack. Everyone else loses 1 Defense and takes 1 damage from a foam dart to the ear.',
+    effects: [
+      { k: 'statMod', target: { scope: 'allActiveEveryone', withTag: 'Kid' }, stat: 'attack', amount: 2, duration: 'round' },
+      { k: 'statMod', target: { scope: 'allActiveEveryone', withoutTag: 'Kid' }, stat: 'defense', amount: -1, duration: 'round' },
+      { k: 'damage', target: { scope: 'allActiveEveryone', withoutTag: 'Kid' }, amount: 1 },
+    ],
+  },
+  {
+    kind: 'affair', id: 'mothersday', name: "It's Mother's Day", duration: 'round', color: C,
+    text: 'Every Mom is waited on hand and foot: heal 3, +2 Defense for the Round. Everybody else is cooking, so -1 Attack.',
+    effects: [
+      { k: 'heal', target: { scope: 'allActiveEveryone', withTag: 'Mom' }, amount: 3 },
+      { k: 'statMod', target: { scope: 'allActiveEveryone', withTag: 'Mom' }, stat: 'defense', amount: 2, duration: 'round' },
+      { k: 'statMod', target: { scope: 'allActiveEveryone', withoutTag: 'Mom' }, stat: 'attack', amount: -1, duration: 'round' },
+    ],
+  },
+  {
+    kind: 'affair', id: 'fathersday', name: "It's Father's Day", duration: 'round', color: C,
+    text: 'Every Dad gets the good chair and control of the grill: +2 Attack for the Round and +1 Food. Everybody else gains +1 Food from the grill.',
+    effects: [
+      { k: 'statMod', target: { scope: 'allActiveEveryone', withTag: 'Dad' }, stat: 'attack', amount: 2, duration: 'round' },
+      { k: 'limit', target: { scope: 'allActiveEveryone' }, track: 'food', amount: 1 },
+    ],
+  },
+  {
     kind: 'affair', id: 'summervacation', name: 'Summer Vacation', duration: 'round', color: C,
     text: 'School is out. Every Kid at the table gets a burst of energy and +2 Attack for the Round, and the Adults gain +1 Defense from bracing for it.',
     effects: [

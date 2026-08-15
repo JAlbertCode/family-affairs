@@ -84,7 +84,9 @@ for (let i = 0; i < STEPS; i++) {
     // to the sheet itself — matching glyphs anywhere on the page started
     // catching board tokens once Characters began rendering 🍺🌿🍔 limit meters
     // and item icons, and the harness spent every step clicking tokens.
-    const act = page.locator('.actionsheet .chip:not([disabled])')
+    // .chip.ghost is "Details", which opens a read-only sheet and consumes
+    // nothing — cycling onto it just reopens the same panel forever.
+    const act = page.locator('.actionsheet .chip:not([disabled]):not(.ghost)')
     if (await act.count()) {
       const k = await act.count()
       const pick = act.nth(i % k)

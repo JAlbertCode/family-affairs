@@ -84,11 +84,18 @@ export function limitTierName(ch: CharacterInstance, track: LimitTrack): string 
 /** Stat deltas contributed by the three Limit tracks. */
 function limitStatDelta(ch: CharacterInstance): Record<StatName, number> {
   const d: Record<StatName, number> = { attack: 0, defense: 0 }
-  const isElias = getCharacterDef(ch.defId).id === 'elias'
+  const id = getCharacterDef(ch.defId).id
+  const isElias = id === 'elias'
+  const isKevin = id === 'kevin'
 
   // Alcohol (§21)
   const a = limitTier(ch, 'alcohol')
-  if (isElias) {
+  if (isKevin) {
+    // I Don't Even Drink. Everyone else buys swing with a drink; Kevin's whole
+    // build is Defense and alcohol takes it apart.
+    if (a === 1) d.defense -= 1
+    if (a >= 2) d.defense -= 2
+  } else if (isElias) {
     // Drunken Flow. Everyone else trades Defense for swing when they drink;
     // Elias gets sharper. He is the only Character whose alcohol curve goes up
     // all the way, which is the whole joke.
@@ -102,14 +109,35 @@ function limitStatDelta(ch: CharacterInstance): Record<StatName, number> {
 
   // Weed (§22) — buys Defense, costs the ability to hit anything
   const w = limitTier(ch, 'weed')
-  if (w === 1) d.defense += 1
-  if (w === 2) { d.defense += 2; d.attack -= 1 }
-  if (w === 3) { d.defense += 2; d.attack -= 2 }
+  if (isKevin) {
+    // Why Am I Here. He does not smoke, and it takes the fight out of him
+    // without giving back the Defense everyone else gets.
+    if (w === 1) d.attack -= 1
+    if (w >= 2) d.attack -= 2
+  } else {
+    if (w === 1) d.defense += 1
+    if (w === 2) { d.defense += 2; d.attack -= 1 }
+    if (w === 3) { d.defense += 2; d.attack -= 2 }
+  }
 
   // Food (§23)
   const f = limitTier(ch, 'food')
-  if (f === 2) d.defense += 1
-  if (f === 3) { d.defense += 1; d.attack -= 1 }
+  if (isKevin) {
+    // ALWAYS FED. Every other Character is trying not to get Stuffed. Kevin is
+    // trying to stay there — this is the one curve in the game that rewards
+    // running the meter all the way up, and it is his entire gameplay loop.
+    if (f === 1) d.attack += 1
+    // Leans Defense rather than both: at +2/+2 he came out of his first 150
+    // games as the strongest Character in the deck. He is a tank, so the wall
+    // is the part he keeps.
+    // Pure wall. Two nerfs in he was still debuting as a top-two Character, so
+    // Stuffed now buys Defense only — the Attack has to come from his Power
+    // Move, his items, or somebody feeding him a Protein Shake.
+    if (f >= 2) d.defense += 2
+  } else {
+    if (f === 2) d.defense += 1
+    if (f === 3) { d.defense += 1; d.attack -= 1 }
+  }
 
   return d
 }
@@ -320,7 +348,19 @@ export function explainStat(state: GameState, ch: CharacterInstance, stat: StatN
   }
 
   const a = limitTier(ch, 'alcohol')
-  if (getCharacterDef(ch.defId).id === 'elias') {
+  const who = getCharacterDef(ch.defId).id
+  if (who === 'kevin') {
+    if (a >= 1 && stat === 'defense') {
+      parts.push({ label: "🍺 I Don't Even Drink", amount: a === 1 ? -1 : -2, kind: 'limit' })
+    }
+    const kw = limitTier(ch, 'weed')
+    if (kw >= 1 && stat === 'attack') {
+      parts.push({ label: '🌿 Why Am I Here', amount: kw === 1 ? -1 : -2, kind: 'limit' })
+    }
+    const kf = limitTier(ch, 'food')
+    if (kf === 1 && stat === 'attack') parts.push({ label: '🍔 Fed', amount: 1, kind: 'limit' })
+    if (kf >= 2 && stat === 'defense') parts.push({ label: '🍔 Absolute Unit', amount: 2, kind: 'limit' })
+  } else if (who === 'elias') {
     if (a >= 1 && stat === 'attack') {
       parts.push({ label: '🎬 Drunken Flow', amount: a === 1 ? 1 : a === 2 ? 2 : 3, kind: 'limit' })
     }
@@ -332,17 +372,21 @@ export function explainStat(state: GameState, ch: CharacterInstance, stat: StatN
       if (stat === 'defense') parts.push({ label: a === 3 ? '🍺 Wasted' : '🍺 Drunk', amount: -1, kind: 'limit' })
     }
   }
-  const w = limitTier(ch, 'weed')
-  if (w === 1 && stat === 'defense') parts.push({ label: '🌿 High', amount: 1, kind: 'limit' })
-  if (w >= 2) {
-    if (stat === 'defense') parts.push({ label: w === 3 ? '🌿 Zooted' : '🌿 Stoned', amount: 2, kind: 'limit' })
-    if (stat === 'attack') parts.push({ label: w === 3 ? '🌿 Zooted' : '🌿 Stoned', amount: w === 3 ? -2 : -1, kind: 'limit' })
-  }
-  const f = limitTier(ch, 'food')
-  if (f === 2 && stat === 'defense') parts.push({ label: '🍔 Full', amount: 1, kind: 'limit' })
-  if (f === 3) {
-    if (stat === 'defense') parts.push({ label: '🍔 Stuffed', amount: 1, kind: 'limit' })
-    if (stat === 'attack') parts.push({ label: '🍔 Stuffed', amount: -1, kind: 'limit' })
+  // Kevin's Weed and Food rows are written above, in his own branch; running
+  // the standard ones as well would report every tier twice.
+  if (who !== 'kevin') {
+    const w = limitTier(ch, 'weed')
+    if (w === 1 && stat === 'defense') parts.push({ label: '🌿 High', amount: 1, kind: 'limit' })
+    if (w >= 2) {
+      if (stat === 'defense') parts.push({ label: w === 3 ? '🌿 Zooted' : '🌿 Stoned', amount: 2, kind: 'limit' })
+      if (stat === 'attack') parts.push({ label: w === 3 ? '🌿 Zooted' : '🌿 Stoned', amount: w === 3 ? -2 : -1, kind: 'limit' })
+    }
+    const f = limitTier(ch, 'food')
+    if (f === 2 && stat === 'defense') parts.push({ label: '🍔 Full', amount: 1, kind: 'limit' })
+    if (f === 3) {
+      if (stat === 'defense') parts.push({ label: '🍔 Stuffed', amount: 1, kind: 'limit' })
+      if (stat === 'attack') parts.push({ label: '🍔 Stuffed', amount: -1, kind: 'limit' })
+    }
   }
 
   if (stat === 'attack' && hasStatus(ch, 'Fired Up')) {
