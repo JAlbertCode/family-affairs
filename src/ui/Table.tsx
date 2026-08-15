@@ -7,7 +7,7 @@ import {
 } from '../engine/selectors'
 import { needsTarget } from '../engine/effects'
 import { HAND_LIMIT } from '../engine/state'
-import { CardFace, cardLabel } from './CardFace'
+import { CardFace, cardLabel, EffectChips, stuffChips } from './CardFace'
 import { BoardToken, EmptyToken } from './BoardToken'
 import { CharacterPortrait } from './CharacterCard'
 import { Minigame } from './Minigame'
@@ -420,6 +420,7 @@ export function Table({
                   : <span className="hs-glyph">{stDef?.icon ?? '❔'}</span>}
                 <span className="hs-name">{chDef?.name ?? stDef?.name}</span>
                 {chDef && <span className="hs-mini">⚔{chDef.stats.attack} 🛡{chDef.stats.defense}</span>}
+                {stDef && <EffectChips chips={stuffChips(stDef).slice(0, 3)} className="mini" />}
                 {p.ok && <span className="hs-ok" />}
               </button>
             )
@@ -505,7 +506,7 @@ export function Table({
         if (!inst || !holder) return null
         const sd = getStuffDef(inst.defId)
         const ab = sd.activated
-        const eatable = ['Food', 'Drink', 'Smoke'].includes(sd.subtype)
+        const eatable = ['Food', 'Drink', 'Smoke'].includes(sd.subtype) || !!sd.edible
         const cdKey = `item:${sd.id}`
         const onCd = ab ? (ab.oncePerGame
           ? holder.cooldowns[cdKey] === -1
@@ -603,7 +604,9 @@ function CharacterActions({
 
   const consumables = ch.attached.filter((i: string) => {
     const s = state.stuff[i]
-    return s && ['Food', 'Drink', 'Smoke'].includes(getStuffDef(s.defId).subtype)
+    if (!s) return false
+    const sd = getStuffDef(s.defId)
+    return ['Food', 'Drink', 'Smoke'].includes(sd.subtype) || !!sd.edible
   })
   const usableItems = ch.attached.filter((i: string) => {
     const s = state.stuff[i]

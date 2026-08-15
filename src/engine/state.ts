@@ -383,7 +383,9 @@ function handle(state: GameState, pid: PlayerId, intent: Intent): string | undef
       const si = state.stuff[intent.iid]
       if (!si) return 'Unknown item.'
       const sd = getStuffDef(si.defId)
-      if (!['Food', 'Drink', 'Smoke'].includes(sd.subtype)) return `${sd.name} is not consumable.`
+      if (!['Food', 'Drink', 'Smoke'].includes(sd.subtype) && !sd.edible) {
+        return `${sd.name} is not consumable.`
+      }
       // §23: a Stuffed Character cannot voluntarily eat more Food
       if (sd.subtype === 'Food' && limitTier(ch, 'food') === 3) {
         return `${getCharacterDef(ch.defId).name} is Stuffed and cannot voluntarily eat.`
@@ -550,6 +552,23 @@ function handle(state: GameState, pid: PlayerId, intent: Intent): string | undef
 // Playing cards (§8 Phase 2)
 // ---------------------------------------------------------------------------
 
+/**
+ * Some Characters arrive holding something. It is a real card from that point
+ * on: it can be stolen, destroyed, eaten or handed over, and when it goes the
+ * bonus goes with it.
+ */
+function grantStartingStuff(state: GameState, ch: CharacterInstance) {
+  const def = getCharacterDef(ch.defId)
+  if (!def.startsWith?.length || ch.scratch.startingStuffGranted) return
+  ch.scratch.startingStuffGranted = 1
+  for (const defId of def.startsWith) {
+    const iid = nid('s')
+    state.stuff[iid] = { iid, defId, owner: ch.owner, attachedTo: ch.iid }
+    ch.attached.push(iid)
+    log(state, `${def.name} shows up with ${getStuffDef(defId).name}.`, 'play')
+  }
+}
+
 function playCard(
   state: GameState, pid: PlayerId, iid: InstanceId, targetChar?: InstanceId, slot?: Slot,
 ): string | undefined {
@@ -578,6 +597,7 @@ function playCard(
     }
     ps.hand = ps.hand.filter((x) => x !== iid)
     ps.cardsPlayedThisTurn += 1
+    grantStartingStuff(state, ch)
     return
   }
 

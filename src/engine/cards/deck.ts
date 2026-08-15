@@ -3,13 +3,14 @@ import { CHARACTERS, CHARACTERS_BY_ID } from './characters'
 import { STUFF, STUFF_BY_ID } from './stuff'
 import { AFFAIRS, AFFAIRS_BY_ID } from './affairs'
 
-import { registerCharacterIds } from './schema'
+import { registerCharacterIds, registerStuffIds } from './schema'
 
 export { CHARACTERS, STUFF, AFFAIRS, CHARACTERS_BY_ID, STUFF_BY_ID, AFFAIRS_BY_ID }
 
 // Base-game Characters are always a legal target for character-locked stuff,
 // including stuff that arrives later in a third-party pack.
 registerCharacterIds(CHARACTERS.map((c) => c.id))
+registerStuffIds(STUFF.map((s) => s.id))
 
 export function getCharacterDef(id: DefId): CharacterDef {
   const d = CHARACTERS_BY_ID[id]

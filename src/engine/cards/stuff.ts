@@ -460,9 +460,10 @@ export const STUFF: StuffDef[] = [
 
   // --- Dorian's crown, and the rest of the stuff that only belongs to one person
   {
-    kind: 'stuff', id: 'donutcrown', name: "Dorian's Donut Crown", subtype: 'Gear', copies: 2, onlyFor: ['dorian'], icon: '👑', color: FOOD,
-    text: 'Equip to Dorian only. +1 Attack. Crack the crown open and hand out a free donut: roll d6 for what was in it.',
+    kind: 'stuff', id: 'donutcrown', name: "Dorian's Donut Crown", subtype: 'Gear', copies: 2, edible: true, giftable: true, icon: '👑', color: FOOD,
+    text: 'Equip. It is a crown and it is also breakfast. +1 Attack while worn, hand out free donuts, or give up and eat the whole thing: +2 Food and heal 4. Dorian shows up already wearing one.',
     equipMods: [{ stat: 'attack', amount: 1 }],
+    limitGain: { food: 2 },
     activated: {
       name: 'Free Donuts',
       text: 'Pick any Active Character and roll d6. 1-3 it was a plain donut (+1 Food, heal 2). 4-5 somebody laced it (+1 Weed). 6 it was soaked in rum (+1 Alcohol, +1 Attack this Turn).',
@@ -487,7 +488,7 @@ export const STUFF: StuffDef[] = [
         },
       ],
     },
-    effects: [],
+    effects: [{ k: 'heal', target: { scope: 'self' }, amount: 4 }],
   },
   {
     kind: 'stuff', id: 'walker', name: "Grandpa's Walker", subtype: 'Gear', copies: 2, icon: '🦼', color: GEAR,
@@ -531,6 +532,234 @@ export const STUFF: StuffDef[] = [
       actionCost: 1,
       cooldown: 2,
       effects: [{ k: 'startMinigame', kind: 'tictactoe', stake: { kind: 'damage', amount: 3 } }],
+    },
+    effects: [],
+  },
+  // ------------------------------------------------------ THE BIG BATCH --
+  {
+    kind: 'stuff', id: 'lilly40', name: "Grandma Lilly's 40", subtype: 'Drink', copies: 3, giftable: true, icon: '🍺', color: DRINK,
+    text: 'Forty ounces, one hand, no cup. +2 Alcohol and +1 Attack for the Round. Grandma Lilly does not share and does not explain.',
+    limitGain: { alcohol: 2 },
+    effects: [{ k: 'statMod', target: { scope: 'self' }, stat: 'attack', amount: 1, duration: 'round' }],
+  },
+  {
+    kind: 'stuff', id: 'marlboros', name: 'Pack Of Marlboros', subtype: 'Smoke', copies: 3, icon: '🚬', color: SMOKE,
+    text: 'Stepping outside for one. +1 Defense for the Round and shake off Busy — whatever it was, it can wait.',
+    limitGain: {},
+    effects: [
+      { k: 'statMod', target: { scope: 'self' }, stat: 'defense', amount: 1, duration: 'round' },
+      { k: 'removeStatus', target: { scope: 'self' }, status: 'Busy' },
+    ],
+  },
+  {
+    kind: 'stuff', id: 'baseball', name: 'The Baseball', subtype: 'Gear', copies: 2, icon: '⚾', color: GEAR,
+    text: 'Equip. +2 Attack. Somebody is getting hit and everyone will agree it was an accident.',
+    equipMods: [{ stat: 'attack', amount: 2 }],
+    effects: [],
+  },
+  {
+    kind: 'stuff', id: 'goodmic', name: 'The Good Microphone', subtype: 'Gear', copies: 2, icon: '🎙️', color: GEAR,
+    text: 'Equip. The one with the working cable. +1 Attack, +1 Defense, and +2 more Attack if a Musician is holding it.',
+    equipMods: [{ stat: 'attack', amount: 1 }, { stat: 'defense', amount: 1 }],
+    activated: {
+      name: 'Take The Solo',
+      text: '+2 Attack for the Round. A Musician gets +3 instead, because they actually practised.',
+      actionCost: 1,
+      cooldown: 2,
+      effects: [
+        {
+          k: 'ifTag', tag: 'Musician', present: true,
+          then: [{ k: 'statMod', target: { scope: 'self' }, stat: 'attack', amount: 3, duration: 'round' }],
+          else: [{ k: 'statMod', target: { scope: 'self' }, stat: 'attack', amount: 2, duration: 'round' }],
+        },
+      ],
+    },
+    effects: [],
+  },
+  {
+    kind: 'stuff', id: 'tostonera', name: 'The Platano Shaper', subtype: 'Gear', copies: 2, icon: '🍌', color: GEAR,
+    text: 'Equip. The wooden one that lives in the drawer. Press one out: +1 Food and heal 2 to anyone at the table.',
+    equipMods: [],
+    activated: {
+      name: 'Press One Out',
+      text: 'Hand a fresh tostone to anyone. They heal 2 and gain +1 Food.',
+      actionCost: 1,
+      cooldown: 2,
+      effects: [
+        { k: 'heal', target: { scope: 'chosenAnyActive' }, amount: 2 },
+        { k: 'limit', target: { scope: 'chosenAnyActive' }, track: 'food', amount: 1 },
+      ],
+    },
+    effects: [],
+  },
+  {
+    kind: 'stuff', id: 'empanadamaker', name: 'The Empanada Press', subtype: 'Gear', copies: 2, icon: '🥟', color: GEAR,
+    text: 'Equip. Crimps them perfectly every time. A Cook gets +2 Defense from it; everyone else gets +1 and a lecture.',
+    equipMods: [{ stat: 'defense', amount: 1 }],
+    activated: {
+      name: 'A Whole Tray',
+      text: 'Feed your own side. All your Active Characters heal 2 and gain +1 Food.',
+      actionCost: 1,
+      cooldown: 2,
+      effects: [
+        { k: 'heal', target: { scope: 'allMyActive' }, amount: 2 },
+        { k: 'limit', target: { scope: 'allMyActive' }, track: 'food', amount: 1 },
+      ],
+    },
+    effects: [],
+  },
+  {
+    kind: 'stuff', id: 'insulinpump', name: 'The Insulin Pump', subtype: 'Gear', copies: 2, icon: '💉', color: GEAR,
+    text: 'Equip. Keeps things level. +2 Defense, and once in a while it takes the edge off: clear 1 Food and 1 Alcohol.',
+    equipMods: [{ stat: 'defense', amount: 2 }],
+    activated: {
+      name: 'Level It Out',
+      text: 'Bring it back to baseline: -1 Food and -1 Alcohol on the wearer.',
+      actionCost: 1,
+      cooldown: 2,
+      effects: [
+        { k: 'limit', target: { scope: 'self' }, track: 'food', amount: -1 },
+        { k: 'limit', target: { scope: 'self' }, track: 'alcohol', amount: -1 },
+      ],
+    },
+    effects: [],
+  },
+  {
+    kind: 'stuff', id: 'asthmapump', name: 'The Asthma Pump', subtype: 'Gear', copies: 2, icon: '🫁', color: GEAR,
+    text: 'Equip. Two puffs and you are back in it. Clears Busy and Confused, and gives +1 Attack for the Round.',
+    equipMods: [],
+    activated: {
+      name: 'Two Puffs',
+      text: 'Shake off Busy and Confused. +1 Attack for the Round.',
+      actionCost: 1,
+      cooldown: 2,
+      effects: [
+        { k: 'removeStatus', target: { scope: 'self' }, status: 'Busy' },
+        { k: 'removeStatus', target: { scope: 'self' }, status: 'Confused' },
+        { k: 'statMod', target: { scope: 'self' }, stat: 'attack', amount: 1, duration: 'round' },
+      ],
+    },
+    effects: [],
+  },
+  {
+    kind: 'stuff', id: 'arizona', name: 'Arizona Iced Tea', subtype: 'Drink', copies: 3, giftable: true, icon: '🥤', color: DRINK,
+    text: 'Ninety-nine cents. It says so on the can. Heal 3 HP and shake off Confused. No Alcohol, no drama.',
+    limitGain: {},
+    effects: [
+      { k: 'heal', target: { scope: 'self' }, amount: 3 },
+      { k: 'removeStatus', target: { scope: 'self' }, status: 'Confused' },
+    ],
+  },
+  {
+    kind: 'stuff', id: 'timbs', name: 'Timbs', subtype: 'Gear', copies: 2, icon: '🥾', color: GEAR,
+    text: 'Equip. +1 Attack, +2 Defense. Nobody is stepping on your foot twice.',
+    equipMods: [{ stat: 'attack', amount: 1 }, { stat: 'defense', amount: 2 }],
+    effects: [],
+  },
+  {
+    kind: 'stuff', id: 'freshjs', name: 'A Fresh Pair Of Js', subtype: 'Gear', copies: 2, icon: '👟', color: GEAR,
+    text: 'Equip. Straight out the box. +3 Attack — but you are not going near anything wet, so -1 Defense.',
+    equipMods: [{ stat: 'attack', amount: 3 }, { stat: 'defense', amount: -1 }],
+    effects: [],
+  },
+  {
+    kind: 'stuff', id: 'muddyshoes', name: 'White Shoes, Already Muddy', subtype: 'Gear', copies: 2, giftable: true, icon: '👟', color: GEAR,
+    text: 'Equip. It happened in the driveway and it is nobody’s fault. -2 Attack, because you are in a mood about it.',
+    equipMods: [{ stat: 'attack', amount: -2 }],
+    effects: [],
+  },
+  {
+    kind: 'stuff', id: 'wrongsneakers', name: 'Somebody Else’s Sneakers', subtype: 'Gear', copies: 2, giftable: true, icon: '🩰', color: GEAR,
+    text: 'Equip. Two sizes off in the wrong direction. -1 Attack and -1 Defense until somebody sorts it out.',
+    equipMods: [{ stat: 'attack', amount: -1 }, { stat: 'defense', amount: -1 }],
+    effects: [],
+  },
+  {
+    kind: 'stuff', id: 'headband', name: 'The Headband', subtype: 'Gear', copies: 2, icon: '🎽', color: GEAR,
+    text: 'Equip. +1 Attack. An Athlete wearing it means business: +2 instead.',
+    equipMods: [{ stat: 'attack', amount: 1 }],
+    activated: {
+      name: 'Tighten It',
+      text: 'Lock in. +1 Attack for the Round, or +2 if an Athlete is wearing it.',
+      actionCost: 1,
+      cooldown: 2,
+      effects: [
+        {
+          k: 'ifTag', tag: 'Athlete', present: true,
+          then: [{ k: 'statMod', target: { scope: 'self' }, stat: 'attack', amount: 2, duration: 'round' }],
+          else: [{ k: 'statMod', target: { scope: 'self' }, stat: 'attack', amount: 1, duration: 'round' }],
+        },
+      ],
+    },
+    effects: [],
+  },
+  {
+    kind: 'stuff', id: 'shroomchocolate', name: "Adrian's Chocolate", subtype: 'Smoke', copies: 2, giftable: true, icon: '🍫', color: SMOKE,
+    text: 'It is chocolate, and then it is not. +2 Weed and +1 Food immediately. +3 Defense for the Round, and good luck attacking anybody.',
+    limitGain: { weed: 2, food: 1 },
+    effects: [
+      { k: 'statMod', target: { scope: 'self' }, stat: 'defense', amount: 3, duration: 'round' },
+    ],
+  },
+  {
+    kind: 'stuff', id: 'poisonivy', name: 'Poison Ivy', subtype: 'Consumable', copies: 3, icon: '🌱', color: UTIL,
+    text: 'Somebody walked through it and now everybody has it. Pick any Character: 2 damage and -2 Attack for the Round. They cannot stop scratching.',
+    effects: [
+      { k: 'damage', target: { scope: 'chosenAnyActive' }, amount: 2 },
+      { k: 'statMod', target: { scope: 'chosenAnyActive' }, stat: 'attack', amount: -2, duration: 'round' },
+    ],
+  },
+  {
+    kind: 'stuff', id: 'hulahoop', name: "Ivy's Hula Hoop", subtype: 'Gear', copies: 2, icon: '⭕', color: GEAR,
+    text: 'Equip. +2 Defense while it is going. Give everyone a show: your whole side gains +1 Defense, and an Athlete doing it gains +2 Attack too.',
+    equipMods: [{ stat: 'defense', amount: 2 }],
+    activated: {
+      name: 'Give Them A Show',
+      text: 'All your Active Characters gain +1 Defense for the Round. An Athlete spinning it also gains +2 Attack.',
+      actionCost: 1,
+      cooldown: 2,
+      effects: [
+        { k: 'statMod', target: { scope: 'allMyActive' }, stat: 'defense', amount: 1, duration: 'round' },
+        {
+          k: 'ifTag', tag: 'Athlete', present: true,
+          then: [{ k: 'statMod', target: { scope: 'self' }, stat: 'attack', amount: 2, duration: 'round' }],
+        },
+      ],
+    },
+    effects: [],
+  },
+  {
+    kind: 'stuff', id: 'tvremote', name: "Grandpa's TV Remote", subtype: 'Gear', copies: 2, icon: '📺', color: GEAR,
+    text: 'Equip. Nobody else touches it. +1 Defense. Change the channel on somebody and they lose the thread: Confused for the Round.',
+    equipMods: [{ stat: 'defense', amount: 1 }],
+    activated: {
+      name: 'Change The Channel',
+      text: 'An Active enemy becomes Confused for the Round. It was a good part, too.',
+      actionCost: 1,
+      cooldown: 2,
+      effects: [{ k: 'status', target: { scope: 'chosenEnemyActive' }, status: 'Confused', duration: 1 }],
+    },
+    effects: [],
+  },
+  {
+    kind: 'stuff', id: 'ninjastars', name: "Amanda's Ninja Star Cookies", subtype: 'Food', copies: 3, giftable: true, icon: '🍪', color: FOOD,
+    text: 'Baked with points on them, on purpose. Heal 3 and +1 Food — or throw one at a rival for 2 damage. Nobody has ever asked why.',
+    limitGain: { food: 1 },
+    effects: [{ k: 'heal', target: { scope: 'self' }, amount: 3 }],
+  },
+  {
+    kind: 'stuff', id: 'kippa', name: 'The Kippa', subtype: 'Gear', copies: 2, icon: '🔵', color: GEAR,
+    text: 'Equip. Covers what needs covering and earns the room’s respect. +2 Defense, and nobody at the table starts anything: shake off Confused.',
+    equipMods: [{ stat: 'defense', amount: 2 }],
+    activated: {
+      name: 'Show Some Respect',
+      text: 'The table settles down. Shake off Confused and heal 2.',
+      actionCost: 1,
+      cooldown: 2,
+      effects: [
+        { k: 'removeStatus', target: { scope: 'self' }, status: 'Confused' },
+        { k: 'heal', target: { scope: 'self' }, amount: 2 },
+      ],
     },
     effects: [],
   },

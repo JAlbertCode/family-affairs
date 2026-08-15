@@ -51,6 +51,10 @@ const knownCharacterIds = new Set<string>()
 export function registerCharacterIds(ids: string[]) {
   for (const id of ids) knownCharacterIds.add(id)
 }
+const knownStuffIds = new Set<string>()
+export function registerStuffIds(ids: string[]) {
+  for (const id of ids) knownStuffIds.add(id)
+}
 
 export interface Issue {
   card: string
@@ -264,6 +268,15 @@ export function validateCharacter(c: CharacterDef): Issue[] {
   }
   if (!c.ability && !c.powerMove) err('ability', 'Needs at least one activated ability.')
 
+  // Starting stuff is free value that never had to be drawn, so it is capped
+  // and has to name cards that exist.
+  if (c.startsWith) {
+    if (c.startsWith.length > 1) err('startsWith', 'A Character may start with at most 1 item.')
+    for (const id of c.startsWith) {
+      if (!knownStuffIds.has(id)) err('startsWith', `Unknown Stuff id "${id}".`)
+    }
+  }
+
   if (c.achievement) {
     const cl = c.achievement.clout
     if (cl < RULES.achievementClout.min || cl > RULES.achievementClout.max) {
@@ -288,6 +301,9 @@ export function validateStuff(d: StuffDef): Issue[] {
   if (!d.id || !/^[a-z0-9]+$/.test(d.id)) err('id', 'Needs a lowercase alphanumeric id.')
   if (!d.text?.trim()) err('text', 'Needs rules text.')
   if (d.copies < 1 || d.copies > 4) err('copies', 'Between 1 and 4 copies in the deck.')
+  if (d.edible && !['Gear', 'Ride', 'Pet'].includes(d.subtype)) {
+    err('edible', 'Food, Drink and Smoke are already consumable — `edible` is for Gear and Rides.')
+  }
   // Character-locked stuff has to name Characters that actually exist, or the
   // card is simply unplayable once it is drawn.
   if (d.onlyFor) {
@@ -383,6 +399,7 @@ export function validatePack(pack: CardPack, knownIds: Set<string> = new Set()):
   // A pack may lock its own stuff to its own characters, so register those
   // before anything is checked.
   registerCharacterIds((pack.characters ?? []).map((c) => c.id))
+  registerStuffIds((pack.stuff ?? []).map((s) => s.id))
 
   const seen = new Set(knownIds)
   const claim = (id: string, label: string) => {

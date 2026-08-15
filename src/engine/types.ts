@@ -189,6 +189,10 @@ export interface CharacterDef {
   tags: Tag[]
   tolerance: Tolerance
   /** how many Gear this character may equip (default 1) */
+  /** Stuff this Character brings with them when they are recruited. It is
+   *  theirs until somebody takes it: starting items can be stolen, destroyed
+   *  and eaten like any other, and losing one costs the bonus it gave. */
+  startsWith?: DefId[]
   gearSlots?: number
   /** how many Rides this character may equip (default 1) */
   rideSlots?: number
@@ -226,6 +230,10 @@ export interface StuffDef {
   giftable?: boolean
   /** Some things belong to one person. Only these Characters may hold it. */
   onlyFor?: DefId[]
+  /** A Gear or Ride that can also be eaten. Consuming it applies limitGain and
+   *  effects the same way Food does, and the item is gone afterwards — which
+   *  is the whole decision: wear it, or eat it once. */
+  edible?: boolean
   /** Food/Drink/Smoke: limit gained on consumption */
   limitGain?: Partial<Record<LimitTrack, number>>
   /** effects on use/consume */

@@ -3,10 +3,11 @@ import { STUFF } from './stuff'
 import { AFFAIRS } from './affairs'
 import {
   validateCharacter, validateStuff, validateAffair, abilityCost, registerCharacterIds,
-  RULES, type Issue,
+  registerStuffIds, RULES, type Issue,
 } from './schema'
 
 registerCharacterIds(CHARACTERS.map((c) => c.id))
+registerStuffIds(STUFF.map((s) => s.id))
 
 // Every card in the game is held to the same rules an outside author would be.
 // If we can't pass our own validator, the validator is a lie.

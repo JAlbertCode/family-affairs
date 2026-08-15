@@ -1,4 +1,4 @@
-import type { GameState, InstanceId, PlayerId } from '../engine/types'
+import type { GameState, InstanceId, PlayerId, Effect, StuffDef } from '../engine/types'
 import { getCharacterDef, getStuffDef } from '../engine/cards/deck'
 
 const BASE = import.meta.env.BASE_URL
@@ -78,16 +78,8 @@ export function CardFace({
           <h2>{def.name}</h2>
         </header>
         <div className="face-body">
+          <EffectChips chips={stuffChips(def)} className="big" />
           <p className="face-rule big">{def.text}</p>
-          {def.equipMods && def.equipMods.length > 0 && (
-            <div className="face-statrow small">
-              {def.equipMods.map((m, i) => (
-                <span key={i} className={`fstat ${m.stat[0]}`}>
-                  <b>{m.amount > 0 ? '+' : ''}{m.amount}</b><i>{m.stat.toUpperCase()}</i>
-                </span>
-              ))}
-            </div>
-          )}
           {['Food', 'Drink', 'Smoke'].includes(def.subtype) && (
             <p className="face-hint">
               Can be given to <strong>anyone</strong>, including your rivals — pushing somebody past
@@ -108,6 +100,99 @@ export function CardFace({
   }
 
   return <article className="face face-unknown">Unknown card</article>
+}
+
+
+// ---------------------------------------------------------------------------
+// What does this card actually DO? Read it off the card data rather than the
+// prose, so a third-party card gets the same summary for free and cannot lie
+// about its own numbers.
+// ---------------------------------------------------------------------------
+
+export interface EffectChip { label: string; tone: 'good' | 'bad' | 'note' }
+
+const STAT_GLYPH: Record<string, string> = { attack: '⚔', defense: '🛡' }
+const TRACK_GLYPH: Record<string, string> = { alcohol: '🍺', weed: '🌿', food: '🍔' }
+const sign = (n: number) => (n > 0 ? `+${n}` : `${n}`)
+
+function walk(effects: Effect[], out: EffectChip[], selfOnly: boolean) {
+  for (const e of effects) {
+    const t = (e as any).target?.scope as string | undefined
+    // Anything aimed away from the holder is written as "them" so a buff and a
+    // debuff are never confused for each other at a glance.
+    const them = t && t !== 'self' && t !== 'eventTarget'
+    switch (e.k) {
+      case 'statMod':
+        out.push({
+          label: `${them ? 'them ' : ''}${STAT_GLYPH[e.stat] ?? e.stat}${sign(e.amount)}`,
+          tone: (e.amount > 0) !== !!them ? 'good' : 'bad',
+        })
+        break
+      case 'heal':
+        out.push({ label: `${them ? 'them ' : ''}♥+${e.amount}`, tone: 'good' })
+        break
+      case 'damage':
+        out.push({ label: `${e.amount} dmg`, tone: them ? 'good' : 'bad' })
+        break
+      case 'limit':
+        out.push({
+          label: `${them ? 'them ' : ''}${TRACK_GLYPH[e.track] ?? e.track}${sign(e.amount)}`,
+          tone: 'note',
+        })
+        break
+      case 'status':
+        out.push({ label: `${them ? '' : 'you: '}${e.status}`, tone: them ? 'good' : 'bad' })
+        break
+      case 'removeStatus':
+        out.push({ label: `clears ${e.status}`, tone: 'good' })
+        break
+      case 'draw': out.push({ label: `draw ${e.n}`, tone: 'good' }); break
+      case 'discard': out.push({ label: `discard ${e.n}`, tone: 'bad' }); break
+      case 'swapStats': out.push({ label: '⚔ ⇄ 🛡', tone: 'note' }); break
+      case 'extraAttack': out.push({ label: 'extra attack', tone: 'good' }); break
+      case 'grantAction': out.push({ label: `+${e.n} action`, tone: 'good' }); break
+      case 'stealStuff': out.push({ label: 'steal an item', tone: 'good' }); break
+      case 'destroyStuff': out.push({ label: 'destroy an item', tone: 'good' }); break
+      case 'startMinigame': out.push({ label: 'play them for it', tone: 'note' }); break
+      case 'roll': {
+        out.push({ label: 'roll d6', tone: 'note' })
+        for (const b of e.branches) walk(b.effects, out, selfOnly)
+        break
+      }
+      case 'ifTag':
+      case 'ifCharacterActive':
+        walk(e.then, out, selfOnly)
+        if (e.else) walk(e.else, out, selfOnly)
+        break
+      default: break
+    }
+  }
+}
+
+/** The headline numbers for a Stuff card, deduped and capped. */
+export function stuffChips(def: StuffDef): EffectChip[] {
+  const out: EffectChip[] = []
+  for (const m of def.equipMods ?? []) {
+    out.push({ label: `${STAT_GLYPH[m.stat] ?? m.stat}${sign(m.amount)}`, tone: m.amount > 0 ? 'good' : 'bad' })
+  }
+  for (const [track, amt] of Object.entries(def.limitGain ?? {})) {
+    if (!amt) continue
+    out.push({ label: `${TRACK_GLYPH[track] ?? track}${sign(amt as number)}`, tone: 'note' })
+  }
+  walk(def.effects ?? [], out, false)
+  if (def.activated) walk(def.activated.effects, out, false)
+
+  const seen = new Set<string>()
+  return out.filter((c) => (seen.has(c.label) ? false : (seen.add(c.label), true))).slice(0, 8)
+}
+
+export function EffectChips({ chips, className }: { chips: EffectChip[]; className?: string }) {
+  if (chips.length === 0) return null
+  return (
+    <div className={`fx ${className ?? ''}`}>
+      {chips.map((c, i) => <span key={i} className={`fx-chip ${c.tone}`}>{c.label}</span>)}
+    </div>
+  )
 }
 
 /** Short label for a card, used in confirmations and log lines. */

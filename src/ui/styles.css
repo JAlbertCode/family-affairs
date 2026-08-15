@@ -792,3 +792,21 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
   background: var(--panel-2); border: 1px solid var(--line); color: #fff;
   font-size: .92rem; font-weight: 700;
 }
+
+/* --------------------------------------------- WHAT THE CARD ACTUALLY DOES -- */
+/* Derived from the card's own data, not from its prose, so the numbers on the
+   chip and the numbers the engine applies cannot drift apart — and a card
+   somebody else writes gets the same summary for free. */
+.fx { display: flex; flex-wrap: wrap; gap: 4px; }
+.fx-chip {
+  font-size: .66rem; font-weight: 900; line-height: 1;
+  padding: 5px 7px; border-radius: 7px; white-space: nowrap;
+  background: #ffffff10; color: #ded0e4; border: 1px solid #ffffff14;
+}
+.fx-chip.good { background: #17351f; color: #8fe6a4; border-color: #2f6b3f; }
+.fx-chip.bad  { background: #3a1520; color: #ffabb9; border-color: #7d2b3c; }
+.fx-chip.note { background: #2a2340; color: #c2b4ff; border-color: #4b3f77; }
+.fx.big { margin-bottom: 9px; }
+.fx.big .fx-chip { font-size: .78rem; padding: 6px 9px; }
+.fx.mini { justify-content: center; gap: 3px; margin-top: 2px; }
+.fx.mini .fx-chip { font-size: .5rem; padding: 2px 4px; border-radius: 5px; }

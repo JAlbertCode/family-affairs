@@ -79,6 +79,7 @@ export const CHARACTERS: CharacterDef[] = [
     tolerance: T(3, 3, 4), // Bottomless Pit (§53)
     color: '#e0a43c',
     art: 'dorian.webp',
+    startsWith: ['donutcrown'],
     passive: {
       name: 'Bottomless Pit',
       text: 'Dorian may reach Food 4. He does not become Stuffed until Food 4.',
