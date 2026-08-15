@@ -49,6 +49,13 @@ export function Table({
   const [affairOpen, setAffairOpen] = useState(false)
   const [turnFlash, setTurnFlash] = useState(false)
   const [autoPass, setAutoPass] = useState(false)
+  // The hand is ~190px of a phone screen and sits on top of your own family,
+  // which is where the Drunk/High/Stuffed meters live. If you cannot see those
+  // without opening something, they may as well not be on the board.
+  const [handOpen, setHandOpen] = useState(true)
+  // While choosing a target, a tap commits. That left no way to check what you
+  // are aiming at, which is exactly when you most want to know.
+  const [peek, setPeek] = useState(false)
   const prevTurn = useRef<PlayerId | null>(null)
   const prevAffair = useRef<string | null>(null)
 
@@ -72,6 +79,7 @@ export function Table({
   }, [state.currentAffair])
 
   useEffect(() => { if (battle || minigame) { setTargeting(null); setSelected(null) } }, [!!battle, !!minigame])
+  useEffect(() => { if (!targeting) setPeek(false) }, [!!targeting])
 
   // Any sheet left open belongs to the player who opened it. When the device
   // changes hands — or the turn moves on — clear the lot, or the next player
@@ -160,6 +168,7 @@ export function Table({
   }
 
   function tapToken(iid: InstanceId, mine: boolean) {
+    if (targeting && peek) { setInspect(iid); return }
     if (targeting) {
       switch (targeting.kind) {
         case 'playStuff':
@@ -331,7 +340,7 @@ export function Table({
                   {ps.field.map((iid, i) => {
                     const ch = iid ? state.characters[iid] : null
                     return ch
-                      ? <BoardToken key={iid} state={state} ch={ch} size="sm"
+                      ? <BoardToken key={iid} state={state} ch={ch} size="sm" showAura
                           mode={tokenMode(iid!, false)} onClick={() => tapToken(iid!, false)} />
                       : <EmptyToken key={i} label="" size="sm" />
                   })}
@@ -416,18 +425,23 @@ export function Table({
       )}
 
       {targetPrompt && (
-        <div className="targetbar">
-          <span>{targetPrompt}</span>
-          <button onClick={() => setTargeting(null)}>Cancel</button>
+        <div className={`targetbar ${peek ? 'peeking' : ''}`}>
+          <span>{peek ? 'Tap anyone to read them — targeting is paused' : targetPrompt}</span>
+          <button className={peek ? 'on' : ''} onClick={() => setPeek((v) => !v)}>
+            {peek ? 'Done' : 'ⓘ Look'}
+          </button>
+          <button onClick={() => { setPeek(false); setTargeting(null) }}>Cancel</button>
         </div>
       )}
 
       {/* ---------------------------------------------- HAND (bottom) ---- */}
-      {!targeting && <div className={`handstrip ${state.phase === 'draw' ? 'predraw' : ''}`}>
-        <div className="hs-head">
+      {!targeting && <div className={`handstrip ${state.phase === 'draw' ? 'predraw' : ''} ${handOpen ? '' : 'collapsed'}`}>
+        <button className="hs-head" onClick={() => setHandOpen((v) => !v)}
+          aria-expanded={handOpen} aria-label={handOpen ? 'Hide your hand' : 'Show your hand'}>
           <span>{state.phase === 'draw' ? 'Drawing…' : 'Your hand'}</span>
           <b className={me.hand.length > HAND_LIMIT ? 'over' : ''}>{me.hand.length}/{HAND_LIMIT}</b>
-        </div>
+          <i className="hs-toggle">{handOpen ? 'hide ▾' : 'show ▴'}</i>
+        </button>
         <div className="hs-rail">
           {me.hand.length === 0 && <span className="hs-empty">No cards</span>}
           {me.hand.map((iid) => {

@@ -80,9 +80,11 @@ for (let i = 0; i < STEPS; i++) {
       }
       played++; idle = 0; continue
     }
-    // a board token's sheet: attack, ability or Power Move. The glyph prefixes
-    // are part of the button label, so match on those, not on the bare word.
-    const act = page.locator('button:not([disabled])', { hasText: /^(⚔ Attack|✦ |★ |🍺|🍔|🌿|Use )/ })
+    // A board token's sheet: attack, ability, Power Move or an item. Scope this
+    // to the sheet itself — matching glyphs anywhere on the page started
+    // catching board tokens once Characters began rendering 🍺🌿🍔 limit meters
+    // and item icons, and the harness spent every step clicking tokens.
+    const act = page.locator('.actionsheet .chip:not([disabled])')
     if (await act.count()) {
       const k = await act.count()
       const pick = act.nth(i % k)
@@ -91,7 +93,7 @@ for (let i = 0; i < STEPS; i++) {
       await page.waitForTimeout(160)
       if (await page.locator('.tok.target').count()) await click(page.locator('.tok.target'))
       else if (await page.locator('.targetbar').count()) await click(page.getByRole('button', { name: 'Cancel' }))
-      if (label.startsWith('⚔')) attacks++; else abilities++
+      if (label.trim().startsWith('⚔')) attacks++; else abilities++
       idle = 0; continue
     }
     if (await page.locator('.sheet-bg, .cardsheet, .actionsheet').count()) { await closeSheet(); continue }

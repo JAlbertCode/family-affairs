@@ -899,3 +899,24 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
 .checkline.direct-only b { color: #c2b4ff; }
 .checkline.blocked, .checkline.unsupported { background: #3a1520; border-color: #7d2b3c; color: #ffd7de; }
 .checkline.blocked b, .checkline.unsupported b { color: #ffabb9; }
+
+/* ------------------------------------------------ COLLAPSIBLE HAND ------- */
+/* The hand is ~190px of a phone screen and it sits directly on top of your own
+   family — which is where the Drunk / High / Stuffed meters are. Being able to
+   put it away is the difference between those meters existing and being seen. */
+.hs-head {
+  width: 100%; background: none; border: none; text-align: left;
+  min-height: 34px; cursor: pointer;
+}
+.hs-toggle {
+  font-style: normal; margin-left: 10px; font-size: .58rem; font-weight: 900;
+  color: var(--gold); letter-spacing: .06em;
+}
+.handstrip.collapsed .hs-rail { display: none; }
+.handstrip.collapsed { border-top-color: var(--gold); }
+
+/* ------------------------------------------------------- PEEK MODE ------- */
+/* Targeting commits on tap, so there was no way to read what you were aiming
+   at. This pauses targeting and turns every token into an inspect button. */
+.targetbar.peeking { background: #2a2340; border-color: #4b3f77; }
+.targetbar button.on { background: var(--gold); color: #3a2600; border-color: var(--gold); }

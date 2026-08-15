@@ -78,10 +78,15 @@ Actions repository secrets and the deploy picks them up. With Metered, the
 dashboard's *TURN Server → Add Credential → Show ICE Servers Array* panel has all
 three; the URLs are the same for every account, only the credentials are yours.
 
+Take the hostname from your own dashboard, not from a docs page. A hostname that
+does not resolve fails with ICE error 701 and is indistinguishable from bad
+credentials at a glance.
+
 Anyone can verify it end to end from the lobby: **Check my connection** gathers
 real ICE candidates against the configured servers and reports whether a relay
-candidate came back. No relay while TURN is configured means the credentials are
-wrong or the quota is spent — worth knowing before six people are waiting.
+candidate came back. No relay while TURN is configured means the hostname is
+wrong, the credentials are wrong, or the quota is spent — worth knowing before
+six people are waiting.
 
 **Signalling.** The public PeerJS broker introduces two browsers and carries no
 game traffic. If it goes down, running games are unaffected and new ones cannot
