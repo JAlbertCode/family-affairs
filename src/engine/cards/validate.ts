@@ -36,13 +36,13 @@ if (!errors.length && !warns.length) console.log('All cards pass.\n')
 console.log('Ability power budgets (ability cap ' + RULES.abilityBudget + ', power move cap ' + RULES.powerMoveBudget + '):')
 const rows = CHARACTERS.map((c) => ({
   name: c.name,
-  statTotal: c.stats.attack + c.stats.defense + c.stats.speed,
+  statTotal: c.stats.attack + c.stats.defense,
   hp: c.stats.hp,
   ability: c.ability ? abilityCost(c.ability) : 0,
   power: c.powerMove ? abilityCost(c.powerMove) : 0,
 })).sort((a, b) => (b.ability + b.power) - (a.ability + a.power))
 
-console.log('  character         HP   A+D+S   ability   power   total')
+console.log('  character         HP    A+D   ability   power   total')
 for (const r of rows) {
   const tot = r.ability + r.power
   const flag = r.ability > RULES.abilityBudget || r.power > RULES.powerMoveBudget ? '  <<' : ''

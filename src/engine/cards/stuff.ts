@@ -44,11 +44,11 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'pizzacake', name: 'Pizza Cake', subtype: 'Food', copies: 2, icon: '🍕', color: FOOD,
-    text: 'Heal 2 HP. +1 Food. +1 Speed this Turn.',
+    text: 'Heal 2 HP. +1 Food. +1 Attack this Turn.',
     limitGain: { food: 1 },
     effects: [
       { k: 'heal', target: { scope: 'eventTarget' }, amount: 2 },
-      { k: 'statMod', target: { scope: 'eventTarget' }, stat: 'speed', amount: 1, duration: 'turn' },
+      { k: 'statMod', target: { scope: 'eventTarget' }, stat: 'attack', amount: 1, duration: 'turn' },
     ],
   },
   {
@@ -68,6 +68,14 @@ export const STUFF: StuffDef[] = [
   },
 
   // ----------------------------------------------------------------- DRINK --
+  {
+    kind: 'stuff', id: 'pepsi', name: 'Can Of Pepsi', subtype: 'Drink', copies: 3, icon: '🥤', color: '#d4713f',
+    text: 'No alcohol. Heal 2 HP and reduce Weed by 1. Sometimes you just need a Pepsi.',
+    effects: [
+      { k: 'heal', target: { scope: 'eventTarget' }, amount: 2 },
+      { k: 'limit', target: { scope: 'eventTarget' }, track: 'weed', amount: -1 },
+    ],
+  },
   {
     kind: 'stuff', id: 'beer', name: 'Beer', subtype: 'Drink', copies: 3, icon: '🍺', color: DRINK,
     text: '+1 Alcohol. Heal 1 HP.',
@@ -112,11 +120,11 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'weedbrownies', name: 'Weed Brownies', subtype: 'Smoke', copies: 2, icon: '🍫', color: SMOKE,
-    text: 'Counts as Food and Smoke. +1 Food, +1 Weed, heal 2 HP, -1 Speed this Round.',
+    text: 'Counts as Food and Smoke. +1 Food, +1 Weed, heal 2 HP, -1 Attack this Round.',
     limitGain: { weed: 1, food: 1 },
     effects: [
       { k: 'heal', target: { scope: 'eventTarget' }, amount: 2 },
-      { k: 'statMod', target: { scope: 'eventTarget' }, stat: 'speed', amount: -1, duration: 'round' },
+      { k: 'statMod', target: { scope: 'eventTarget' }, stat: 'attack', amount: -1, duration: 'round' },
     ],
   },
   {
@@ -128,6 +136,13 @@ export const STUFF: StuffDef[] = [
     ],
     interfere: true,
     interfereWindow: 'beforeRoll',
+  },
+
+  {
+    kind: 'stuff', id: 'nerdedibles', name: 'The Nerd Edibles', subtype: 'Smoke', copies: 3, icon: '🍬', color: '#6d9f52',
+    text: 'Unexpectedly strong. +2 Weed. This Character loses their next Turn contemplating life.',
+    limitGain: { weed: 2 },
+    effects: [{ k: 'status', target: { scope: 'eventTarget' }, status: 'Asleep', duration: 1 }],
   },
 
   // ------------------------------------------------------------------ GEAR --
@@ -145,14 +160,14 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'shades', name: 'Shades', subtype: 'Gear', copies: 2, icon: '🕶️', color: GEAR,
-    text: 'Equip. +1 Defense, +1 Speed. Nobody knows what you are looking at.',
-    equipMods: [{ stat: 'defense', amount: 1 }, { stat: 'speed', amount: 1 }],
+    text: 'Equip. +2 Defense. Nobody knows what you are looking at.',
+    equipMods: [{ stat: 'defense', amount: 2 }],
     effects: [],
   },
   {
     kind: 'stuff', id: 'pan', name: 'Pan', subtype: 'Gear', copies: 1, icon: '🍳', color: GEAR,
-    text: 'Equip. +2 Attack, -1 Speed. Heavy and loud.',
-    equipMods: [{ stat: 'attack', amount: 2 }, { stat: 'speed', amount: -1 }],
+    text: 'Equip. +3 Attack, -1 Defense. Heavy, loud, and swung with feeling.',
+    equipMods: [{ stat: 'attack', amount: 3 }, { stat: 'defense', amount: -1 }],
     effects: [],
   },
   {
@@ -169,46 +184,62 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'guitar', name: 'Guitar', subtype: 'Gear', copies: 1, icon: '🎸', color: GEAR,
-    text: 'Equip. +1 Attack, +2 Speed. Life rolls different when you play your own song.',
-    equipMods: [{ stat: 'attack', amount: 1 }, { stat: 'speed', amount: 2 }],
+    text: 'Equip. +2 Attack. Life rolls different when you play your own song.',
+    equipMods: [{ stat: 'attack', amount: 2 }],
     effects: [],
   },
 
   // ------------------------------------------------------------------ RIDE --
   {
     kind: 'stuff', id: 'skateboard', name: 'Skateboard', subtype: 'Ride', copies: 2, icon: '🛹', color: RIDE,
-    text: 'Ride. +2 Speed.',
-    equipMods: [{ stat: 'speed', amount: 2 }],
+    text: 'Ride. +1 Attack, +1 Defense. Roll up on somebody.',
+    equipMods: [{ stat: 'attack', amount: 1 }, { stat: 'defense', amount: 1 }],
     effects: [],
   },
   {
     kind: 'stuff', id: 'wheelchair', name: 'Wheelchair', subtype: 'Ride', copies: 2, icon: '🦽', color: RIDE,
-    text: 'Ride. +2 Speed, +1 Defense.',
-    equipMods: [{ stat: 'speed', amount: 2 }, { stat: 'defense', amount: 1 }],
+    text: 'Ride. +2 Defense. Wheels beat legs.',
+    equipMods: [{ stat: 'defense', amount: 2 }],
     effects: [],
   },
   {
     kind: 'stuff', id: 'rocketwheelchair', name: 'Rocket Wheelchair', subtype: 'Ride', copies: 1, icon: '🚀', color: RIDE,
-    text: 'Ride. +3 Speed, +1 Attack. Absolutely not street legal.',
-    equipMods: [{ stat: 'speed', amount: 3 }, { stat: 'attack', amount: 1 }],
+    text: 'Ride. +2 Attack, +1 Defense. Absolutely not street legal.',
+    equipMods: [{ stat: 'attack', amount: 2 }, { stat: 'defense', amount: 1 }],
     effects: [],
   },
   {
     kind: 'stuff', id: 'momvan', name: 'Mom Van', subtype: 'Ride', copies: 1, icon: '🚐', color: RIDE,
-    text: 'Ride. +1 Speed. Adjacent allies gain +1 Speed. Everybody gets in.',
-    equipMods: [{ stat: 'speed', amount: 1 }],
+    text: 'Ride. +1 Defense. Adjacent allies gain +1 Defense. Everybody gets in.',
+    equipMods: [{ stat: 'defense', amount: 1 }],
     effects: [],
   },
   {
     kind: 'stuff', id: 'shoppingcart', name: 'Shopping Cart', subtype: 'Ride', copies: 1, icon: '🛒', color: RIDE,
-    text: 'Ride. +2 Speed, -1 Defense. It has one bad wheel.',
-    equipMods: [{ stat: 'speed', amount: 2 }, { stat: 'defense', amount: -1 }],
+    text: 'Ride. +2 Attack, -1 Defense. It has one bad wheel.',
+    equipMods: [{ stat: 'attack', amount: 2 }, { stat: 'defense', amount: -1 }],
     effects: [],
   },
   {
     kind: 'stuff', id: 'bike', name: 'Bike', subtype: 'Ride', copies: 1, icon: '🚲', color: RIDE,
-    text: 'Ride. +2 Speed.',
-    equipMods: [{ stat: 'speed', amount: 2 }],
+    text: 'Ride. +1 Attack, +1 Defense.',
+    equipMods: [{ stat: 'attack', amount: 1 }, { stat: 'defense', amount: 1 }],
+    effects: [],
+  },
+
+  // ------------------------------------------------------------------ PET --
+  {
+    kind: 'stuff', id: 'cash', name: 'Cash The Dog', subtype: 'Pet', copies: 2, icon: '🐕', color: '#c98d4a',
+    text: 'Pet. +2 Attack, +1 Defense. Cash is brave right up until he is not — on a roll of 1 he hides and gives nothing this battle.',
+    equipMods: [{ stat: 'attack', amount: 2 }, { stat: 'defense', amount: 1 }],
+    skittish: 1,
+    effects: [],
+  },
+
+  {
+    kind: 'stuff', id: 'elephant', name: 'The Elephant', subtype: 'Ride', copies: 1, icon: '🐘', color: '#4aa3d8',
+    text: 'Ride. +3 Attack, -1 Defense. Enormous, unhurried, and impossible to argue with.',
+    equipMods: [{ stat: 'attack', amount: 3 }, { stat: 'defense', amount: -1 }],
     effects: [],
   },
 
@@ -275,6 +306,11 @@ export const STUFF: StuffDef[] = [
     effects: [{ k: 'statMod', target: { scope: 'attacker' }, stat: 'attack', amount: -2, duration: 'turn' }],
     interfere: true,
     interfereWindow: 'beforeRoll',
+  },
+  {
+    kind: 'stuff', id: 'tictactoe', name: 'Tic Tac Toe', subtype: 'Consumable', copies: 3, icon: '⭕', color: '#b06fb0',
+    text: 'Settle it properly. Play a real game of tic tac toe against an opponent — the winner deals 4 damage to a Character of their choice.',
+    effects: [{ k: 'startMinigame', kind: 'tictactoe', stake: { kind: 'damage', amount: 4 } }],
   },
 ]
 

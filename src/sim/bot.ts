@@ -11,8 +11,34 @@ import { HAND_LIMIT } from '../engine/state'
  * A deliberately simple greedy bot. Its job is not to play well — it is to
  * exercise every code path in the engine so balance numbers and crashes show up.
  */
+const TTT_LINES = [
+  [0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6],
+]
+
+/** Win if you can, block if you must, otherwise take the best empty square. */
+function ticTacToeMove(board: (0 | 1 | null)[], me: 0 | 1): number {
+  const them = me === 0 ? 1 : 0
+  for (const who of [me, them]) {
+    for (const line of TTT_LINES) {
+      const vals = line.map((i) => board[i])
+      if (vals.filter((v) => v === who).length === 2 && vals.includes(null)) {
+        return line[vals.indexOf(null)]
+      }
+    }
+  }
+  for (const i of [4, 0, 2, 6, 8, 1, 3, 5, 7]) if (board[i] === null) return i
+  return board.findIndex((c) => c === null)
+}
+
 export function botIntent(state: GameState, pid: PlayerId): Intent | null {
   const ps = state.playerState[pid]
+
+  // A minigame blocks the whole table until it resolves.
+  const mg = state.minigame
+  if (mg && !mg.done) {
+    if (mg.players[mg.turn] !== pid) return null
+    return { k: 'minigameMove', cell: ticTacToeMove(mg.board, mg.turn) }
+  }
 
   // Interference windows: bots always pass, so battles resolve.
   if (state.battle) return { k: 'passInterference' }

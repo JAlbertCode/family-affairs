@@ -29,9 +29,11 @@ function runOne(playerCount: number, seed: number, cloutToWin: number): GameResu
 
   while (state.phase !== 'gameover' && guard < 40000) {
     guard++
-    const actor = state.battle
-      ? state.players.find((p) => !state.battle!.passed.includes(p))
-      : state.turnOrder[state.turnIndex]
+    const actor = state.minigame && !state.minigame.done
+      ? state.minigame.players[state.minigame.turn]
+      : state.battle
+        ? state.players.find((p) => !state.battle!.passed.includes(p))
+        : state.turnOrder[state.turnIndex]
     if (!actor) break
 
     const intent = botIntent(state, actor)

@@ -68,10 +68,12 @@ export interface Stats {
   hp: number
   attack: number
   defense: number
-  speed: number
 }
 
-export type StatName = 'attack' | 'defense' | 'speed'
+/** Speed was removed: it never entered combat resolution, so it was a number
+ *  on the card that changed nothing. Attack and Defense carry the fight; HP
+ *  and abilities carry the identity. */
+export type StatName = 'attack' | 'defense'
 
 export interface StatMod {
   stat: StatName
@@ -131,6 +133,7 @@ export type Effect =
   | { k: 'roll'; branches: RollBranch[] }
   | { k: 'ifTag'; tag: Tag; present: boolean; then: Effect[]; else?: Effect[] }
   | { k: 'ifCharacterActive'; defId: DefId; then: Effect[]; else?: Effect[] }
+  | { k: 'startMinigame'; kind: 'tictactoe'; stake: { kind: 'damage'; amount: number } | { kind: 'draw'; n: number } | { kind: 'status'; status: StatusName } }
   | { k: 'note'; text: string }
 
 export interface RollBranch {
@@ -142,7 +145,7 @@ export interface RollBranch {
 
 // --- Card definitions -------------------------------------------------------
 
-export type StuffType = 'Food' | 'Drink' | 'Smoke' | 'Gear' | 'Ride' | 'Consumable'
+export type StuffType = 'Food' | 'Drink' | 'Smoke' | 'Gear' | 'Ride' | 'Pet' | 'Consumable'
 
 export interface Ability {
   name: string
@@ -186,6 +189,8 @@ export interface CharacterDef {
   gearSlots?: number
   /** how many Rides this character may equip (default 1) */
   rideSlots?: number
+  /** how many Pets this character may keep (default 1) */
+  petSlots?: number
   /** total attached Stuff this character may carry (default 3) */
   itemSlots?: number
   passive?: Passive
@@ -207,8 +212,10 @@ export interface StuffDef {
   text: string
   /** copies in the Family Deck */
   copies: number
-  /** Gear/Ride: persistent stat bonuses while equipped */
+  /** Gear/Ride/Pet: persistent stat bonuses while equipped */
   equipMods?: { stat: StatName; amount: number }[]
+  /** Pet only: chance out of 6 that the pet loses its nerve and does nothing */
+  skittish?: number
   /** Food/Drink/Smoke: limit gained on consumption */
   limitGain?: Partial<Record<LimitTrack, number>>
   /** effects on use/consume */
@@ -379,12 +386,31 @@ export interface GameState {
   achievementsScored: Record<PlayerId, string[]>
   /** Scoreboard breakdown, survives log truncation. */
   cloutSources: Record<PlayerId, { combat: number; achievement: number; other: number }>
+  /** A minigame currently blocking play, if any. */
+  minigame: MinigameState | null
   /** Seating order for the current Round. Re-rolled every Round (see §9 Speed
    *  / initiative) because a fixed order hands the last seat every last hit. */
   turnOrder: PlayerId[]
   log: LogEntry[]
   /** monotonically increasing, used to key UI animations */
   tick: number
+}
+
+// --- Minigames (§ table interaction) ---------------------------------------
+
+export interface MinigameState {
+  kind: 'tictactoe'
+  /** the two players involved; [0] moves first and is X */
+  players: [PlayerId, PlayerId]
+  /** 9 cells: null | 0 | 1 (index into players) */
+  board: (0 | 1 | null)[]
+  turn: 0 | 1
+  /** what the winner gets */
+  stake: { kind: 'damage'; amount: number } | { kind: 'draw'; n: number } | { kind: 'status'; status: StatusName }
+  /** set once resolved */
+  winner: PlayerId | null
+  done: boolean
+  prompt: string
 }
 
 export interface LogEntry {
@@ -403,6 +429,7 @@ export type Intent =
   | { k: 'attack'; attacker: InstanceId; defender: InstanceId }
   | { k: 'useAbility'; char: InstanceId; which: 'ability' | 'powerMove'; targetChar?: InstanceId }
   | { k: 'consume'; char: InstanceId; iid: InstanceId }
+  | { k: 'minigameMove'; cell: number }
   | { k: 'swap'; activeChar: InstanceId; benchChar: InstanceId }
   | { k: 'recoverStatus'; char: InstanceId; status: StatusName }
   | { k: 'interfere'; iid: InstanceId; targetChar?: InstanceId }

@@ -17,9 +17,9 @@ export const RULES = {
   hp: { min: 8, max: 18 },
   attack: { min: 2, max: 7 },
   defense: { min: 1, max: 6 },
-  speed: { min: 1, max: 7 },
-  /** Attack + Defense + Speed should land in this band. */
-  statBudget: { min: 10, max: 12 },
+  /** Attack + Defense. Every character sits on the same budget; identity comes
+   *  from HP and abilities, not from a bigger number. */
+  statBudget: { min: 8, max: 8 },
   tolerance: { min: 2, max: 4 },
   tags: { min: 2, max: 5 },
   achievementClout: { min: 1, max: 1 },
@@ -109,6 +109,7 @@ export function effectCost(e: Effect): number {
     case 'ifTag':
     case 'ifCharacterActive':
       return Math.max(effectsCost(e.then), e.else ? effectsCost(e.else) : 0) * 0.8
+    case 'startMinigame': return 3
     case 'note': return 0
   }
 }
@@ -205,15 +206,15 @@ export function validateCharacter(c: CharacterDef): Issue[] {
 
   const s = c.stats
   if (!s) { err('stats', 'Missing stats.'); return out }
-  for (const [k, r] of [['hp', RULES.hp], ['attack', RULES.attack], ['defense', RULES.defense], ['speed', RULES.speed]] as const) {
+  for (const [k, r] of [['hp', RULES.hp], ['attack', RULES.attack], ['defense', RULES.defense]] as const) {
     const v = s[k as 'hp']
     if (typeof v !== 'number' || !Number.isInteger(v)) err(k, 'Must be a whole number.')
     else if (v < r.min || v > r.max) err(k, `${v} is outside the allowed ${r.min}-${r.max}.`)
   }
 
-  const budget = (s.attack ?? 0) + (s.defense ?? 0) + (s.speed ?? 0)
+  const budget = (s.attack ?? 0) + (s.defense ?? 0)
   if (budget < RULES.statBudget.min || budget > RULES.statBudget.max) {
-    err('stats', `Attack+Defense+Speed = ${budget}. Must be ${RULES.statBudget.min}-${RULES.statBudget.max}.`)
+    err('stats', `Attack+Defense = ${budget}. Every character must total ${RULES.statBudget.min}.`)
   }
 
   // Tanks get high HP but must pay for it in offence, and vice versa.
@@ -250,6 +251,7 @@ export function validateCharacter(c: CharacterDef): Issue[] {
 
   if ((c.gearSlots ?? 1) > 3) err('gearSlots', 'At most 3 Gear.')
   if ((c.rideSlots ?? 1) > 2) err('rideSlots', 'At most 2 Rides.')
+  if ((c.petSlots ?? 1) > 2) err('petSlots', 'At most 2 Pets.')
   if ((c.itemSlots ?? 3) > 5) err('itemSlots', 'At most 5 attached items.')
 
   return out
@@ -272,7 +274,7 @@ export function validateStuff(d: StuffDef): Issue[] {
   }
 
   const total = (d.equipMods ?? []).reduce((n2, m) => n2 + Math.abs(m.amount), 0)
-  if ((d.subtype === 'Gear' || d.subtype === 'Ride') && total > 4) {
+  if (['Gear', 'Ride', 'Pet'].includes(d.subtype) && total > 4) {
     err('equipMods', `Total stat swing ${total} is too high for one item. Keep it at 4 or less.`)
   }
   if (d.limitGain) {

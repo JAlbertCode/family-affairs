@@ -38,7 +38,6 @@ export function CardFace({
         <div className="face-statrow">
           <span className="fstat a"><em>⚔</em><b>{def.stats.attack}</b><i>ATTACK</i></span>
           <span className="fstat d"><em>🛡</em><b>{def.stats.defense}</b><i>DEFENSE</i></span>
-          <span className="fstat s"><em>⚡</em><b>{def.stats.speed}</b><i>SPEED</i></span>
         </div>
 
         <div className="face-body">

@@ -20,7 +20,7 @@ export const CHARACTERS: CharacterDef[] = [
     name: 'Chi Chi',
     title: 'The Trickster',
     archetype: 'Trickster',
-    stats: { hp: 11, attack: 4, defense: 2, speed: 5 },
+    stats: { hp: 11, attack: 5, defense: 3 },
     tags: ['Sister', 'Stoner', 'Troublemaker', 'Trickster'],
     tolerance: T(3, 4, 3), // Professional (§52)
     color: '#7c5cbf',
@@ -74,7 +74,7 @@ export const CHARACTERS: CharacterDef[] = [
     name: 'Dorian',
     title: 'The Garbage Plate Devourer',
     archetype: 'Bruiser',
-    stats: { hp: 15, attack: 5, defense: 3, speed: 2 },
+    stats: { hp: 15, attack: 5, defense: 3 },
     tags: ['Brother', 'Foodie', 'Caretaker', 'Heavyweight'],
     tolerance: T(3, 3, 4), // Bottomless Pit (§53)
     color: '#e0a43c',
@@ -123,15 +123,15 @@ export const CHARACTERS: CharacterDef[] = [
     name: 'Mikey & Moe',
     title: 'The Chaos Twins',
     archetype: 'Glass Cannon',
-    stats: { hp: 10, attack: 4, defense: 2, speed: 6 },
+    stats: { hp: 10, attack: 6, defense: 2 },
     tags: ['Kid', 'Twin', 'Psychic', 'Troublemaker'],
     tolerance: DEFAULT_TOL,
     color: '#e2603f',
     art: 'mikeymoe.webp',
     passive: {
       name: 'Twin Energy',
-      text: 'Adjacent allied Characters gain +1 Speed.',
-      hooks: ['auraAdjacentSpeed'],
+      text: 'Adjacent allied Characters gain +1 Defense.',
+      hooks: ['auraAdjacentDefense'],
     },
     ability: {
       name: 'Divide & Conquer',
@@ -171,7 +171,7 @@ export const CHARACTERS: CharacterDef[] = [
     name: 'Manny',
     title: 'Big Sexy',
     archetype: 'Tank',
-    stats: { hp: 18, attack: 3, defense: 6, speed: 1 },
+    stats: { hp: 18, attack: 2, defense: 6 },
     tags: ['Uncle', 'Psychic', 'Heavyweight', 'Wheel Gang', 'Adult'],
     tolerance: T(4, 3, 4), // heavyweight
     color: '#8e5bb5',
@@ -199,8 +199,8 @@ export const CHARACTERS: CharacterDef[] = [
     },
     flaw: {
       name: 'Rushing Manny',
-      text: 'Manny has Speed 1. Any effect comparing Speed treats him as the slowest, and he cannot be swapped for free.',
-      hooks: ['slow'],
+      text: 'Manny does not do second helpings. He can never take a free extra attack from any source.',
+      hooks: ['noFreeAttacks'],
     },
     achievement: {
       name: 'Respect The Big Sexy',
@@ -217,7 +217,7 @@ export const CHARACTERS: CharacterDef[] = [
     name: 'Oh Grandma',
     title: 'La Reina de la Casa',
     archetype: 'Bruiser',
-    stats: { hp: 13, attack: 6, defense: 3, speed: 2 },
+    stats: { hp: 13, attack: 6, defense: 2 },
     tags: ['Grandma', 'Elder', 'Cook', 'Adult'],
     tolerance: DEFAULT_TOL,
     color: '#c9772f',
@@ -266,24 +266,24 @@ export const CHARACTERS: CharacterDef[] = [
     name: 'Xavi',
     title: "The Wheelin' Bard",
     archetype: 'Support',
-    stats: { hp: 11, attack: 4, defense: 2, speed: 5 },
+    stats: { hp: 11, attack: 4, defense: 4 },
     tags: ['Brother', 'Musician', 'Wheel Gang', 'Party Animal'],
     tolerance: T(4, 3, 3), // party animal handles his liquor
     color: '#4aa3d8',
     art: 'xavi.webp',
     passive: {
       name: 'Wheel Life',
-      text: 'Xavi may equip two Rides simultaneously and ignores Speed penalties from Rides.',
+      text: 'Xavi may equip two Rides at once. Wheels are not a limitation.',
       hooks: ['dualRide'],
     },
     rideSlots: 2,
     ability: {
       name: 'Upbeat Jam',
-      text: 'All your Active Characters gain +1 Attack this Turn. Xavi also gains +1 Speed for the Round.',
+      text: 'All your Active Characters gain +1 Attack this Turn. Xavi also gains +1 Defense for the Round.',
       actionCost: 1,
       effects: [
         { k: 'statMod', target: { scope: 'allMyActive' }, stat: 'attack', amount: 1, duration: 'turn' },
-        { k: 'statMod', target: { scope: 'self' }, stat: 'speed', amount: 1, duration: 'round' },
+        { k: 'statMod', target: { scope: 'self' }, stat: 'defense', amount: 1, duration: 'round' },
       ],
     },
     powerMove: {
@@ -327,7 +327,7 @@ export const CHARACTERS: CharacterDef[] = [
     name: 'Amanda',
     title: 'The Baker',
     archetype: 'Support',
-    stats: { hp: 13, attack: 3, defense: 4, speed: 4 },
+    stats: { hp: 13, attack: 3, defense: 5 },
     tags: ['Mom', 'Baker', 'Cook', 'Lightweight', 'Adult'],
     tolerance: T(2, 3, 3), // Lightweight (§21)
     gearSlots: 2, // she carries more than most, but 3 stacked too much value
@@ -378,7 +378,7 @@ export const CHARACTERS: CharacterDef[] = [
     name: 'Titi The Bum',
     title: 'The Drama Queen Angel',
     archetype: 'Trickster',
-    stats: { hp: 12, attack: 3, defense: 3, speed: 6 },
+    stats: { hp: 12, attack: 4, defense: 4 },
     tags: ['Aunt', 'Collector', 'Party Animal', 'Troublemaker', 'Adult'],
     tolerance: T(4, 3, 3),
     color: '#d98cae',
@@ -426,7 +426,7 @@ export const CHARACTERS: CharacterDef[] = [
     name: 'Titi Bibi',
     title: 'The Sacred Samurai',
     archetype: 'Support',
-    stats: { hp: 15, attack: 3, defense: 5, speed: 4 },
+    stats: { hp: 15, attack: 3, defense: 5 },
     tags: ['Aunt', 'Elder', 'Caretaker', 'Cook', 'Adult'],
     tolerance: DEFAULT_TOL,
     color: '#b9a24a',
@@ -486,7 +486,7 @@ export const CHARACTERS: CharacterDef[] = [
     name: 'Gabby',
     title: 'The Wild Scout',
     archetype: 'Bruiser',
-    stats: { hp: 14, attack: 6, defense: 3, speed: 3 },
+    stats: { hp: 14, attack: 6, defense: 2 },
     tags: ['Brother', 'Athlete', 'Foodie', 'Troublemaker'],
     tolerance: T(3, 3, 3),
     color: '#6d8f3f',
@@ -507,11 +507,10 @@ export const CHARACTERS: CharacterDef[] = [
     },
     powerMove: {
       name: 'Rampage',
-      text: 'Gabby snaps. Gain +3 Attack and +2 Speed for the Round, and attack twice this Turn. He is Confused afterwards.',
+      text: 'Gabby snaps. Gain +3 Attack for the Round and attack twice this Turn. He is Confused afterwards.',
       actionCost: 1,
       effects: [
         { k: 'statMod', target: { scope: 'self' }, stat: 'attack', amount: 3, duration: 'round' },
-        { k: 'statMod', target: { scope: 'self' }, stat: 'speed', amount: 2, duration: 'round' },
         { k: 'extraAttack', target: { scope: 'self' } },
         { k: 'extraAttack', target: { scope: 'self' } },
         { k: 'status', target: { scope: 'self' }, status: 'Confused', duration: 1 },
@@ -537,7 +536,7 @@ export const CHARACTERS: CharacterDef[] = [
     name: 'Jay',
     title: 'The Remote Commander',
     archetype: 'Balanced',
-    stats: { hp: 12, attack: 3, defense: 4, speed: 4 },
+    stats: { hp: 12, attack: 3, defense: 5 },
     tags: ['Dad', 'Tech', 'Psychic', 'Adult'],
     tolerance: DEFAULT_TOL,
     color: '#3fb6c9',
@@ -558,16 +557,16 @@ export const CHARACTERS: CharacterDef[] = [
     },
     powerMove: {
       name: 'EMP Blast',
-      text: 'Disable every opposing Active Character’s equipped Gear and Rides for the Round, and they lose 1 Speed.',
+      text: 'Scramble every opposing Active Character for the Round: they lose 1 Attack and become Confused.',
       actionCost: 1,
       effects: [
-        { k: 'statMod', target: { scope: 'allEnemyActive' }, stat: 'speed', amount: -1, duration: 'round' },
+        { k: 'statMod', target: { scope: 'allEnemyActive' }, stat: 'attack', amount: -1, duration: 'round' },
         { k: 'status', target: { scope: 'allEnemyActive' }, status: 'Confused', duration: 1 },
       ],
     },
     flaw: {
       name: 'Glass Body',
-      text: 'Jay takes 1 extra damage from any attack made by a Character with Speed 5 or higher.',
+      text: 'Jay takes 1 extra damage from any attack made by a Character with Attack 5 or higher.',
       hooks: ['glassBody'],
     },
     achievement: {
@@ -585,7 +584,7 @@ export const CHARACTERS: CharacterDef[] = [
     name: 'Dainese',
     title: 'The Dream Hauntress',
     archetype: 'Glass Cannon',
-    stats: { hp: 11, attack: 4, defense: 2, speed: 6 },
+    stats: { hp: 11, attack: 6, defense: 2 },
     tags: ['Sister', 'Collector', 'Troublemaker', 'Psychic'],
     tolerance: DEFAULT_TOL,
     color: '#a63a63',
@@ -625,6 +624,56 @@ export const CHARACTERS: CharacterDef[] = [
       text: 'Have 3 or more Stuff cards attached across your Family at once. +1 Clout.',
       clout: 1,
       key: 'collectAndKeep',
+    },
+  },
+
+  // ----------------------------------------------------------------- NANI --
+  {
+    kind: 'character',
+    id: 'nani',
+    name: 'Nani',
+    title: 'The One With The Spreadsheet',
+    archetype: 'Support',
+    stats: { hp: 13, attack: 3, defense: 5 },
+    tags: ['Sister', 'Caretaker', 'Athlete', 'Collector', 'Adult'],
+    tolerance: { alcohol: 3, weed: 3, food: 3 },
+    color: '#3fa87d',
+    petSlots: 2,
+    passive: {
+      name: 'Everything Is Handled',
+      text: 'Nani keeps two Pets instead of one, and Pets she keeps never lose their nerve.',
+      hooks: ['petHandler'],
+    },
+    ability: {
+      name: 'Colour-Coded Plan',
+      text: 'Draw a card, then give any ally +2 Defense until the end of the Round. Somebody has to think ahead.',
+      actionCost: 1,
+      effects: [
+        { k: 'draw', player: 'controller', n: 1 },
+        { k: 'statMod', target: { scope: 'chosenAllyActive' }, stat: 'defense', amount: 2, duration: 'round' },
+      ],
+    },
+    powerMove: {
+      name: 'The Group Chat Has Spoken',
+      text: 'Nani organises the whole family. Every one of your Active Characters heals 2 HP and clears one status. Cooldown 2 Rounds.',
+      actionCost: 1,
+      cooldown: 2,
+      effects: [
+        { k: 'heal', target: { scope: 'allMyActive' }, amount: 2 },
+        { k: 'removeStatus', target: { scope: 'allMyActive' }, status: 'Confused' },
+        { k: 'removeStatus', target: { scope: 'allMyActive' }, status: 'Busy' },
+      ],
+    },
+    flaw: {
+      name: 'Overworked',
+      text: 'If Nani uses an ability two Rounds running, she loses 2 Defense until the end of the next Round. She needs a day off.',
+      hooks: ['overworked'],
+    },
+    achievement: {
+      name: 'Colour-Coded',
+      text: 'End a Turn with every one of your Active Characters holding at least one item. +1 Clout.',
+      clout: 1,
+      key: 'colourCoded',
     },
   },
 ]

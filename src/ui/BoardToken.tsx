@@ -1,6 +1,6 @@
 import type { GameState, CharacterInstance } from '../engine/types'
 import { getCharacterDef, getStuffDef } from '../engine/cards/deck'
-import { effectiveStats, limitTier } from '../engine/selectors'
+import { effectiveStats, limitTier, auraSummary } from '../engine/selectors'
 
 const BASE = import.meta.env.BASE_URL
 
@@ -10,19 +10,21 @@ const BASE = import.meta.env.BASE_URL
  * them", so that is all this shows. Full detail lives one tap away.
  */
 export function BoardToken({
-  state, ch, onClick, mode, size = 'md',
+  state, ch, onClick, mode, size = 'md', showAura,
 }: {
   state: GameState
   ch: CharacterInstance
   onClick?: () => void
   mode?: 'target' | 'selected' | null
   size?: 'sm' | 'md'
+  showAura?: boolean
 }) {
   const def = getCharacterDef(ch.defId)
   const st = effectiveStats(state, ch)
   const pct = Math.max(0, Math.round((ch.hp / ch.maxHp) * 100))
   const hurt = pct <= 33
   const items = ch.attached.map((i) => state.stuff[i]).filter(Boolean)
+  const auras = auraSummary(state, ch)
 
   const buffed = (cur: number, base: number) => (cur > base ? 'up' : cur < base ? 'down' : '')
 
@@ -49,6 +51,9 @@ export function BoardToken({
           </span>
         )}
         {ch.actedThisTurn && <span className="tok-done">✓</span>}
+        {showAura && auras.length > 0 && (
+          <span className="tok-aura" title={auras.join(' · ')}>◈</span>
+        )}
       </span>
 
       <span className="tok-name">{def.name}</span>
@@ -61,7 +66,6 @@ export function BoardToken({
       <span className="tok-stats">
         <s className={buffed(st.attack, def.stats.attack)}>⚔{st.attack}</s>
         <s className={buffed(st.defense, def.stats.defense)}>🛡{st.defense}</s>
-        <s className={buffed(st.speed, def.stats.speed)}>⚡{st.speed}</s>
       </span>
 
       {(limitTier(ch, 'alcohol') > 0 || limitTier(ch, 'weed') > 0 || limitTier(ch, 'food') > 0) && (

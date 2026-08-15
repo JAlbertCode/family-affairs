@@ -83,23 +83,23 @@ export function limitTierName(ch: CharacterInstance, track: LimitTrack): string 
 
 /** Stat deltas contributed by the three Limit tracks. */
 function limitStatDelta(ch: CharacterInstance): Record<StatName, number> {
-  const d: Record<StatName, number> = { attack: 0, defense: 0, speed: 0 }
+  const d: Record<StatName, number> = { attack: 0, defense: 0 }
 
   // Alcohol (§21)
   const a = limitTier(ch, 'alcohol')
   if (a === 1) d.attack += 1
   if (a === 2 || a === 3) { d.attack += 2; d.defense -= 1 }
 
-  // Weed (§22)
+  // Weed (§22) — buys Defense, costs the ability to hit anything
   const w = limitTier(ch, 'weed')
   if (w === 1) d.defense += 1
-  if (w === 2) { d.defense += 2; d.speed -= 1 }
-  if (w === 3) { d.defense += 2; d.speed -= 2 }
+  if (w === 2) { d.defense += 2; d.attack -= 1 }
+  if (w === 3) { d.defense += 2; d.attack -= 2 }
 
   // Food (§23)
   const f = limitTier(ch, 'food')
   if (f === 2) d.defense += 1
-  if (f === 3) { d.defense += 1; d.speed -= 2 }
+  if (f === 3) { d.defense += 1; d.attack -= 1 }
 
   return d
 }
@@ -124,8 +124,6 @@ export function effectiveStat(state: GameState, ch: CharacterInstance, stat: Sta
     if (sd.subtype !== 'Gear' && sd.subtype !== 'Ride') continue
     for (const m of sd.equipMods) {
       if (m.stat !== stat) continue
-      // Xavi ignores Speed penalties from Rides (Wheel Life)
-      if (def.id === 'xavi' && sd.subtype === 'Ride' && m.stat === 'speed' && m.amount < 0) continue
       v += m.amount
     }
   }
@@ -142,12 +140,12 @@ export function effectiveStat(state: GameState, ch: CharacterInstance, stat: Sta
   // ---- auras from allies adjacent to this character ----
   for (const ally of adjacentAllies(state, ch.iid)) {
     const ad = getCharacterDef(ally.defId)
-    if (ad.id === 'mikeymoe' && stat === 'speed') v += 1        // Twin Energy
+    if (ad.id === 'mikeymoe' && stat === 'defense') v += 1      // Twin Energy
     if (ad.id === 'manny' && stat === 'attack') v += 1          // Big Chain
     for (const s of attachedStuff(state, ally)) {
       const sd = getStuffDef(s.defId)
       if (sd.id === 'bigsexychain' && stat === 'attack') v += 1
-      if (sd.id === 'momvan' && stat === 'speed') v += 1
+      if (sd.id === 'momvan' && stat === 'defense') v += 1
     }
   }
 
@@ -165,7 +163,6 @@ export function effectiveStats(state: GameState, ch: CharacterInstance) {
   return {
     attack: effectiveStat(state, ch, 'attack'),
     defense: effectiveStat(state, ch, 'defense'),
-    speed: effectiveStat(state, ch, 'speed'),
   }
 }
 
@@ -238,6 +235,7 @@ export function itemCap(ch: CharacterInstance, subtype: string): number {
   const def = getCharacterDef(ch.defId)
   if (subtype === 'Gear') return def.gearSlots ?? 1
   if (subtype === 'Ride') return def.rideSlots ?? 1
+  if (subtype === 'Pet') return def.petSlots ?? 1
   return 2 // Food / Drink / Smoke — "can't have more than 2 Food items attached"
 }
 
@@ -261,4 +259,111 @@ export function openSlots(state: GameState, pid: PlayerId): Slot[] {
   const out: Slot[] = []
   for (let i = 0; i < 3; i++) if (!ps.field[i]) out.push(i as Slot)
   return out
+}
+
+
+// ---------------------------------------------------------------------------
+// STAT PROVENANCE
+//
+// A number on a card is useless if the player cannot see where it came from.
+// This returns every contribution to a stat so the UI can show the arithmetic
+// instead of a mystery total.
+// ---------------------------------------------------------------------------
+
+export interface StatPart {
+  label: string
+  amount: number
+  kind: 'base' | 'item' | 'limit' | 'aura' | 'status' | 'temporary'
+}
+
+export function explainStat(state: GameState, ch: CharacterInstance, stat: StatName): StatPart[] {
+  const def = getCharacterDef(ch.defId)
+  const parts: StatPart[] = [{ label: 'Base', amount: def.stats[stat], kind: 'base' }]
+
+  for (const s of attachedStuff(state, ch)) {
+    const sd = getStuffDef(s.defId)
+    if (!sd.equipMods) continue
+    if (!['Gear', 'Ride', 'Pet'].includes(sd.subtype)) continue
+    for (const m of sd.equipMods) {
+      if (m.stat === stat && m.amount !== 0) {
+        parts.push({ label: `${sd.icon ?? ''} ${sd.name}`.trim(), amount: m.amount, kind: 'item' })
+      }
+    }
+  }
+
+  for (const m of ch.mods) {
+    if (m.stat !== stat || m.amount === 0) continue
+    parts.push({
+      label: m.note ?? (m.duration === 'round' ? 'This Round' : m.duration === 'turn' ? 'This Turn' : 'Lasting'),
+      amount: m.amount,
+      kind: 'temporary',
+    })
+  }
+
+  const a = limitTier(ch, 'alcohol')
+  if (stat === 'attack' && a === 1) parts.push({ label: '🍺 Buzzed', amount: 1, kind: 'limit' })
+  if (a >= 2) {
+    if (stat === 'attack') parts.push({ label: a === 3 ? '🍺 Wasted' : '🍺 Drunk', amount: 2, kind: 'limit' })
+    if (stat === 'defense') parts.push({ label: a === 3 ? '🍺 Wasted' : '🍺 Drunk', amount: -1, kind: 'limit' })
+  }
+  const w = limitTier(ch, 'weed')
+  if (w === 1 && stat === 'defense') parts.push({ label: '🌿 High', amount: 1, kind: 'limit' })
+  if (w >= 2) {
+    if (stat === 'defense') parts.push({ label: w === 3 ? '🌿 Zooted' : '🌿 Stoned', amount: 2, kind: 'limit' })
+    if (stat === 'attack') parts.push({ label: w === 3 ? '🌿 Zooted' : '🌿 Stoned', amount: w === 3 ? -2 : -1, kind: 'limit' })
+  }
+  const f = limitTier(ch, 'food')
+  if (f === 2 && stat === 'defense') parts.push({ label: '🍔 Full', amount: 1, kind: 'limit' })
+  if (f === 3) {
+    if (stat === 'defense') parts.push({ label: '🍔 Stuffed', amount: 1, kind: 'limit' })
+    if (stat === 'attack') parts.push({ label: '🍔 Stuffed', amount: -1, kind: 'limit' })
+  }
+
+  if (stat === 'attack' && hasStatus(ch, 'Fired Up')) {
+    parts.push({ label: '🔥 Fired Up', amount: 2, kind: 'status' })
+  }
+
+  for (const ally of adjacentAllies(state, ch.iid)) {
+    const ad = getCharacterDef(ally.defId)
+    if (ad.id === 'mikeymoe' && stat === 'defense') parts.push({ label: `Beside ${ad.name}`, amount: 1, kind: 'aura' })
+    if (ad.id === 'manny' && stat === 'attack') parts.push({ label: `Beside ${ad.name}`, amount: 1, kind: 'aura' })
+    for (const s of attachedStuff(state, ally)) {
+      const sd = getStuffDef(s.defId)
+      if (sd.id === 'bigsexychain' && stat === 'attack') parts.push({ label: `Beside ${sd.name}`, amount: 1, kind: 'aura' })
+      if (sd.id === 'momvan' && stat === 'defense') parts.push({ label: `Beside ${sd.name}`, amount: 1, kind: 'aura' })
+    }
+  }
+
+  if (stat === 'attack') {
+    for (const enemy of acrossFrom(state, ch.iid)) {
+      if (getCharacterDef(enemy.defId).id === 'titibibi') {
+        parts.push({ label: 'Facing Titi Bibi', amount: -1, kind: 'aura' })
+      }
+    }
+  }
+
+  return parts.filter((p) => p.amount !== 0 || p.kind === 'base')
+}
+
+/** What this character does FOR (or TO) the characters beside it. */
+export function auraSummary(state: GameState, ch: CharacterInstance): string[] {
+  const def = getCharacterDef(ch.defId)
+  const out: string[] = []
+  if (def.id === 'mikeymoe') out.push('Neighbours get +1 Defense')
+  if (def.id === 'manny') out.push('Neighbours get +1 Attack')
+  if (def.id === 'chichi') out.push('Neighbours suffer Bad Luck on 1-2')
+  if (def.id === 'titibibi') out.push('Enemies opposite lose 1 Attack')
+  if (def.id === 'amanda') out.push('Can take a hit for a neighbour')
+  for (const s of attachedStuff(state, ch)) {
+    const sd = getStuffDef(s.defId)
+    if (sd.id === 'bigsexychain') out.push('Neighbours get +1 Attack')
+    if (sd.id === 'momvan') out.push('Neighbours get +1 Defense')
+  }
+  return out
+}
+
+/** True if this character is affected by, or affects, its neighbours. */
+export function hasAdjacencyEffect(state: GameState, ch: CharacterInstance): boolean {
+  if (auraSummary(state, ch).length > 0) return true
+  return adjacentAllies(state, ch.iid).some((a) => auraSummary(state, a).length > 0)
 }

@@ -85,10 +85,17 @@ export class Room {
     // decision while a battle is open.
     let you = this.you
     if (this.hotseat && this.game) {
-      const b = this.game.battle
-      you = b
-        ? (this.game.players.find((p) => !b.passed.includes(p)) ?? this.game.players[this.game.turnIndex])
-        : (this.game.turnOrder[this.game.turnIndex] ?? this.game.players[this.game.turnIndex])
+      const g = this.game
+      const mg = g.minigame
+      const b = g.battle
+      // Follow whoever the game is actually waiting on, in priority order:
+      // a minigame blocks everything, then an open interference window, then
+      // the active player. Miss any one of these and the table deadlocks.
+      you = mg && !mg.done
+        ? mg.players[mg.turn]
+        : b
+          ? (g.players.find((p) => !b.passed.includes(p)) ?? g.players[g.turnIndex])
+          : (g.turnOrder[g.turnIndex] ?? g.players[g.turnIndex])
     }
     return {
       role: this.role,

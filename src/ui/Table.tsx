@@ -2,16 +2,15 @@ import { useEffect, useRef, useState } from 'react'
 import type { GameState, Intent, InstanceId, PlayerId, Slot } from '../engine/types'
 import { getCharacterDef, getStuffDef, getAffairDef } from '../engine/cards/deck'
 import {
-  activeCharacters, canAct, canAttack, countAttached, currentPlayer,
-  familySize, hasStatus, itemCap, limitTier, openSlots, totalItemCap,
+  activeCharacters, auraSummary, canAct, canAttack, countAttached, currentPlayer,
+  effectiveStat, explainStat, familySize, hasStatus, itemCap, limitTier, openSlots, totalItemCap,
 } from '../engine/selectors'
 import { needsTarget } from '../engine/effects'
 import { HAND_LIMIT } from '../engine/state'
 import { CardFace, cardLabel } from './CardFace'
 import { BoardToken, EmptyToken } from './BoardToken'
 import { CharacterPortrait } from './CharacterCard'
-
-type View = 'field' | 'hand'
+import { Minigame } from './Minigame'
 
 /** What the player is currently being asked to point at. */
 type Targeting =
@@ -34,38 +33,44 @@ export function Table({
   const me = state.playerState[you]
   const isMyTurn = currentPlayer(state) === you
   const battle = state.battle
+  const minigame = state.minigame && !state.minigame.done ? state.minigame : null
 
-  const [view, setView] = useState<View>('hand')
   const [targeting, setTargeting] = useState<Targeting>(null)
-  const [sheet, setSheet] = useState<InstanceId | null>(null)
+  const [selected, setSelected] = useState<InstanceId | null>(null)   // my character, inline actions
+  const [inspect, setInspect] = useState<InstanceId | null>(null)     // any character, read-only sheet
+  const [handCard, setHandCard] = useState<InstanceId | null>(null)   // full-size card sheet
   const [showLog, setShowLog] = useState(false)
-  const [handIndex, setHandIndex] = useState(0)
+  const [affairOpen, setAffairOpen] = useState(false)
   const [turnFlash, setTurnFlash] = useState(false)
-  const handRef = useRef<HTMLDivElement>(null)
   const prevTurn = useRef<PlayerId | null>(null)
+  const prevAffair = useRef<string | null>(null)
 
-  // Targeting always happens on the board, so jump there automatically.
-  useEffect(() => { if (targeting && targeting.kind !== 'placeChar') setView('field') }, [targeting])
-  useEffect(() => { if (targeting?.kind === 'placeChar') setView('field') }, [targeting])
-
-  // An explicit "it's your turn" moment. Ambient cues get missed.
+  // Explicit turn hand-off. Ambient cues get missed.
   useEffect(() => {
     const cur = currentPlayer(state)
     if (prevTurn.current !== null && prevTurn.current !== cur && cur === you) {
       setTurnFlash(true)
-      const t = setTimeout(() => setTurnFlash(false), 1500)
+      const t = setTimeout(() => setTurnFlash(false), 1400)
       return () => clearTimeout(t)
     }
     prevTurn.current = cur
   }, [state.turnIndex, state.round, you])
 
-  useEffect(() => { if (battle) setTargeting(null) }, [!!battle])
-  useEffect(() => { if (handIndex > me.hand.length - 1) setHandIndex(Math.max(0, me.hand.length - 1)) }, [me.hand.length])
+  // A new Family Affair announces itself instead of quietly changing a strip.
+  useEffect(() => {
+    if (state.currentAffair && prevAffair.current !== null && state.currentAffair !== prevAffair.current) {
+      setAffairOpen(true)
+      const t = setTimeout(() => setAffairOpen(false), 3600)
+      prevAffair.current = state.currentAffair
+      return () => clearTimeout(t)
+    }
+    prevAffair.current = state.currentAffair
+  }, [state.currentAffair])
+
+  useEffect(() => { if (battle || minigame) { setTargeting(null); setSelected(null) } }, [!!battle, !!minigame])
 
   const affair = state.currentAffair ? getAffairDef(state.currentAffair) : null
   const opponents = state.players.filter((p) => p !== you)
-  const canPlayCards = isMyTurn && state.phase === 'main' && me.cardsPlayedThisTurn < 2 && !battle
-  const focusedCard: InstanceId | undefined = me.hand[handIndex]
 
   // ---------------------------------------------------------------- helpers
   function legalTargets(iid: InstanceId): InstanceId[] {
@@ -73,7 +78,7 @@ export function Table({
     if (!inst) return []
     const def = getStuffDef(inst.defId)
     if (def.subtype === 'Consumable') return []
-    const pool = def.subtype === 'Gear' || def.subtype === 'Ride'
+    const pool = ['Gear', 'Ride', 'Pet'].includes(def.subtype)
       ? activeCharacters(state, you)
       : state.players.flatMap((p) => activeCharacters(state, p))
     return pool
@@ -87,33 +92,26 @@ export function Table({
     if (battle) {
       const s = state.stuff[iid]
       if (!s || !getStuffDef(s.defId).interfere) return { ok: false, why: 'Not an Interfere card' }
-      if (me.interferedThisBattle >= 1) return { ok: false, why: 'You already interfered in this battle' }
+      if (me.interferedThisBattle >= 1) return { ok: false, why: 'Already interfered this battle' }
       return { ok: true }
     }
-    if (!isMyTurn) return { ok: false, why: "It's not your turn" }
-    if (state.phase === 'draw') return { ok: false, why: 'Draw a card first' }
-    if (me.cardsPlayedThisTurn >= 2) return { ok: false, why: 'You have played 2 cards this Turn' }
+    if (!isMyTurn) return { ok: false, why: "Not your turn" }
+    if (state.phase === 'draw') return { ok: false, why: 'Draw first' }
+    if (me.cardsPlayedThisTurn >= 2) return { ok: false, why: 'No card plays left' }
     if (state.characters[iid]) {
-      return familySize(state, you) < 5
-        ? { ok: true }
-        : { ok: false, why: 'Your Family is full (3 active + 2 bench)' }
+      return familySize(state, you) < 5 ? { ok: true } : { ok: false, why: 'Family is full' }
     }
     const def = state.stuff[iid] ? getStuffDef(state.stuff[iid].defId) : null
     if (!def) return { ok: false }
     if (def.subtype === 'Consumable') return { ok: true }
     return legalTargets(iid).length > 0
       ? { ok: true }
-      : { ok: false, why: 'Nobody can take another ' + def.subtype }
+      : { ok: false, why: `Nobody can take another ${def.subtype}` }
   }
 
-  function playFocused() {
-    const iid = focusedCard
-    if (!iid) return
-    const p = playabilityOf(iid)
-    if (!p.ok) return
-
+  function playCard(iid: InstanceId) {
+    setHandCard(null)
     if (battle) { setTargeting({ kind: 'interfere', iid }); return }
-
     if (state.characters[iid]) {
       const free = openSlots(state, you)
       if (free.length === 0) { send({ k: 'playCard', iid }); return }
@@ -129,31 +127,31 @@ export function Table({
   }
 
   function tapToken(iid: InstanceId, mine: boolean) {
-    if (!targeting) {
-      if (mine && isMyTurn && !battle) setSheet(iid)
-      else setSheet(iid)
+    if (targeting) {
+      switch (targeting.kind) {
+        case 'playStuff':
+          if (!legalTargets(targeting.iid).includes(iid)) return
+          send({ k: 'playCard', iid: targeting.iid, targetChar: iid }); break
+        case 'interfere':
+          send({ k: 'interfere', iid: targeting.iid, targetChar: iid }); break
+        case 'attack':
+          if (mine) return
+          send({ k: 'attack', attacker: targeting.char, defender: iid }); break
+        case 'ability':
+          if (targeting.scope === 'enemy' && mine) return
+          if (targeting.scope === 'ally' && (!mine || iid === targeting.char)) return
+          send({ k: 'useAbility', char: targeting.char, which: targeting.which, targetChar: iid }); break
+        default: return
+      }
+      setTargeting(null)
       return
     }
-    switch (targeting.kind) {
-      case 'playStuff':
-        if (!legalTargets(targeting.iid).includes(iid)) return
-        send({ k: 'playCard', iid: targeting.iid, targetChar: iid }); break
-      case 'interfere':
-        send({ k: 'interfere', iid: targeting.iid, targetChar: iid }); break
-      case 'attack':
-        if (mine) return
-        send({ k: 'attack', attacker: targeting.char, defender: iid }); break
-      case 'ability':
-        if (targeting.scope === 'enemy' && mine) return
-        if (targeting.scope === 'ally' && (!mine || iid === targeting.char)) return
-        send({ k: 'useAbility', char: targeting.char, which: targeting.which, targetChar: iid }); break
-      default: return
-    }
-    setTargeting(null)
+    if (mine && isMyTurn && !battle) setSelected(selected === iid ? null : iid)
+    else setInspect(iid)
   }
 
   function tokenMode(iid: InstanceId, mine: boolean): 'target' | 'selected' | null {
-    if (!targeting) return null
+    if (!targeting) return selected === iid ? 'selected' : null
     if (targeting.kind === 'playStuff') return legalTargets(targeting.iid).includes(iid) ? 'target' : null
     if (targeting.kind === 'interfere') return 'target'
     if (targeting.kind === 'attack') return mine ? (targeting.char === iid ? 'selected' : null) : 'target'
@@ -167,13 +165,13 @@ export function Table({
   }
 
   const targetPrompt = !targeting ? null
-    : targeting.kind === 'placeChar' ? 'Choose a slot'
-    : targeting.kind === 'playStuff' ? `Give ${cardLabel(state, targeting.iid)} to…`
-    : targeting.kind === 'attack' ? 'Choose who to attack'
-    : targeting.kind === 'interfere' ? 'Choose who it hits'
-    : targeting.scope === 'enemy' ? 'Choose an enemy'
-    : targeting.scope === 'ally' ? 'Choose an ally'
-    : 'Choose a target'
+    : targeting.kind === 'placeChar' ? 'Tap a slot to place them'
+    : targeting.kind === 'playStuff' ? `Tap who gets ${cardLabel(state, targeting.iid)}`
+    : targeting.kind === 'attack' ? 'Tap an enemy to attack'
+    : targeting.kind === 'interfere' ? 'Tap who it hits'
+    : targeting.scope === 'enemy' ? 'Tap an enemy'
+    : targeting.scope === 'ally' ? 'Tap an ally'
+    : 'Tap a target'
 
   // ------------------------------------------------------------- game over
   if (state.phase === 'gameover') {
@@ -203,7 +201,8 @@ export function Table({
     )
   }
 
-  // ------------------------------------------------------------------ view
+  const selCh = selected ? state.characters[selected] : null
+
   return (
     <div className="app">
       <header className="topbar">
@@ -217,86 +216,21 @@ export function Table({
       </header>
 
       {hotseat && (
-        <div className="handoff">Pass the device to <strong>{state.playerState[you].name}</strong></div>
+        <div className="handoff">Pass to <strong>{state.playerState[you].name}</strong></div>
       )}
 
       {affair && (
-        <button className="affair" onClick={() => setShowLog(true)} title={affair.text}>
+        <button className="affair" onClick={() => setAffairOpen(true)}>
           <span className="t">Affair</span>
           <span className="n">{affair.name}</span>
           <span className="d">{affair.text}</span>
+          <span className="more">?</span>
         </button>
       )}
 
-      <nav className="viewswitch" role="tablist">
-        <button role="tab" aria-selected={view === 'field'} onClick={() => setView('field')}>
-          Field
-        </button>
-        <button role="tab" aria-selected={view === 'hand'} onClick={() => { setView('hand'); setTargeting(null) }}>
-          Your hand <b>{me.hand.length}</b>
-        </button>
-      </nav>
-
-      {targetPrompt && (
-        <div className="targetbar">
-          <span>{targetPrompt}</span>
-          <button onClick={() => setTargeting(null)}>Cancel</button>
-        </div>
-      )}
-
-      {/* ------------------------------------------------------- FIELD ---- */}
-      {view === 'field' && (
-        <div className="scroll">
-          <div className="myfamily">
-            <div className="fam-head">
-              <span className="fam-label">Your family</span>
-              <span className="fam-budget">
-                <i className={me.cardsPlayedThisTurn < 2 && isMyTurn ? 'on' : ''}>{2 - me.cardsPlayedThisTurn} cards</i>
-                <i className={me.actionsLeft > 0 && isMyTurn ? 'on' : ''}>{me.actionsLeft} actions</i>
-              </span>
-            </div>
-            <div className="slots">
-              {me.field.map((iid, i) => {
-                if (!iid) {
-                  const placing = targeting?.kind === 'placeChar'
-                  return (
-                    <EmptyToken
-                      key={i} label={['LEFT', 'CENTER', 'RIGHT'][i]}
-                      mode={placing ? 'target' : null}
-                      onClick={placing
-                        ? () => { send({ k: 'playCard', iid: (targeting as any).iid, slot: i as Slot }); setTargeting(null) }
-                        : undefined}
-                    />
-                  )
-                }
-                const ch = state.characters[iid]
-                if (!ch) return <EmptyToken key={i} label={['LEFT', 'CENTER', 'RIGHT'][i]} />
-                return (
-                  <BoardToken
-                    key={iid} state={state} ch={ch}
-                    mode={tokenMode(iid, true)}
-                    onClick={() => tapToken(iid, true)}
-                  />
-                )
-              })}
-            </div>
-
-            {me.bench.length > 0 && (
-              <>
-                <div className="fam-sub">Bench</div>
-                <div className="benchrow">
-                  {me.bench.map((iid) => {
-                    const ch = state.characters[iid]
-                    return ch ? (
-                      <BoardToken key={iid} state={state} ch={ch} size="sm"
-                        mode={tokenMode(iid, true)} onClick={() => tapToken(iid, true)} />
-                    ) : null
-                  })}
-                </div>
-              </>
-            )}
-          </div>
-
+      {/* ------------------------------------------ OPPONENTS (top) ------ */}
+      <div className="board">
+        <div className="oppzone">
           {opponents.map((pid) => {
             const ps = state.playerState[pid]
             return (
@@ -320,61 +254,113 @@ export function Table({
             )
           })}
         </div>
-      )}
 
-      {/* -------------------------------------------------------- HAND ---- */}
-      {view === 'hand' && (
-        <div className="handview">
-          {me.hand.length === 0 ? (
-            <div className="hand-empty">Your hand is empty.</div>
-          ) : (
-            <>
-              <div
-                className="cardrail" ref={handRef}
-                onScroll={(e) => {
-                  const el = e.currentTarget
-                  const i = Math.round(el.scrollLeft / (el.scrollWidth / me.hand.length))
-                  if (i !== handIndex) setHandIndex(Math.min(i, me.hand.length - 1))
-                }}
-              >
-                {me.hand.map((iid, i) => (
-                  <div className="railitem" key={iid}>
-                    <CardFace state={state} iid={iid} focused={i === handIndex} />
-                  </div>
-                ))}
-              </div>
-              <div className="raildots">
-                {me.hand.map((iid, i) => (
-                  <button
-                    key={iid}
-                    className={`${i === handIndex ? 'on' : ''} ${playabilityOf(iid).ok ? 'playable' : ''}`}
-                    aria-label={`Card ${i + 1}${playabilityOf(iid).ok ? ', playable' : ''}`}
-                    onClick={() => {
-                      setHandIndex(i)
-                      const el = handRef.current
-                      if (el) el.scrollTo({ left: (el.scrollWidth / me.hand.length) * i, behavior: 'smooth' })
-                    }}
-                  />
-                ))}
-              </div>
-              {(() => {
-                const n = me.hand.filter((i) => playabilityOf(i).ok).length
-                if (!isMyTurn || state.phase === 'draw') return null
+        {/* ------------------------------------- YOUR SIDE (bottom) ------ */}
+        <div className="myzone">
+          <div className="fam-head">
+            <span className="fam-label">Your family</span>
+            <span className="fam-budget">
+              <i className={me.cardsPlayedThisTurn < 2 && isMyTurn ? 'on' : ''}>{2 - me.cardsPlayedThisTurn} plays</i>
+              <i className={me.actionsLeft > 0 && isMyTurn ? 'on' : ''}>{me.actionsLeft} actions</i>
+            </span>
+          </div>
+
+          <div className="slots myslots">
+            {me.field.map((iid, i) => {
+              if (!iid) {
+                const placing = targeting?.kind === 'placeChar'
                 return (
-                  <div className="railhint">
-                    {n === 0 ? 'Nothing in hand can be played right now'
-                      : `${n} of ${me.hand.length} playable — swipe to browse`}
-                  </div>
+                  <EmptyToken
+                    key={i} label={['LEFT', 'CENTER', 'RIGHT'][i]}
+                    mode={placing ? 'target' : null}
+                    onClick={placing
+                      ? () => { send({ k: 'playCard', iid: (targeting as any).iid, slot: i as Slot }); setTargeting(null) }
+                      : undefined}
+                  />
                 )
-              })()}
-            </>
+              }
+              const ch = state.characters[iid]
+              if (!ch) return <EmptyToken key={i} label={['LEFT', 'CENTER', 'RIGHT'][i]} />
+              return (
+                <BoardToken
+                  key={iid} state={state} ch={ch}
+                  mode={tokenMode(iid, true)}
+                  onClick={() => tapToken(iid, true)}
+                  showAura
+                />
+              )
+            })}
+          </div>
+
+          {me.bench.length > 0 && (
+            <div className="benchrow">
+              <span className="fam-sub">Bench</span>
+              {me.bench.map((iid) => {
+                const ch = state.characters[iid]
+                return ch ? (
+                  <BoardToken key={iid} state={state} ch={ch} size="sm"
+                    mode={tokenMode(iid, true)} onClick={() => tapToken(iid, true)} />
+                ) : null
+              })}
+            </div>
           )}
+
+          {/* inline actions for the selected character — no modal needed */}
+          {selCh && !targeting && (
+            <CharacterActions
+              state={state} you={you} ch={selCh}
+              send={send}
+              onTarget={(t) => { setTargeting(t); setSelected(null) }}
+              onInspect={() => setInspect(selCh.iid)}
+              onClose={() => setSelected(null)}
+            />
+          )}
+        </div>
+      </div>
+
+      {targetPrompt && (
+        <div className="targetbar">
+          <span>{targetPrompt}</span>
+          <button onClick={() => setTargeting(null)}>Cancel</button>
         </div>
       )}
 
+      {/* ---------------------------------------------- HAND (bottom) ---- */}
+      <div className="handstrip">
+        <div className="hs-head">
+          <span>Your hand</span>
+          <b>{me.hand.length}/{HAND_LIMIT}</b>
+        </div>
+        <div className="hs-rail">
+          {me.hand.length === 0 && <span className="hs-empty">No cards</span>}
+          {me.hand.map((iid) => {
+            const chDef = state.characters[iid] ? getCharacterDef(state.characters[iid].defId) : null
+            const stDef = state.stuff[iid] ? getStuffDef(state.stuff[iid].defId) : null
+            const p = playabilityOf(iid)
+            return (
+              <button
+                key={iid}
+                className={`hs-card ${p.ok ? 'playable' : ''}`}
+                style={{ '--accent': chDef?.color ?? stDef?.color ?? '#43284a' } as React.CSSProperties}
+                onClick={() => setHandCard(iid)}
+              >
+                {chDef
+                  ? <span className="hs-art"><CharacterPortrait defId={chDef.id} /></span>
+                  : <span className="hs-glyph">{stDef?.icon ?? '❔'}</span>}
+                <span className="hs-name">{chDef?.name ?? stDef?.name}</span>
+                {chDef && <span className="hs-mini">⚔{chDef.stats.attack} 🛡{chDef.stats.defense}</span>}
+                {p.ok && <span className="hs-ok" />}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
       {/* ------------------------------------------------- ACTION BAR ---- */}
       <div className="actionbar">
-        {battle ? (
+        {minigame ? (
+          <div className="waiting">Tic tac toe in progress…</div>
+        ) : battle ? (
           <BattleBar state={state} you={you} send={send}
             onInterfere={(iid) => setTargeting({ kind: 'interfere', iid })} />
         ) : isMyTurn && state.phase === 'draw' ? (
@@ -391,24 +377,12 @@ export function Table({
             )}
           </>
         ) : isMyTurn ? (
-          view === 'hand' && focusedCard ? (
-            (() => {
-              const p = playabilityOf(focusedCard)
-              return (
-                <div className="bar2">
-                  <button className="btn" disabled={!p.ok} onClick={playFocused}>
-                    {p.ok ? `Play ${cardLabel(state, focusedCard)}` : (p.why ?? 'Cannot play')}
-                  </button>
-                  <button className="btn ghost narrow" onClick={() => endTurn(state, you, me, send)}>End turn</button>
-                </div>
-              )
-            })()
-          ) : (
-            <div className="bar2">
-              <button className="btn ghost" onClick={() => setView('hand')}>Your hand ({me.hand.length})</button>
-              <button className="btn narrow" onClick={() => endTurn(state, you, me, send)}>End turn</button>
-            </div>
-          )
+          <button className="btn" onClick={() => {
+            if (me.hand.length > HAND_LIMIT) {
+              send({ k: 'discardDown', iids: me.hand.slice(0, me.hand.length - HAND_LIMIT) })
+            }
+            send({ k: 'endTurn' })
+          }}>End turn</button>
         ) : (
           <div className="waiting">Waiting for {state.playerState[currentPlayer(state)].name}…</div>
         )}
@@ -416,20 +390,47 @@ export function Table({
 
       {turnFlash && <div className="turnflash"><span>YOUR TURN</span></div>}
 
-      {sheet && (
-        <ActionSheet
-          state={state} you={you} iid={sheet}
-          onClose={() => setSheet(null)}
-          send={send}
-          startTargeting={(t) => { setSheet(null); setTargeting(t) }}
-        />
+      {minigame && <Minigame state={state} you={you} send={send} />}
+
+      {affairOpen && affair && (
+        <div className="sheet-bg" onClick={() => setAffairOpen(false)}>
+          <div className="affair-card" onClick={(e) => e.stopPropagation()}>
+            <span className="ac-kicker">Family Affair</span>
+            <h2>{affair.name}</h2>
+            <p>{affair.text}</p>
+            <span className="ac-foot">Active for this Round — it affects everybody</span>
+            <button className="btn" onClick={() => setAffairOpen(false)}>Got it</button>
+          </div>
+        </div>
+      )}
+
+      {handCard && (
+        <div className="sheet-bg" onClick={() => setHandCard(null)}>
+          <div className="cardsheet" onClick={(e) => e.stopPropagation()}>
+            <div className="cardsheet-face"><CardFace state={state} iid={handCard} focused /></div>
+            {(() => {
+              const p = playabilityOf(handCard)
+              return (
+                <div className="cardsheet-actions">
+                  <button className="btn" disabled={!p.ok} onClick={() => playCard(handCard)}>
+                    {p.ok ? `Play ${cardLabel(state, handCard)}` : (p.why ?? 'Cannot play')}
+                  </button>
+                  <button className="btn ghost narrow" onClick={() => setHandCard(null)}>Close</button>
+                </div>
+              )
+            })()}
+          </div>
+        </div>
+      )}
+
+      {inspect && (
+        <InspectSheet state={state} iid={inspect} onClose={() => setInspect(null)} />
       )}
 
       {showLog && (
         <div className="sheet-bg" onClick={() => setShowLog(false)}>
           <div className="sheet" onClick={(e) => e.stopPropagation()}>
             <h3>What happened</h3>
-            {affair && <p className="sub"><strong>{affair.name}</strong> — {affair.text}</p>}
             <div className="log">
               {state.log.slice(-70).reverse().map((l) => (
                 <div key={l.t} className={`ln ${l.kind}`}>{l.text}</div>
@@ -445,61 +446,142 @@ export function Table({
   )
 }
 
-function endTurn(state: GameState, you: PlayerId, me: any, send: (i: Intent) => void) {
-  if (me.hand.length > HAND_LIMIT) {
-    send({ k: 'discardDown', iids: me.hand.slice(0, me.hand.length - HAND_LIMIT) })
-  }
-  send({ k: 'endTurn' })
-}
-
+// ---------------------------------------------------------------------------
+// Inline actions — attacking should not require opening a menu first.
 // ---------------------------------------------------------------------------
 
-function ActionSheet({
-  state, you, iid, onClose, send, startTargeting,
+function CharacterActions({
+  state, you, ch, send, onTarget, onInspect, onClose,
 }: {
-  state: GameState; you: PlayerId; iid: InstanceId
-  onClose: () => void
+  state: GameState; you: PlayerId; ch: any
   send: (i: Intent) => void
-  startTargeting: (t: Targeting) => void
+  onTarget: (t: Targeting) => void
+  onInspect: () => void
+  onClose: () => void
 }) {
-  const ch = state.characters[iid]
   const me = state.playerState[you]
-  if (!ch) return null
   const def = getCharacterDef(ch.defId)
-  const mine = ch.owner === you
-  const isMyTurn = currentPlayer(state) === you
   const act = canAct(state, ch)
   const atk = canAttack(state, ch)
   const free = ((ch.scratch.freeAttacks as number) ?? 0) > 0
-  const consumables = ch.attached.filter((i) => {
+  const canSwing = (atk.ok || free) && (free || me.actionsLeft >= 1)
+
+  const consumables = ch.attached.filter((i: string) => {
     const s = state.stuff[i]
     return s && ['Food', 'Drink', 'Smoke'].includes(getStuffDef(s.defId).subtype)
   })
 
-  function abilityRow(which: 'ability' | 'powerMove') {
+  function abilityChip(which: 'ability' | 'powerMove') {
     const ab = which === 'ability' ? def.ability : def.powerMove
     if (!ab) return null
     const onCd = ab.oncePerGame ? ch.cooldowns[ab.name] === -1
       : (ab.cooldown ? (ch.cooldowns[ab.name] ?? -99) > state.round : false)
     const limitOk = !ab.requiresLimit
       || Object.entries(ab.requiresLimit).every(([t, m]) => ch.limits[t as 'food'] >= (m as number))
+    const disabled = !act.ok || me.actionsLeft < ab.actionCost || onCd || !limitOk
     const need = needsTarget(ab.effects)
-    const disabled = !mine || !isMyTurn || !act.ok || me.actionsLeft < ab.actionCost || onCd || !limitOk
     return (
-      <button className="opt" disabled={disabled}
+      <button className={`chip ${which === 'powerMove' ? 'power' : ''}`} disabled={disabled}
         onClick={() => {
-          if (need) startTargeting({ kind: 'ability', char: iid, which, scope: need })
-          else { send({ k: 'useAbility', char: iid, which }); onClose() }
+          if (need) onTarget({ kind: 'ability', char: ch.iid, which, scope: need })
+          else { send({ k: 'useAbility', char: ch.iid, which }); onClose() }
         }}>
-        <div className="on">{which === 'powerMove' ? '★ ' : ''}{ab.name}</div>
-        <div className="od">
-          {ab.text}
-          {onCd && <><br /><em>On cooldown.</em></>}
-          {!limitOk && <><br /><em>Limit requirement not met.</em></>}
-        </div>
+        <b>{which === 'powerMove' ? '★' : '✦'} {ab.name}</b>
+        <i>{onCd ? 'On cooldown' : !limitOk ? 'Needs more' : ab.text.slice(0, 46) + (ab.text.length > 46 ? '…' : '')}</i>
       </button>
     )
   }
+
+  return (
+    <div className="actions-inline">
+      <div className="ai-head">
+        <CharacterPortrait defId={def.id} size={34} />
+        <b style={{ color: def.color }}>{def.name}</b>
+        {!act.ok && <em>{act.why}</em>}
+        <button className="ai-close" onClick={onClose} aria-label="Deselect">✕</button>
+      </div>
+
+      {auraSummary(state, ch).length > 0 && (
+        <div className="ai-aura">◈ {auraSummary(state, ch).join(' · ')}</div>
+      )}
+
+      <div className="chips">
+        <button className="chip attack" disabled={!canSwing}
+          onClick={() => onTarget({ kind: 'attack', char: ch.iid })}>
+          <b>⚔ Attack{free ? ' (free)' : ''}</b>
+          <i>{canSwing
+            ? `Swing at ${effectiveStat(state, ch, 'attack')} Attack${free ? '' : ' · 1 action'}`
+            : (atk.why ?? 'No actions left')}</i>
+        </button>
+        {abilityChip('ability')}
+        {abilityChip('powerMove')}
+
+        {consumables.map((i: string) => {
+          const sd = getStuffDef(state.stuff[i].defId)
+          const blocked = !!ch.scratch.consumedThisTurn
+            || (sd.subtype === 'Food' && limitTier(ch, 'food') === 3)
+          return (
+            <button key={i} className="chip eat" disabled={blocked}
+              onClick={() => { send({ k: 'consume', char: ch.iid, iid: i }); onClose() }}>
+              <b>{sd.icon} Eat {sd.name}</b>
+              <i>Free, once per turn</i>
+            </button>
+          )
+        })}
+
+        {me.bench.map((b) => {
+          const bc = state.characters[b]
+          if (!bc || ch.zone !== 'active') return null
+          return (
+            <button key={b} className="chip" disabled={me.actionsLeft < 1}
+              onClick={() => { send({ k: 'swap', activeChar: ch.iid, benchChar: b }); onClose() }}>
+              <b>⇄ Swap in {getCharacterDef(bc.defId).name}</b>
+              <i>1 action</i>
+            </button>
+          )
+        })}
+
+        {(['Confused', 'Busy', 'Charmed'] as const).filter((s) => hasStatus(ch, s)).map((s) => (
+          <button key={s} className="chip" disabled={me.actionsLeft < 1}
+            onClick={() => { send({ k: 'recoverStatus', char: ch.iid, status: s }); onClose() }}>
+            <b>✧ Shake off {s}</b><i>1 action</i>
+          </button>
+        ))}
+
+        <button className="chip ghost" onClick={onInspect}>
+          <b>ⓘ Details</b><i>Stats, rules, neighbours</i>
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+
+function StatBreakdown({ state, ch, stat }: { state: GameState; ch: any; stat: 'attack' | 'defense' }) {
+  const parts = explainStat(state, ch, stat)
+  const total = parts.reduce((n, p) => n + p.amount, 0)
+  return (
+    <div className="breakdown">
+      <div className="bd-head">
+        <span>{stat === 'attack' ? '⚔ Attack' : '🛡 Defense'}</span>
+        <b>{Math.max(0, total)}</b>
+      </div>
+      {parts.map((p, i) => (
+        <div key={i} className={`bd-row ${p.kind}`}>
+          <span>{p.label}</span>
+          <b className={p.amount < 0 ? 'neg' : ''}>{p.amount > 0 && p.kind !== 'base' ? '+' : ''}{p.amount}</b>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function InspectSheet({ state, iid, onClose }: { state: GameState; iid: InstanceId; onClose: () => void }) {
+  const ch = state.characters[iid]
+  if (!ch) return null
+  const def = getCharacterDef(ch.defId)
+  const auras = auraSummary(state, ch)
 
   return (
     <div className="sheet-bg" onClick={onClose}>
@@ -508,73 +590,28 @@ function ActionSheet({
           <CharacterPortrait defId={def.id} />
           <div>
             <h3 style={{ color: def.color }}>{def.name}</h3>
-            <div className="sub">
-              {def.title}<br />{def.tags.join(' · ')}
-              {!act.ok && <><br /><strong style={{ color: 'var(--red)' }}>{act.why}</strong></>}
-            </div>
+            <div className="sub">{def.title}<br />{def.tags.join(' · ')}</div>
           </div>
         </div>
 
-        {mine ? (
-          <>
-            <button className="opt" disabled={!isMyTurn || !(atk.ok || free) || (!free && me.actionsLeft < 1)}
-              onClick={() => startTargeting({ kind: 'attack', char: iid })}>
-              <div className="on">Attack{free ? ' (free)' : ''}</div>
-              <div className="od">{atk.ok || free ? 'Spend an Action to swing at an enemy.' : atk.why}</div>
-            </button>
+        <div className="bd-pair">
+          <StatBreakdown state={state} ch={ch} stat="attack" />
+          <StatBreakdown state={state} ch={ch} stat="defense" />
+        </div>
 
-            {abilityRow('ability')}
-            {abilityRow('powerMove')}
-
-            {consumables.length > 0 && (
-              <>
-                <div className="field-label" style={{ marginTop: 14 }}>Consume — free, once per turn</div>
-                {consumables.map((i) => {
-                  const sd = getStuffDef(state.stuff[i].defId)
-                  const blocked = !isMyTurn || !!ch.scratch.consumedThisTurn
-                    || (sd.subtype === 'Food' && limitTier(ch, 'food') === 3)
-                  return (
-                    <button key={i} className="opt" disabled={blocked}
-                      onClick={() => { send({ k: 'consume', char: iid, iid: i }); onClose() }}>
-                      <div className="on">{sd.icon} {sd.name}</div>
-                      <div className="od">{sd.text}</div>
-                    </button>
-                  )
-                })}
-              </>
-            )}
-
-            {ch.zone === 'active' && me.bench.length > 0 && (
-              <>
-                <div className="field-label" style={{ marginTop: 14 }}>Swap with bench — 1 Action</div>
-                {me.bench.map((b) => {
-                  const bc = state.characters[b]
-                  return (
-                    <button key={b} className="opt" disabled={!isMyTurn || me.actionsLeft < 1}
-                      onClick={() => { send({ k: 'swap', activeChar: iid, benchChar: b }); onClose() }}>
-                      <div className="on">{bc ? getCharacterDef(bc.defId).name : '—'}</div>
-                    </button>
-                  )
-                })}
-              </>
-            )}
-
-            {(['Confused', 'Busy', 'Charmed'] as const).filter((s) => hasStatus(ch, s)).map((s) => (
-              <button key={s} className="opt" disabled={!isMyTurn || me.actionsLeft < 1}
-                onClick={() => { send({ k: 'recoverStatus', char: iid, status: s }); onClose() }}>
-                <div className="on">Shake off {s}</div>
-                <div className="od">Spend 1 Family Action to clear it.</div>
-              </button>
-            ))}
-          </>
-        ) : (
-          <div className="inspect">
-            {def.passive && <p className="face-rule"><strong>{def.passive.name}</strong> {def.passive.text}</p>}
-            {def.ability && <p className="face-rule"><strong>{def.ability.name}</strong> {def.ability.text}</p>}
-            {def.powerMove && <p className="face-rule power"><strong>★ {def.powerMove.name}</strong> {def.powerMove.text}</p>}
-            {def.flaw && <p className="face-rule flaw"><strong>{def.flaw.name}</strong> {def.flaw.text}</p>}
+        {auras.length > 0 && (
+          <div className="aurabox">
+            <span className="field-label">Where they sit matters</span>
+            {auras.map((a, i) => <p key={i}>◈ {a}</p>)}
           </div>
         )}
+
+        <div className="inspect">
+          {def.passive && <p className="face-rule"><strong>{def.passive.name}</strong> {def.passive.text}</p>}
+          {def.ability && <p className="face-rule"><strong>{def.ability.name}</strong> {def.ability.text}</p>}
+          {def.powerMove && <p className="face-rule power"><strong>★ {def.powerMove.name}</strong> {def.powerMove.text}</p>}
+          {def.flaw && <p className="face-rule flaw"><strong>{def.flaw.name}</strong> {def.flaw.text}</p>}
+        </div>
 
         <button className="btn ghost" style={{ marginTop: 12 }} onClick={onClose}>Close</button>
       </div>
@@ -609,27 +646,22 @@ function BattleBar({
       <div className="bb-vs">
         {atkDef && <CharacterPortrait defId={atkDef.id} />}
         <span className="bb-mid">
-          <b>{atkDef?.name}</b>
-          <em>attacks</em>
-          <b>{dfnDef?.name}</b>
+          <b>{atkDef?.name}</b><em>attacks</em><b>{dfnDef?.name}</b>
         </span>
         {dfnDef && <CharacterPortrait defId={dfnDef.id} />}
       </div>
-
       {canInterfere && (
         <div className="bb-cards">
           {myInterferes.map((i) => {
             const sd = getStuffDef(state.stuff[i].defId)
             return (
               <button key={i} className="bb-card" onClick={() => onInterfere(i)}>
-                <span className="g">{sd.icon}</span>
-                <span className="n">{sd.name}</span>
+                <span className="g">{sd.icon}</span><span className="n">{sd.name}</span>
               </button>
             )
           })}
         </div>
       )}
-
       <button className="btn" disabled={passed} onClick={() => send({ k: 'passInterference' })}>
         {passed
           ? `Waiting for ${state.players.length - b.passed.length} more…`

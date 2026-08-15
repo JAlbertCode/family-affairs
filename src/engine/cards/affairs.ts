@@ -20,10 +20,10 @@ export const AFFAIRS: AffairDef[] = [
   },
   {
     kind: 'affair', id: 'girlstrip', name: "Girls' Trip", duration: 'round', color: C,
-    text: 'All Mom Characters become Away for the Round. Kids gain +1 Speed. Troublemakers gain +1 Attack. Brothers lose 1 Attack.',
+    text: 'All Mom Characters become Away for the Round. Kids gain +1 Attack. Troublemakers gain +1 Attack. Brothers lose 1 Attack.',
     effects: [
       { k: 'status', target: { scope: 'allActiveEveryone', withTag: 'Mom' }, status: 'Away', duration: 1 },
-      { k: 'statMod', target: { scope: 'allActiveEveryone', withTag: 'Kid' }, stat: 'speed', amount: 1, duration: 'round' },
+      { k: 'statMod', target: { scope: 'allActiveEveryone', withTag: 'Kid' }, stat: 'attack', amount: 1, duration: 'round' },
       { k: 'statMod', target: { scope: 'allActiveEveryone', withTag: 'Troublemaker' }, stat: 'attack', amount: 1, duration: 'round' },
       { k: 'statMod', target: { scope: 'allActiveEveryone', withTag: 'Brother' }, stat: 'attack', amount: -1, duration: 'round' },
       { k: 'draw', player: 'all', n: 1 },
@@ -49,11 +49,11 @@ export const AFFAIRS: AffairDef[] = [
   },
   {
     kind: 'affair', id: 'whomadethismess', name: 'Who Made This Mess?!', duration: 'round', color: C,
-    text: 'Troublemakers gain +1 Attack. Caretakers become Busy cleaning it up. Everyone else loses 1 Speed dealing with it.',
+    text: 'Troublemakers gain +1 Attack. Caretakers become Busy cleaning it up. Everyone else loses 1 Defense dealing with it.',
     effects: [
       { k: 'statMod', target: { scope: 'allActiveEveryone', withTag: 'Troublemaker' }, stat: 'attack', amount: 1, duration: 'round' },
       { k: 'status', target: { scope: 'allActiveEveryone', withTag: 'Caretaker' }, status: 'Busy', duration: 1 },
-      { k: 'statMod', target: { scope: 'allActiveEveryone', withoutTag: 'Troublemaker' }, stat: 'speed', amount: -1, duration: 'round' },
+      { k: 'statMod', target: { scope: 'allActiveEveryone', withoutTag: 'Troublemaker' }, stat: 'defense', amount: -1, duration: 'round' },
     ],
   },
   {
@@ -108,20 +108,20 @@ export const AFFAIRS: AffairDef[] = [
   },
   {
     kind: 'affair', id: 'somebodybroughtedibles', name: 'Somebody Brought Edibles', duration: 'round', color: C,
-    text: 'Every Active Character gains +1 Weed. Stoners gain +2 Attack this Round. Everyone else loses 1 Speed.',
+    text: 'Every Active Character gains +1 Weed. Stoners gain +2 Attack this Round. Everyone else loses 1 Defense.',
     effects: [
       { k: 'limit', target: { scope: 'allActiveEveryone' }, track: 'weed', amount: 1 },
       { k: 'statMod', target: { scope: 'allActiveEveryone', withTag: 'Stoner' }, stat: 'attack', amount: 2, duration: 'round' },
-      { k: 'statMod', target: { scope: 'allActiveEveryone', withoutTag: 'Stoner' }, stat: 'speed', amount: -1, duration: 'round' },
+      { k: 'statMod', target: { scope: 'allActiveEveryone', withoutTag: 'Stoner' }, stat: 'defense', amount: -1, duration: 'round' },
     ],
   },
   {
     kind: 'affair', id: 'quinceanera', name: 'The Quinceañera', duration: 'round', color: C,
-    text: 'Everybody dresses up and drinks. All Adults gain +1 Alcohol and +1 Attack. All Kids gain +2 Speed.',
+    text: 'Everybody dresses up and drinks. All Adults gain +1 Alcohol and +1 Attack. All Kids gain +2 Attack.',
     effects: [
       { k: 'limit', target: { scope: 'allActiveEveryone', withTag: 'Adult' }, track: 'alcohol', amount: 1 },
       { k: 'statMod', target: { scope: 'allActiveEveryone', withTag: 'Adult' }, stat: 'attack', amount: 1, duration: 'round' },
-      { k: 'statMod', target: { scope: 'allActiveEveryone', withTag: 'Kid' }, stat: 'speed', amount: 2, duration: 'round' },
+      { k: 'statMod', target: { scope: 'allActiveEveryone', withTag: 'Kid' }, stat: 'attack', amount: 2, duration: 'round' },
     ],
   },
   {
@@ -150,9 +150,9 @@ export const AFFAIRS: AffairDef[] = [
   },
   {
     kind: 'affair', id: 'roadtrip', name: 'Road Trip', duration: 'round', color: C,
-    text: 'Everyone piles in. All Wheel Gang Characters gain +2 Speed and +1 Attack. Everyone without a Ride loses 1 Speed.',
+    text: 'Everyone piles in. All Wheel Gang Characters gain +2 Defense and +1 Attack. Everyone without a Ride loses 1 Speed.',
     effects: [
-      { k: 'statMod', target: { scope: 'allActiveEveryone', withTag: 'Wheel Gang' }, stat: 'speed', amount: 2, duration: 'round' },
+      { k: 'statMod', target: { scope: 'allActiveEveryone', withTag: 'Wheel Gang' }, stat: 'attack', amount: 2, duration: 'round' },
       { k: 'statMod', target: { scope: 'allActiveEveryone', withTag: 'Wheel Gang' }, stat: 'attack', amount: 1, duration: 'round' },
     ],
   },

@@ -15,9 +15,11 @@ function run(players: number, clout: number, seed: number) {
   )
   let guard = 0, turns = 0
   while (state.phase !== 'gameover' && guard++ < 40000) {
-    const actor = state.battle
-      ? state.players.find((p) => !state.battle!.passed.includes(p))
-      : state.turnOrder[state.turnIndex]
+    const actor = state.minigame && !state.minigame.done
+      ? state.minigame.players[state.minigame.turn]
+      : state.battle
+        ? state.players.find((p) => !state.battle!.passed.includes(p))
+        : state.turnOrder[state.turnIndex]
     if (!actor) break
     const intent = botIntent(state, actor)
     if (!intent) break

@@ -137,7 +137,7 @@ export function applyDamage(
   // Jay — Glass Body: +1 damage from fast attackers
   if (def.id === 'jay' && ctx.attacker) {
     const atk = state.characters[ctx.attacker]
-    if (atk && effectiveStat(state, atk, 'speed') >= 5) dmg += 1
+    if (atk && effectiveStat(state, atk, 'attack') >= 5) dmg += 1
   }
   // Dainese — Light Exposes: Elders hit her harder
   if (def.id === 'dainese' && ctx.attacker) {
@@ -346,7 +346,7 @@ export function rollBadLuck(state: GameState, target: CharacterInstance, ctx: Ef
     }
     case 5: {
       log(state, 'Ride Trouble — the Ride does nothing this Round.', 'status')
-      applyStatMod(state, target, 'speed', -2, 'round')
+      applyStatMod(state, target, 'defense', -2, 'round')
       break
     }
     case 6:
@@ -566,6 +566,26 @@ function runEffect(state: GameState, e: Effect, ctx: EffectCtx) {
       const present = allActiveEveryone(state).some((c) => getCharacterDef(c.defId).id === e.defId)
       const go = present ? e.then : e.else
       if (go) runEffects(state, go, ctx)
+      break
+    }
+    case 'startMinigame': {
+      // Pick the opponent with the most Clout — the game should target the leader.
+      const rivals = state.players.filter((p) => p !== ctx.controller)
+      const rival = rivals.sort((a, b) => state.playerState[b].clout - state.playerState[a].clout)[0]
+      if (!rival) break
+      state.minigame = {
+        kind: e.kind,
+        players: [ctx.controller, rival],
+        board: Array(9).fill(null),
+        turn: 0,
+        stake: e.stake,
+        winner: null,
+        done: false,
+        prompt: e.stake.kind === 'damage'
+          ? `Winner deals ${e.stake.amount} damage`
+          : e.stake.kind === 'draw' ? `Winner draws ${e.stake.n}` : `Loser is ${e.stake.status}`,
+      }
+      log(state, `${state.playerState[ctx.controller].name} challenges ${state.playerState[rival].name} to tic tac toe.`, 'play')
       break
     }
     case 'note':

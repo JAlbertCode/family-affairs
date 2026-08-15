@@ -50,11 +50,40 @@ npm run build      # typecheck + production build
 npm test           # seat-assignment tests, card validation, balance sim
 ```
 
+## Stats
+
+Every Character sits on the same budget: **Attack + Defense = 8**. Identity comes
+from HP and abilities, not from a bigger number.
+
+Speed was removed. It appeared on every card but never entered combat
+resolution — attack rolls are Attack vs Defense, and nothing else read the
+value. It was a number that changed nothing, so the Limit tracks that used to
+drain Speed now cost Attack instead: getting Stoned or Stuffed buys you Defense
+and takes away your ability to hit anything, which is the same risk/reward with
+one fewer stat to explain.
+
 ## Interface design
 
 The screen is split into two views you switch between: **Field** and **Your hand**.
 That split, and most of the layout rules, come from how established mobile card
 games solve the same problem.
+
+**Your side is at the bottom.** Opponents sit along the top, your family sits
+above your hand at the bottom of the screen — the way a physical table is laid
+out, and the way Yu-Gi-Oh, Pokémon and Hearthstone all arrange a board. The
+things you touch most are nearest your thumbs.
+
+**Attacking is one tap from the board.** Tapping one of your characters opens
+action chips inline under your family — Attack first and largest — rather than a
+menu you have to open and dismiss. Tap Attack, tap an enemy, done.
+
+**Every number shows its working.** Tapping a character breaks each stat into
+where it came from: base, gear, Limit tracks, and who they are standing next to.
+"Attack 6 = base 6, +1 Buzzed, −1 facing Titi Bibi" is legible in a way that a
+bare 6 is not, and it is the only way adjacency becomes visible.
+
+**Placement is marked.** Characters whose position matters carry a ◈ marker, and
+selecting them states what they give or take from their neighbours.
 
 **A card in hand and the same card in play look nothing alike.** In hand a card
 is nearly full-screen with its art, full rules text and every stat spelled out,

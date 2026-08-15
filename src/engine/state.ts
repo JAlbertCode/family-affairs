@@ -70,6 +70,7 @@ export function createGame(
     phase: 'draw',
     battle: null,
     pending: null,
+    minigame: null,
     finalRound: false,
     reachedThreshold: [],
     winner: null,
@@ -266,6 +267,11 @@ function handle(state: GameState, pid: PlayerId, intent: Intent): string | undef
   const ps = state.playerState[pid]
   if (!ps) return 'Unknown player.'
 
+  // A minigame blocks everything until it resolves.
+  if (state.minigame && !state.minigame.done && intent.k !== 'minigameMove') {
+    return 'Finish the tic tac toe first.'
+  }
+
   // --- interference is the only thing legal while a battle is open ---
   if (state.battle && !['interfere', 'passInterference', 'confirmRolls'].includes(intent.k)) {
     return 'A battle is in progress — resolve it first.'
@@ -413,6 +419,31 @@ function handle(state: GameState, pid: PlayerId, intent: Intent): string | undef
     case 'confirmRolls': {
       if (!state.battle) return 'There is no battle.'
       resolveBattle(state)
+      return
+    }
+
+    // --------------------------------------------------------- MINIGAME ----
+    case 'minigameMove': {
+      const mg = state.minigame
+      if (!mg || mg.done) return 'No minigame in progress.'
+      if (mg.players[mg.turn] !== pid) return 'Not your move.'
+      if (intent.cell < 0 || intent.cell > 8) return 'Invalid square.'
+      if (mg.board[intent.cell] !== null) return 'That square is taken.'
+      mg.board[intent.cell] = mg.turn
+      const w = ticTacToeWinner(mg.board)
+      if (w !== null) {
+        mg.winner = mg.players[w]
+        mg.done = true
+        log(state, `${state.playerState[mg.winner].name} wins the tic tac toe.`, 'play')
+        resolveMinigameStake(state)
+      } else if (mg.board.every((c) => c !== null)) {
+        mg.done = true
+        mg.winner = null
+        log(state, 'Tic tac toe ends in a draw. Nobody is satisfied.', 'play')
+        state.minigame = null
+      } else {
+        mg.turn = mg.turn === 0 ? 1 : 0
+      }
       return
     }
 
@@ -854,6 +885,46 @@ function endTurn(state: GameState, pid: PlayerId, recover?: LimitTrack) {
   if (state.phase !== 'gameover') {
     log(state, `${state.playerState[currentPlayer(state)].name}'s Turn.`)
   }
+}
+
+// --------------------------------------------------------------------------
+// Minigames — table interaction that is not combat
+// --------------------------------------------------------------------------
+
+const TTT_LINES = [
+  [0, 1, 2], [3, 4, 5], [6, 7, 8],
+  [0, 3, 6], [1, 4, 7], [2, 5, 8],
+  [0, 4, 8], [2, 4, 6],
+]
+
+export function ticTacToeWinner(board: (0 | 1 | null)[]): 0 | 1 | null {
+  for (const [a, b, c] of TTT_LINES) {
+    if (board[a] !== null && board[a] === board[b] && board[b] === board[c]) return board[a]!
+  }
+  return null
+}
+
+function resolveMinigameStake(state: GameState) {
+  const mg = state.minigame
+  if (!mg || !mg.winner) { state.minigame = null; return }
+  const winner = mg.winner
+  const loser = mg.players[0] === winner ? mg.players[1] : mg.players[0]
+  const ctx: EffectCtx = { controller: winner }
+
+  if (mg.stake.kind === 'draw') {
+    drawCards(state, winner, mg.stake.n)
+    log(state, `${state.playerState[winner].name} draws ${mg.stake.n}.`, 'play')
+  } else if (mg.stake.kind === 'damage') {
+    // hit the loser's strongest Active Character
+    const targets = activeCharacters(state, loser)
+      .sort((a, b) => effectiveStat(state, b, 'attack') - effectiveStat(state, a, 'attack'))
+    if (targets[0]) applyDamage(state, targets[0], mg.stake.amount, ctx, 'lost at tic tac toe')
+  } else if (mg.stake.kind === 'status') {
+    for (const c of activeCharacters(state, loser).slice(0, 1)) {
+      applyStatus(state, c, mg.stake.status, 1, ctx)
+    }
+  }
+  state.minigame = null
 }
 
 /** Highest Clout wins; ties go to whoever crossed the threshold first. */
