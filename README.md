@@ -50,6 +50,36 @@ npm run build      # typecheck + production build
 npm test           # seat-assignment tests, card validation, balance sim
 ```
 
+## Interface design
+
+The screen is split into two views you switch between: **Field** and **Your hand**.
+That split, and most of the layout rules, come from how established mobile card
+games solve the same problem.
+
+**A card in hand and the same card in play look nothing alike.** In hand a card
+is nearly full-screen with its art, full rules text and every stat spelled out,
+because that is where decisions get made. On the board the same character is a
+compact token showing only how hurt it is, how dangerous it is, and what is wrong
+with it. Full detail is one tap away. Trying to use one representation for both
+is what made earlier versions unreadable.
+
+**Reading a card and playing it are separate actions.** You swipe the hand to
+read; a card only gets played when you press the explicit Play button. The most
+common complaint about Slay the Spire's mobile port is that brushing the screen
+while reading a card plays it, and that is worth designing around.
+
+**Only offer what is legal.** Cards with nowhere to go are disabled and say why,
+and the dots under the hand turn gold for the cards you can actually play, so you
+never swipe the whole hand to find out. When a card needs a target the app jumps
+to the Field, dims everything illegal, and pulses the valid targets.
+
+**Touch sizing.** Tap targets are at least 44px with at least 8px between them.
+Primary actions live in the bottom 40% of the screen where a thumb reaches; the
+log sits in a top corner precisely because it is rarely wanted.
+
+**Say things out loud.** Whose turn it is gets an unmissable flash rather than a
+subtle glow, because ambient turn cues get missed.
+
 ## Card validation
 
 Every card — ours and anyone else's — is checked against the ruleset before it
