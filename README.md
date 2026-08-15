@@ -69,10 +69,19 @@ Neither of these is hosting, and both are configured in `.env.example`:
 **TURN relay — the one worth adding first.** Two browsers connect directly using
 STUN, which is free and works for most pairs. Roughly 10–20% of players — behind
 symmetric NAT, strict corporate wifi, or certain mobile carriers — cannot be
-connected without a relay, and for them the game does not work at all. Free tiers
-exist and a card game relays a few small JSON messages per turn, not video. Set
-`VITE_TURN_*` as GitHub Actions secrets and the deploy picks them up; the lobby
-stops warning about restrictive networks once one is configured.
+connected without a relay, and for them the game does not work at all. A card
+game relays a few small JSON messages per turn, not video, so the volume is
+tiny.
+
+Set `VITE_TURN_URLS`, `VITE_TURN_USERNAME` and `VITE_TURN_CREDENTIAL` as GitHub
+Actions repository secrets and the deploy picks them up. With Metered, the
+dashboard's *TURN Server → Add Credential → Show ICE Servers Array* panel has all
+three; the URLs are the same for every account, only the credentials are yours.
+
+Anyone can verify it end to end from the lobby: **Check my connection** gathers
+real ICE candidates against the configured servers and reports whether a relay
+candidate came back. No relay while TURN is configured means the credentials are
+wrong or the quota is spent — worth knowing before six people are waiting.
 
 **Signalling.** The public PeerJS broker introduces two browsers and carries no
 game traffic. If it goes down, running games are unaffected and new ones cannot

@@ -877,3 +877,25 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
 }
 .limitnote { margin: 8px 0 0; font-size: .62rem; line-height: 1.4; color: var(--muted); }
 .lobby-tag.subtle { opacity: .72; font-size: .68rem; }
+
+/* ------------------------------------------------- CONNECTION SELF-CHECK -- */
+/* "It won't connect" is the least actionable report a peer-to-peer game can
+   get. This turns it into a fact the player can act on before six people are
+   sitting around waiting. */
+.linkish {
+  background: none; border: none; padding: 0; font: inherit;
+  color: var(--gold); font-weight: 900; text-decoration: underline;
+  text-underline-offset: 2px; min-height: 0;
+}
+.linkish:disabled { opacity: .6; text-decoration: none; }
+.checkline {
+  display: block; margin-top: 8px; padding: 8px 10px; border-radius: 9px;
+  font-size: .68rem; line-height: 1.45; background: #ffffff0d; border: 1px solid var(--line);
+}
+.checkline b { display: block; margin-bottom: 2px; font-size: .72rem; }
+.checkline.good { background: #17351f; border-color: #2f6b3f; color: #cdf0d6; }
+.checkline.good b { color: #8fe6a4; }
+.checkline.direct-only { background: #2a2340; border-color: #4b3f77; color: #ddd6f5; }
+.checkline.direct-only b { color: #c2b4ff; }
+.checkline.blocked, .checkline.unsupported { background: #3a1520; border-color: #7d2b3c; color: #ffd7de; }
+.checkline.blocked b, .checkline.unsupported b { color: #ffabb9; }

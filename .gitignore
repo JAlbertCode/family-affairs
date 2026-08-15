@@ -15,4 +15,6 @@ _incoming*.tar.gz
 .env
 .env.local
 .env.*.local
+
+# original full-resolution art; public/art holds the webp the game ships
 art-src/

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { hasTurn } from '../net/config'
+import { checkConnection, type CheckResult } from '../net/checkConnection'
 import type { RoomView } from '../net/room'
 import { defaultCloutToWin } from '../engine/state'
 import { deckSummary } from '../engine/cards/deck'
@@ -21,6 +22,12 @@ export function Lobby({
   const [screen, setScreen] = useState<'home' | 'join' | 'local'>('home')
   const [kitchen, setKitchen] = useState(false)
   const [cloutOverride, setCloutOverride] = useState<number | null>(null)
+  const [check, setCheck] = useState<CheckResult | 'running' | null>(null)
+
+  async function runCheck() {
+    setCheck('running')
+    try { setCheck(await checkConnection()) } catch { setCheck(null) }
+  }
 
   const remember = (n: string) => { setName(n); localStorage.setItem('fa.name', n) }
   const inRoom = view.status === 'connected' && !!view.code
@@ -146,13 +153,24 @@ export function Lobby({
             “Play on this device”. It runs every player on this one screen and you take each turn
             in order — no second phone, nobody else needed.
           </div>
-          {!hasTurn && (
-            <div className="lobby-tag subtle">
-              Games connect your phones directly to each other. A few networks — some office wifi
-              and mobile carriers — block that. If hosting or joining will not connect, everyone
-              switching to the same wifi usually fixes it, and “Play on this device” always works.
-            </div>
-          )}
+          <div className="lobby-tag subtle">
+            Games connect your phones directly to each other, so it depends on your network more
+            than on the game.{' '}
+            <button className="linkish" onClick={runCheck} disabled={check === 'running'}>
+              {check === 'running' ? 'Checking…' : 'Check my connection'}
+            </button>
+            {check && check !== 'running' && (
+              <span className={`checkline ${check.verdict}`}>
+                <b>
+                  {check.verdict === 'good' ? '✓ Good to go'
+                    : check.verdict === 'direct-only' ? '✓ Should be fine'
+                    : check.verdict === 'blocked' ? '✕ This network is blocking it'
+                    : '✕ Browser not supported'}
+                </b>
+                {check.message}
+              </span>
+            )}
+          </div>
         </>
       ) : screen === 'local' ? (
         <>
