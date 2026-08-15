@@ -528,6 +528,13 @@ export function Table({
 
       {/* ------------------------------------------------- ACTION BAR ---- */}
       <div className="actionbar">
+        {/* In the bar rather than floating over it: anything absolutely placed
+            above the buttons lands on the hand at some viewport size. */}
+        {!error && flash && (
+          <div className="flashbar">
+            {flash.map((t, i) => <span key={i}>{t}</span>)}
+          </div>
+        )}
         {minigame ? (
           <div className="waiting">Tic tac toe in progress…</div>
         ) : battle ? (
@@ -672,11 +679,6 @@ export function Table({
       )}
 
       {error && <div className="toast">{error}</div>}
-      {!error && flash && (
-        <div className="flashbar">
-          {flash.map((t, i) => <span key={i}>{t}</span>)}
-        </div>
-      )}
     </div>
   )
 }

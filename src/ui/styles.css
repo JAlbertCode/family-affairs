@@ -193,7 +193,13 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
 .benchrow { display: flex; gap: 7px; margin-top: 7px; align-items: center; }
 .benchrow > .tok { flex: 0 0 26%; width: auto; }
 
-.slots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+/* Cap the column too, so a wide window shows a readable board rather than three
+   enormous cards. justify-content keeps it centred once the cap kicks in. */
+.slots {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px; justify-content: center;
+}
+.slots.myslots { grid-template-columns: repeat(3, minmax(0, 210px)); }
 
 .opp {
   background: linear-gradient(180deg, var(--panel), #1d0f20);
@@ -217,9 +223,17 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
   transition: transform .12s, box-shadow .12s, filter .18s;
 }
 .tok:not(:disabled):active { transform: scale(.96); }
-.tok-art { position: relative; display: block; aspect-ratio: 1 / 1; overflow: hidden; }
+/* A square aspect ratio with no ceiling means the picture grows with the column.
+   On a phone a slot is ~110px and that is fine; in a desktop window the slot is
+   300px, the art becomes 300px tall, and the name, stats, temporary modifiers
+   and the Drunk/High/Stuffed meters all get pushed below the fold. The cap is
+   what keeps a token a token instead of a poster. */
+.tok-art {
+  position: relative; display: block; aspect-ratio: 1 / 1;
+  max-height: 124px; overflow: hidden;
+}
 .tok-art img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 14%; display: block; }
-.tok-sm .tok-art { aspect-ratio: 5 / 3; }
+.tok-sm .tok-art { aspect-ratio: 5 / 3; max-height: 86px; }
 
 .tok-status { position: absolute; top: 3px; left: 3px; display: flex; gap: 3px; }
 .sdot { width: 8px; height: 8px; border-radius: 50%; display: block; box-shadow: 0 0 0 1.5px #0008; }
@@ -951,13 +965,11 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
 /* ------------------------------------------------- WHAT JUST HAPPENED ----- */
 /* Applying a card to somebody used to resolve in silence; the only record was
    a log you had to go and open. */
+/* Lives inside the action bar. Floating it above the bar meant it landed on
+   the hand at some viewport sizes and on the Attack button at others. */
 .flashbar {
-  /* Clear of the action bar, which is now two buttons tall when an attack is
-     available — feedback that covers the primary control is worse than none. */
-  position: fixed; left: 50%; transform: translateX(-50%);
-  bottom: calc(172px + var(--safe-b)); z-index: 58;
-  display: flex; flex-direction: column; gap: 3px; align-items: center;
-  max-width: 92vw; pointer-events: none;
+  width: 100%; display: flex; flex-direction: column; gap: 3px;
+  align-items: center; pointer-events: none; margin-bottom: 2px;
 }
 .flashbar span {
   background: #1d1330ee; border: 1px solid #4b3f77; color: #e6dcff;
