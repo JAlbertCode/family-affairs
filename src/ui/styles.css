@@ -159,11 +159,17 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
   background: #2a1c07; border: 1px solid #6b4d15; color: var(--gold); font-weight: 800; font-size: .8rem;
 }
 
-.board { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+/* Scrolls rather than clips. Sizing below is tuned so it normally fits, but a
+   board that silently hides your own Characters is the worst possible failure
+   mode, so overflow is always reachable. */
+.board { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow-y: auto; }
 
 /* Opponents sit at the top and your own side at the bottom, the way every
    physical TCG lays a table out — your stuff is nearest your hands. */
-.oppzone { flex: 1 1 auto; overflow-y: auto; padding: 8px 10px 4px; min-height: 0; }
+/* The opponents must never be squeezed to nothing — on a 667px screen this
+   column had collapsed to 12px, which is the whole board you are playing
+   against. */
+.oppzone { flex: 1 1 auto; overflow-y: auto; padding: 8px 10px 4px; min-height: 56px; }
 
 .myzone {
   flex: none; padding: 8px 10px 10px;
@@ -997,3 +1003,37 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
   margin: 6px 0 8px; font-size: .68rem; line-height: 1.4;
   color: var(--muted); text-align: center;
 }
+
+/* ------------------------------------------------- SHORT-SCREEN BUDGET --- */
+/* You should not have to put the hand away to read your own Characters. On a
+   667px-tall phone the hand wanted 193px, .myzone took whatever it needed, and
+   the bottom of every token — the stats and the Drunk/High/Stuffed meters —
+   ended up behind the hand strip. Everything below buys that space back.
+   Cards in hand stay tappable and open full-size, so the rail does not need to
+   be readable at a glance; the board does. */
+@media (max-height: 760px) {
+  .hs-card { width: 92px; }
+  .hs-art { height: 50px; }
+  .hs-glyph { font-size: 1.8rem; }
+  .hs-name { font-size: .58rem; }
+  .hs-body { padding: 4px 4px 5px; gap: 2px; }
+  .hs-rail { padding: 4px 12px 7px; gap: 6px; }
+  .hs-hp { min-width: 18px; height: 18px; font-size: .56rem; }
+  .fx.mini .fx-chip { font-size: .48rem; padding: 2px 4px; }
+
+  .tok-art { max-height: 72px; }
+  .tok-sm .tok-art { max-height: 56px; }
+  .tok-effects i { font-size: .46rem; padding: 1px 3px; }
+  .meters { gap: 1px; padding: 2px 3px 0; }
+  .m-pips b { height: 3px; }
+  .myzone { padding: 6px 10px 8px; }
+  .turnhint { font-size: .62rem; padding-bottom: 4px; }
+}
+@media (max-height: 640px) {
+  .hs-card { width: 84px; }
+  .hs-art { height: 46px; }
+  .tok-art { max-height: 68px; }
+  .tok-effects { display: none; }
+}
+/* Your own family is the one thing that must never scroll out of reach. */
+.myzone { flex: none; position: sticky; bottom: 0; z-index: 2; }

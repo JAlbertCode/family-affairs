@@ -68,6 +68,53 @@ export function explainPeerError(err: unknown): string {
   }
 }
 
+
+/**
+ * A refresh should not cost you the game.
+ *
+ * Phones reload tabs on their own, people pull-to-refresh by accident, and a
+ * hosted game has no server to fall back on — so the room remembers who you
+ * were. Clients re-announce with the same name and `assignSeat` hands their
+ * chair back; the host restores the authoritative state it was already
+ * holding, because when the host disappears there is nowhere else for it to
+ * live.
+ */
+const SESSION_KEY = 'fa.session'
+const SESSION_MAX_AGE_MS = 4 * 60 * 60 * 1000
+
+export interface SavedSession {
+  v: 1
+  role: 'host' | 'client'
+  code: string
+  name: string
+  at: number
+  /** host only: the game it was running, if one had started */
+  game?: GameState
+  order?: PlayerId[]
+  names?: [PlayerId, string][]
+}
+
+export function loadSession(): SavedSession | null {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY)
+    if (!raw) return null
+    const s = JSON.parse(raw) as SavedSession
+    if (s?.v !== 1 || !s.code || !s.name) return null
+    if (Date.now() - s.at > SESSION_MAX_AGE_MS) { clearSession(); return null }
+    return s
+  } catch { return null }
+}
+
+export function clearSession() {
+  try { localStorage.removeItem(SESSION_KEY) } catch { /* private mode */ }
+}
+
+function saveSession(s: Omit<SavedSession, 'v' | 'at'>) {
+  try {
+    localStorage.setItem(SESSION_KEY, JSON.stringify({ ...s, v: 1, at: Date.now() }))
+  } catch { /* quota or private mode — losing the session is not fatal */ }
+}
+
 export class Room {
   role: 'host' | 'client' = 'host'
   hotseat = false
@@ -96,7 +143,24 @@ export class Room {
     return () => this.listeners.delete(fn)
   }
 
+  /** Snapshot whatever a reload would need to put this player back. */
+  private persist() {
+    if (this.hotseat || !this.code || !this.you) return
+    const name = this.names.get(this.you) ?? ''
+    if (this.role === 'client') {
+      saveSession({ role: 'client', code: this.code, name })
+      return
+    }
+    saveSession({
+      role: 'host', code: this.code, name,
+      game: this.game ?? undefined,
+      order: this.order,
+      names: [...this.names.entries()],
+    })
+  }
+
   private emit() {
+    this.persist()
     const v = this.view()
     this.listeners.forEach((l) => l(v))
   }
@@ -160,6 +224,35 @@ export class Room {
   }
 
   // ------------------------------------------------------------------ HOST --
+
+  /**
+   * Re-open the room this browser was hosting before it reloaded, on the same
+   * code and with the same game. The host holds the only copy of the
+   * authoritative state, so without this a stray refresh ends everybody's game.
+   */
+  async resumeHost(s: SavedSession): Promise<void> {
+    this.role = 'host'
+    this.status = 'connecting'
+    this.error = null
+    this.emit()
+
+    await this.openPeer(peerIdForRoom(s.code))
+    this.code = s.code
+    this.you = 'p0'
+    this.names = new Map(s.names ?? [['p0', s.name]])
+    this.order = s.order?.length ? s.order : ['p0']
+    this.game = s.game ?? null
+    // Everyone else is, by definition, not connected yet.
+    if (this.game) for (const p of this.game.players) this.game.playerState[p].connected = p === 'p0'
+    this.status = 'connected'
+    this.attachHostHandlers()
+    this.emit()
+  }
+
+  /** Rejoin a room this browser was a guest in, under the same name. */
+  async resumeClient(s: SavedSession): Promise<void> {
+    await this.join(s.code, s.name)
+  }
 
   async host(displayName: string): Promise<string> {
     this.role = 'host'
