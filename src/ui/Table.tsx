@@ -56,6 +56,13 @@ export function Table({
   // While choosing a target, a tap commits. That left no way to check what you
   // are aiming at, which is exactly when you most want to know.
   const [peek, setPeek] = useState(false)
+  // Attacking lived two taps deep behind a Character token, and players kept
+  // finishing whole games without finding it. It gets its own button.
+  const [pickAttacker, setPickAttacker] = useState(false)
+  // Applying a card to somebody resolved silently — the only record was a log
+  // you had to open. This surfaces the result of your own action for a beat.
+  const [flash, setFlash] = useState<string[] | null>(null)
+  const lastTick = useRef<number>(-1)
   const prevTurn = useRef<PlayerId | null>(null)
   const prevAffair = useRef<string | null>(null)
 
@@ -78,7 +85,7 @@ export function Table({
     prevAffair.current = state.currentAffair
   }, [state.currentAffair])
 
-  useEffect(() => { if (battle || minigame) { setTargeting(null); setSelected(null) } }, [!!battle, !!minigame])
+  useEffect(() => { if (battle || minigame) { setTargeting(null); setSelected(null); setPickAttacker(false) } }, [!!battle, !!minigame])
   useEffect(() => { if (!targeting) setPeek(false) }, [!!targeting])
 
   // Any sheet left open belongs to the player who opened it. When the device
@@ -90,8 +97,24 @@ export function Table({
     setHandCard(null)
     setItemCard(null)
     setTargeting(null)
+    setPickAttacker(false)
     setShowLog(false)
   }, [you, state.turnIndex, state.round])
+
+  // Show whatever the engine just logged as a result of the last thing sent.
+  useEffect(() => {
+    const log = state.log
+    if (log.length === 0) return
+    const newest = log[log.length - 1].t
+    if (lastTick.current < 0) { lastTick.current = newest; return }
+    if (newest === lastTick.current) return
+    const fresh = log.filter((l) => l.t > lastTick.current && l.kind !== 'system')
+    lastTick.current = newest
+    if (!fresh.length) return
+    setFlash(fresh.slice(-3).map((l) => l.text))
+    const t = setTimeout(() => setFlash(null), 2600)
+    return () => clearTimeout(t)
+  }, [state.tick])
 
   const affair = state.currentAffair ? getAffairDef(state.currentAffair) : null
   const opponents = state.players.filter((p) => p !== you)
@@ -168,6 +191,14 @@ export function Table({
   }
 
   function tapToken(iid: InstanceId, mine: boolean) {
+    if (pickAttacker) {
+      if (!mine) return
+      const ch = state.characters[iid]
+      if (!ch || !canAttack(state, ch).ok) return
+      setPickAttacker(false)
+      setTargeting({ kind: 'attack', char: iid })
+      return
+    }
     if (targeting && peek) { setInspect(iid); return }
     if (targeting) {
       switch (targeting.kind) {
@@ -197,6 +228,11 @@ export function Table({
   }
 
   function tokenMode(iid: InstanceId, mine: boolean): 'target' | 'selected' | null {
+    if (pickAttacker) {
+      if (!mine) return null
+      const ch = state.characters[iid]
+      return ch && canAttack(state, ch).ok ? 'target' : null
+    }
     if (!targeting) return selected === iid ? 'selected' : null
     if (targeting.kind === 'playStuff') return legalTargets(targeting.iid).includes(iid) ? 'target' : null
     if (targeting.kind === 'interfere') return 'target'
@@ -236,6 +272,11 @@ export function Table({
   // ever discovering combat. Say it out loud, every Turn, until they have.
   const readyCount = activeCharacters(state, you).filter((c) =>
     !c.actedThisTurn && !hasStatus(c, 'Asleep') && !hasStatus(c, 'Away')).length
+  const attackers = activeCharacters(state, you).filter((c) => canAttack(state, c).ok)
+  const enemyCount = state.players.filter((p) => p !== you)
+    .flatMap((p) => activeCharacters(state, p)).filter((c) => c.hp > 0).length
+  const canOpenAttack = isMyTurn && state.phase === 'main' && !battle && !minigame
+    && me.actionsLeft > 0 && attackers.length > 0 && enemyCount > 0
   const overHand = me.hand.length > HAND_LIMIT
   const turnHint = overHand
     ? `${me.hand.length} cards — over the limit of ${HAND_LIMIT}. Ending your turn discards down to ${HAND_LIMIT}.`
@@ -424,6 +465,13 @@ export function Table({
         </div>
       )}
 
+      {pickAttacker && (
+        <div className="targetbar">
+          <span>Tap which of your Characters is swinging</span>
+          <button onClick={() => setPickAttacker(false)}>Cancel</button>
+        </div>
+      )}
+
       {targetPrompt && (
         <div className={`targetbar ${peek ? 'peeking' : ''}`}>
           <span>{peek ? 'Tap anyone to read them — targeting is paused' : targetPrompt}</span>
@@ -435,7 +483,7 @@ export function Table({
       )}
 
       {/* ---------------------------------------------- HAND (bottom) ---- */}
-      {!targeting && <div className={`handstrip ${state.phase === 'draw' ? 'predraw' : ''} ${handOpen ? '' : 'collapsed'}`}>
+      {!targeting && !pickAttacker && <div className={`handstrip ${state.phase === 'draw' ? 'predraw' : ''} ${handOpen ? '' : 'collapsed'}`}>
         <button className="hs-head" onClick={() => setHandOpen((v) => !v)}
           aria-expanded={handOpen} aria-label={handOpen ? 'Hide your hand' : 'Show your hand'}>
           <span>{state.phase === 'draw' ? 'Drawing…' : 'Your hand'}</span>
@@ -503,6 +551,18 @@ export function Table({
         ) : isMyTurn ? (
           <>
           {!autoPass && <div className="turnhint">{turnHint}</div>}
+          {canOpenAttack && (
+            <button className="btn attack-cta" data-testid="attack-cta"
+              onClick={() => {
+                setSelected(null)
+                // One legal attacker means there is nothing to choose — go
+                // straight to picking who they hit.
+                if (attackers.length === 1) setTargeting({ kind: 'attack', char: attackers[0].iid })
+                else setPickAttacker(true)
+              }}>
+              ⚔ Attack
+            </button>
+          )}
           <button className={`btn ${autoPass ? 'gold passing' : ''}`} data-testid="end-turn" onClick={() => {
             if (me.hand.length > HAND_LIMIT) {
               send({ k: 'discardDown', iids: me.hand.slice(0, me.hand.length - HAND_LIMIT) })
@@ -612,6 +672,11 @@ export function Table({
       )}
 
       {error && <div className="toast">{error}</div>}
+      {!error && flash && (
+        <div className="flashbar">
+          {flash.map((t, i) => <span key={i}>{t}</span>)}
+        </div>
+      )}
     </div>
   )
 }

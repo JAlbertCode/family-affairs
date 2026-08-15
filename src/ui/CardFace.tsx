@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import type { GameState, InstanceId, PlayerId, Effect, StuffDef } from '../engine/types'
 import { getCharacterDef, getStuffDef } from '../engine/cards/deck'
 
@@ -10,6 +11,40 @@ const BASE = import.meta.env.BASE_URL
  * card-game UI convention is that a card in hand and the same card in play
  * should not look alike, because they answer different questions.
  */
+
+/**
+ * The rules text scrolls inside the card when it does not fit — which on a
+ * short phone it often does not. A fade alone reads as "the card ends here",
+ * so say it plainly instead: a card whose flaw is cut off mid-sentence is a
+ * card the player has not read.
+ */
+function ScrollableBody({ children }: { children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [more, setMore] = useState(false)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const check = () => setMore(el.scrollHeight - el.scrollTop - el.clientHeight > 6)
+    check()
+    el.addEventListener('scroll', check, { passive: true })
+    const ro = new ResizeObserver(check)
+    ro.observe(el)
+    return () => { el.removeEventListener('scroll', check); ro.disconnect() }
+  }, [])
+
+  return (
+    <div className="face-bodywrap">
+      <div className="face-body" ref={ref}>{children}</div>
+      {more && (
+        <button className="face-more" onClick={() => ref.current?.scrollBy({ top: 160, behavior: 'smooth' })}>
+          more ▾
+        </button>
+      )}
+    </div>
+  )
+}
+
 export function CardFace({
   state, iid, focused,
 }: {
@@ -40,7 +75,7 @@ export function CardFace({
           <span className="fstat d"><em>🛡</em><b>{def.stats.defense}</b><i>DEFENSE</i></span>
         </div>
 
-        <div className="face-body">
+        <ScrollableBody>
           <div className="face-tags">{def.tags.map((t) => <span key={t} className="ftag">{t}</span>)}</div>
           {def.passive && (
             <p className="face-rule"><strong>{def.passive.name}</strong> {def.passive.text}</p>
@@ -54,7 +89,7 @@ export function CardFace({
           {def.flaw && (
             <p className="face-rule flaw"><strong>{def.flaw.name}</strong> {def.flaw.text}</p>
           )}
-        </div>
+        </ScrollableBody>
       </article>
     )
   }
@@ -77,7 +112,7 @@ export function CardFace({
           <p className="face-type">{def.subtype}</p>
           <h2>{def.name}</h2>
         </header>
-        <div className="face-body">
+        <ScrollableBody>
           <EffectChips chips={stuffChips(def)} className="big" />
           <p className="face-rule big">{def.text}</p>
           {['Food', 'Drink', 'Smoke'].includes(def.subtype) && (
@@ -94,7 +129,7 @@ export function CardFace({
           {def.interfere && (
             <p className="face-interfere">⚡ INTERFERE — can be played during someone else's battle</p>
           )}
-        </div>
+        </ScrollableBody>
       </article>
     )
   }
