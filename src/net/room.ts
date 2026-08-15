@@ -1,4 +1,5 @@
 import Peer, { type DataConnection } from 'peerjs'
+import { peerOptions, hasTurn } from './config'
 import type { GameState, Intent, PlayerId } from '../engine/types'
 import { applyIntent, createGame, redactFor } from '../engine/state'
 import {
@@ -34,16 +35,37 @@ export interface RoomView {
 
 type Listener = (view: RoomView) => void
 
-const PEER_OPTS = {
-  // PeerJS's free public broker handles signalling only; game traffic is direct
-  // browser-to-browser over WebRTC. These STUN servers are Google's public ones.
-  config: {
-    iceServers: [
-      { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:global.stun.twilio.com:3478' },
-    ],
-  },
-  debug: 0 as const,
+// Signalling and ICE both live in net/config.ts so they can be pointed at a
+// self-hosted broker or a paid TURN tier without touching this file.
+const PEER_OPTS = peerOptions()
+
+/**
+ * PeerJS error types are accurate and unreadable. Each one here maps to a thing
+ * the player can actually do something about — and 'unavailable-id' in
+ * particular means the room code is taken, not that anything is broken.
+ */
+export function explainPeerError(err: unknown): string {
+  const type = (err as any)?.type as string | undefined
+  const msg = String((err as any)?.message ?? err)
+  switch (type) {
+    case 'peer-unavailable':
+      return 'No game with that code. Check the four letters, or ask the host to read them out again.'
+    case 'unavailable-id':
+      return 'That room code is already in use. Starting a new one.'
+    case 'network':
+    case 'server-error':
+    case 'socket-error':
+    case 'socket-closed':
+      return 'Lost the connection to the signalling server. It brokers the introduction only — try again in a moment.'
+    case 'browser-incompatible':
+      return 'This browser does not support the peer-to-peer connection the game needs. Chrome, Edge, Firefox or Safari 15+ all work.'
+    case 'webrtc':
+      return hasTurn
+        ? 'Could not open a direct connection, and the relay did not answer either. Try again, or play pass-and-play on one device.'
+        : 'Could not open a direct connection. Some networks — office wifi and a few mobile carriers — block this, and no relay is configured. Pass-and-play on one device always works.'
+    default:
+      return msg
+  }
 }
 
 export class Room {
@@ -172,10 +194,13 @@ export class Room {
 
   private openPeer(id: string): Promise<Peer> {
     return new Promise((resolve, reject) => {
-      const p = new Peer(id, PEER_OPTS)
-      const timer = setTimeout(() => reject(new Error('Timed out reaching the signalling server.')), 12000)
+      const p = new Peer(id, PEER_OPTS as any)
+      const timer = setTimeout(
+        () => reject(new Error('Timed out reaching the signalling server. It may be busy — try again in a moment.')),
+        12000,
+      )
       p.on('open', () => { clearTimeout(timer); this.peer = p; resolve(p) })
-      p.on('error', (err) => { clearTimeout(timer); p.destroy(); reject(err) })
+      p.on('error', (err) => { clearTimeout(timer); p.destroy(); reject(new Error(explainPeerError(err))) })
     })
   }
 
@@ -199,7 +224,7 @@ export class Room {
       conn.on('error', () => this.emit())
     })
     peer.on('error', (err) => {
-      this.error = String((err as any)?.message ?? err)
+      this.error = explainPeerError(err)
       this.emit()
     })
     peer.on('close', () => { this.status = 'closed'; this.emit() })

@@ -39,9 +39,14 @@ export function getAnyDef(id: DefId): CardDef {
  * for 4-6 we double it so a long six-handed game never decks out.
  */
 export function buildFamilyDeckDefIds(playerCount: number): DefId[] {
-  const mult = playerCount <= 3 ? 1 : 2
+  // The doubling here was set when there were ~30 kinds of Stuff and a six-
+  // handed deck needed the bulk. There are far more kinds now, so variety comes
+  // from the card list itself and doubling only buries the Characters: at 2x
+  // they fell to 11% of the deck, KOs per game dropped, and because Clout comes
+  // mostly from KOs the median six-player game stretched to about 90 minutes.
+  const mult = 1
   // Characters are the point of the game; a table of six wants bodies to
-  // recruit far more than it wants a third copy of every utility card.
+  // recruit far more than it wants another copy of every utility card.
   const charCopies = playerCount <= 3 ? 2 : 3
 
   const out: DefId[] = []

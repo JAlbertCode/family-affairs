@@ -1,4 +1,4 @@
-import { createGame, applyIntent } from '../engine/state'
+import { createGame, applyIntent, defaultCloutToWin } from '../engine/state'
 import { botIntent } from './bot'
 import type { GameState } from '../engine/types'
 import { getCharacterDef } from '../engine/cards/deck'
@@ -79,7 +79,9 @@ function runOne(playerCount: number, seed: number, cloutToWin: number): GameResu
 function main() {
   const N = Number(process.env.GAMES ?? 200)
   const PLAYERS = Number(process.env.PLAYERS ?? 6)
-  const CLOUT = Number(process.env.CLOUT ?? 10)
+  // Default to what the lobby actually gives players. Hard-coding 10 here meant
+  // the balance numbers described a game nobody was going to play.
+  const CLOUT = Number(process.env.CLOUT ?? defaultCloutToWin(PLAYERS))
 
   console.log(`\n=== FAMILY AFFAIRS BALANCE SIM ===`)
   const ds = deckSummary(PLAYERS)

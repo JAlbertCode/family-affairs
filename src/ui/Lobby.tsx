@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { hasTurn } from '../net/config'
 import type { RoomView } from '../net/room'
 import { defaultCloutToWin } from '../engine/state'
 import { deckSummary } from '../engine/cards/deck'
@@ -68,7 +69,7 @@ export function Lobby({
               </div>
               <div className="lobby-tag" style={{ marginTop: 8 }}>
                 {cloutOverride == null
-                  ? `${suggested} is tuned for ${count} player${count === 1 ? '' : 's'} — about 30-40 minutes.`
+                  ? `${suggested} is tuned for ${count} player${count === 1 ? '' : 's'} — about 45 minutes.`
                   : `Recommended for ${count} players: ${suggested}.`}
               </div>
             </div>
@@ -145,6 +146,13 @@ export function Lobby({
             “Play on this device”. It runs every player on this one screen and you take each turn
             in order — no second phone, nobody else needed.
           </div>
+          {!hasTurn && (
+            <div className="lobby-tag subtle">
+              Games connect your phones directly to each other. A few networks — some office wifi
+              and mobile carriers — block that. If hosting or joining will not connect, everyone
+              switching to the same wifi usually fixes it, and “Play on this device” always works.
+            </div>
+          )}
         </>
       ) : screen === 'local' ? (
         <>
@@ -175,7 +183,7 @@ export function Lobby({
               Names are optional, but the game says whose turn it is by name — so on one screen it
               is a lot easier to know who to hand it to. A gold banner at the top always shows it.
               <br /><br />
-              First to {defaultCloutToWin(localCount)} Clout wins — roughly 30-40 minutes.
+              First to {defaultCloutToWin(localCount)} Clout wins — about 45 minutes.
             </div>
           </div>
           <button

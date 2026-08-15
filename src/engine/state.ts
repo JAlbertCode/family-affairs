@@ -30,10 +30,25 @@ export const STARTING_HAND = 5       // §6
  * ~20s per turn: 2P/10 = 29min, 4P/8 = 29min, 6P/7 = 34min. This keeps every
  * table inside the 30-60 minute target. The host can still override it.
  */
+/**
+ * Tuned against the simulator, not chosen for feel. The card list roughly
+ * doubled and more Gear on the board means fewer KOs, which means Clout
+ * accumulates more slowly: the old 10/8/7 put a six-player game at a median 76
+ * minutes against a promise of 30-40.
+ *
+ * Measured in TURNS rather than Rounds, because a Round at a table of six is
+ * three times the wall-clock of a Round at a table of two. These land every
+ * table size at roughly 80 turns, or 40-50 minutes:
+ *
+ *   2P @ 6 -> ~44 min      4P @ 6 -> 46 min      6P @ 5 -> 44 min
+ *
+ * Six needs a LOWER threshold than four, which looks backwards until you count
+ * targets: more players on the board means more things to KO per Round, and
+ * KOs are where most Clout comes from.
+ */
 export function defaultCloutToWin(playerCount: number): number {
-  if (playerCount <= 3) return 10
-  if (playerCount <= 5) return 8
-  return 7
+  if (playerCount <= 5) return 6
+  return 5
 }
 
 let idCounter = 0
@@ -1097,8 +1112,23 @@ function pickRecoveryTrack(ch: CharacterInstance): LimitTrack | null {
   return tiers[0][1] > 0 ? tiers[0][0] : null
 }
 
+/**
+ * A hard stop. In 80 simulated six-player games one ran 1241 Rounds and one
+ * never ended at all: enough defensive Gear and healing on the board and nobody
+ * can KO anybody, and since most Clout comes from KOs the score simply stops
+ * moving. Card balance is the real fix, but a public game must not be able to
+ * run forever in front of people, so past this point the highest Clout wins.
+ */
+export const MAX_ROUNDS = 60
+
 function startNewRound(state: GameState) {
   state.round += 1
+
+  if (state.round > MAX_ROUNDS) {
+    log(state, `Round ${MAX_ROUNDS} — somebody has to go home. Highest Clout takes it.`, 'clout')
+    finishGame(state)
+    return
+  }
 
   // Re-roll seating every Round. With a fixed order the last seat always swings
   // at the most-softened board and farms the kills; the sim had seat 6 taking

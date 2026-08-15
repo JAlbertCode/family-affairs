@@ -461,7 +461,7 @@ export const STUFF: StuffDef[] = [
   // --- Dorian's crown, and the rest of the stuff that only belongs to one person
   {
     kind: 'stuff', id: 'donutcrown', name: "Dorian's Donut Crown", subtype: 'Gear', copies: 2, edible: true, giftable: true, icon: '👑', color: FOOD,
-    text: 'Equip. It is a crown and it is also breakfast. +1 Attack while worn, hand out free donuts, or give up and eat the whole thing: +2 Food and heal 4. Dorian shows up already wearing one.',
+    text: 'Equip. It is a crown and it is also breakfast. +1 Attack while worn, hand out free donuts, or give up and eat the whole thing: +2 Food and heal 3. Dorian shows up already wearing one.',
     equipMods: [{ stat: 'attack', amount: 1 }],
     limitGain: { food: 2 },
     activated: {
@@ -488,12 +488,12 @@ export const STUFF: StuffDef[] = [
         },
       ],
     },
-    effects: [{ k: 'heal', target: { scope: 'self' }, amount: 4 }],
+    effects: [{ k: 'heal', target: { scope: 'self' }, amount: 3 }],
   },
   {
     kind: 'stuff', id: 'walker', name: "Grandpa's Walker", subtype: 'Gear', copies: 2, icon: '🦼', color: GEAR,
-    text: 'Equip. +3 Defense, -1 Attack. Nobody is knocking this over, and nobody is getting anywhere fast either.',
-    equipMods: [{ stat: 'defense', amount: 3 }, { stat: 'attack', amount: -1 }],
+    text: 'Equip. +2 Defense, -1 Attack. Nobody is knocking this over, and nobody is getting anywhere fast either.',
+    equipMods: [{ stat: 'defense', amount: 2 }, { stat: 'attack', amount: -1 }],
     effects: [],
   },
   {
@@ -505,9 +505,9 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'potpie', name: "Titi Evelyn's Chicken Pot Pie", subtype: 'Food', copies: 3, giftable: true, icon: '🥧', color: FOOD,
-    text: 'Nobody makes it like Titi Evelyn. Heal 4 HP, +1 Food. She will not say what is in it, but it is +1 Weed too.',
+    text: 'Nobody makes it like Titi Evelyn. Heal 3 HP, +1 Food. She will not say what is in it, but it is +1 Weed too.',
     limitGain: { food: 1, weed: 1 },
-    effects: [{ k: 'heal', target: { scope: 'self' }, amount: 4 }],
+    effects: [{ k: 'heal', target: { scope: 'self' }, amount: 3 }],
   },
   {
     kind: 'stuff', id: 'nerfgun', name: 'Nerf Gun', subtype: 'Gear', copies: 3, icon: '🔫', color: GEAR,
@@ -598,20 +598,20 @@ export const STUFF: StuffDef[] = [
     equipMods: [{ stat: 'defense', amount: 1 }],
     activated: {
       name: 'A Whole Tray',
-      text: 'Feed your own side. All your Active Characters heal 2 and gain +1 Food.',
+      text: 'Feed somebody properly. One of your Active Characters heals 3 and gains +1 Food.',
       actionCost: 1,
       cooldown: 2,
       effects: [
-        { k: 'heal', target: { scope: 'allMyActive' }, amount: 2 },
-        { k: 'limit', target: { scope: 'allMyActive' }, track: 'food', amount: 1 },
+        { k: 'heal', target: { scope: 'chosenAllyActive' }, amount: 3 },
+        { k: 'limit', target: { scope: 'chosenAllyActive' }, track: 'food', amount: 1 },
       ],
     },
     effects: [],
   },
   {
     kind: 'stuff', id: 'insulinpump', name: 'The Insulin Pump', subtype: 'Gear', copies: 2, icon: '💉', color: GEAR,
-    text: 'Equip. Keeps things level. +2 Defense, and once in a while it takes the edge off: clear 1 Food and 1 Alcohol.',
-    equipMods: [{ stat: 'defense', amount: 2 }],
+    text: 'Equip. Keeps things level. +1 Defense, and once in a while it takes the edge off: clear 1 Food and 1 Alcohol.',
+    equipMods: [{ stat: 'defense', amount: 1 }],
     activated: {
       name: 'Level It Out',
       text: 'Bring it back to baseline: -1 Food and -1 Alcohol on the wearer.',
@@ -643,17 +643,17 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'arizona', name: 'Arizona Iced Tea', subtype: 'Drink', copies: 3, giftable: true, icon: '🥤', color: DRINK,
-    text: 'Ninety-nine cents. It says so on the can. Heal 3 HP and shake off Confused. No Alcohol, no drama.',
+    text: 'Ninety-nine cents. It says so on the can. Heal 2 HP and shake off Confused. No Alcohol, no drama.',
     limitGain: {},
     effects: [
-      { k: 'heal', target: { scope: 'self' }, amount: 3 },
+      { k: 'heal', target: { scope: 'self' }, amount: 2 },
       { k: 'removeStatus', target: { scope: 'self' }, status: 'Confused' },
     ],
   },
   {
     kind: 'stuff', id: 'timbs', name: 'Timbs', subtype: 'Gear', copies: 2, icon: '🥾', color: GEAR,
-    text: 'Equip. +1 Attack, +2 Defense. Nobody is stepping on your foot twice.',
-    equipMods: [{ stat: 'attack', amount: 1 }, { stat: 'defense', amount: 2 }],
+    text: 'Equip. +1 Attack, +1 Defense. Nobody is stepping on your foot twice.',
+    equipMods: [{ stat: 'attack', amount: 1 }, { stat: 'defense', amount: 1 }],
     effects: [],
   },
   {
@@ -711,8 +711,8 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'hulahoop', name: "Ivy's Hula Hoop", subtype: 'Gear', copies: 2, icon: '⭕', color: GEAR,
-    text: 'Equip. +2 Defense while it is going. Give everyone a show: your whole side gains +1 Defense, and an Athlete doing it gains +2 Attack too.',
-    equipMods: [{ stat: 'defense', amount: 2 }],
+    text: 'Equip. +1 Defense while it is going. Give everyone a show: your whole side gains +1 Defense, and an Athlete doing it gains +2 Attack too.',
+    equipMods: [{ stat: 'defense', amount: 1 }],
     activated: {
       name: 'Give Them A Show',
       text: 'All your Active Characters gain +1 Defense for the Round. An Athlete spinning it also gains +2 Attack.',
@@ -743,14 +743,14 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'ninjastars', name: "Amanda's Ninja Star Cookies", subtype: 'Food', copies: 3, giftable: true, icon: '🍪', color: FOOD,
-    text: 'Baked with points on them, on purpose. Heal 3 and +1 Food — or throw one at a rival for 2 damage. Nobody has ever asked why.',
+    text: 'Baked with points on them, on purpose. Heal 2 and +1 Food — or throw one at a rival for 2 damage. Nobody has ever asked why.',
     limitGain: { food: 1 },
-    effects: [{ k: 'heal', target: { scope: 'self' }, amount: 3 }],
+    effects: [{ k: 'heal', target: { scope: 'self' }, amount: 2 }],
   },
   {
     kind: 'stuff', id: 'kippa', name: 'The Kippa', subtype: 'Gear', copies: 2, icon: '🔵', color: GEAR,
-    text: 'Equip. Covers what needs covering and earns the room’s respect. +2 Defense, and nobody at the table starts anything: shake off Confused.',
-    equipMods: [{ stat: 'defense', amount: 2 }],
+    text: 'Equip. Covers what needs covering and earns the room’s respect. +1 Defense, and nobody at the table starts anything: shake off Confused.',
+    equipMods: [{ stat: 'defense', amount: 1 }],
     activated: {
       name: 'Show Some Respect',
       text: 'The table settles down. Shake off Confused and heal 2.',

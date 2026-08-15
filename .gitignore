@@ -10,4 +10,9 @@ tsconfig.tsbuildinfo
 _to_delete/
 _stage*/
 _incoming*.tar.gz
+
+# local env overrides; .env.example is the documented template
+.env
+.env.local
+.env.*.local
 art-src/

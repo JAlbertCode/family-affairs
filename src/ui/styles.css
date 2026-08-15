@@ -876,3 +876,4 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
   color: #cbb8d2; background: #ffffff0d; border-radius: 6px; padding: 3px 2px;
 }
 .limitnote { margin: 8px 0 0; font-size: .62rem; line-height: 1.4; color: var(--muted); }
+.lobby-tag.subtle { opacity: .72; font-size: .68rem; }
