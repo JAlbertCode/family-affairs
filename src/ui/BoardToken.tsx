@@ -1,6 +1,6 @@
 import type { GameState, CharacterInstance } from '../engine/types'
 import { getCharacterDef, getStuffDef } from '../engine/cards/deck'
-import { effectiveStats, limitTier, auraSummary, incomingAuras } from '../engine/selectors'
+import { effectiveStats, limitTier, limitTierName, auraSummary, incomingAuras } from '../engine/selectors'
 
 const BASE = import.meta.env.BASE_URL
 
@@ -102,14 +102,48 @@ export function BoardToken({
         <s className={buffed(st.defense, def.stats.defense)}>🛡{st.defense}</s>
       </span>
 
-      {(limitTier(ch, 'alcohol') > 0 || limitTier(ch, 'weed') > 0 || limitTier(ch, 'food') > 0) && (
-        <span className="tok-limits">
-          {limitTier(ch, 'alcohol') > 0 && <i className={`lim a t${limitTier(ch, 'alcohol')}`}>🍺</i>}
-          {limitTier(ch, 'weed') > 0 && <i className={`lim w t${limitTier(ch, 'weed')}`}>🌿</i>}
-          {limitTier(ch, 'food') > 0 && <i className={`lim f t${limitTier(ch, 'food')}`}>🍔</i>}
-        </span>
-      )}
+      {/* Drunk, High and Stuffed are things every Character carries all game and
+          they change the numbers above, so they are meters, not badges that
+          appear once you are already in trouble. */}
+      <LimitMeters ch={ch} compact={size === 'sm'} />
     </button>
+  )
+}
+
+
+/**
+ * One row per track: the glyph, then a pip per step up to the Character's own
+ * tolerance. The last pip is the line — crossing it is what makes you Wasted,
+ * Zooted or Stuffed, and different Characters have the line in different
+ * places, which is exactly what a shared bar would have hidden.
+ */
+const TRACKS = [
+  { key: 'alcohol', glyph: '🍺' },
+  { key: 'weed', glyph: '🌿' },
+  { key: 'food', glyph: '🍔' },
+] as const
+
+export function LimitMeters({ ch, compact }: { ch: CharacterInstance; compact?: boolean }) {
+  const def = getCharacterDef(ch.defId)
+  return (
+    <span className={`meters ${compact ? 'compact' : ''}`}>
+      {TRACKS.map(({ key, glyph }) => {
+        const tol = def.tolerance[key]
+        const lvl = ch.limits[key]
+        const tier = limitTier(ch, key)
+        const steps = tol + 1   // the step past tolerance is the one that undoes you
+        return (
+          <span key={key} className={`meter m-${key} t${tier}`} title={`${limitTierName(ch, key)} — ${lvl}/${tol}`}>
+            <i className="m-glyph">{glyph}</i>
+            <i className="m-pips">
+              {Array.from({ length: steps }, (_, n) => (
+                <b key={n} className={`${n < lvl ? 'on' : ''} ${n === tol ? 'over' : ''}`} />
+              ))}
+            </i>
+          </span>
+        )
+      })}
+    </span>
   )
 }
 

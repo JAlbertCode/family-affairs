@@ -3,12 +3,13 @@ import type { GameState, Intent, InstanceId, PlayerId, Slot } from '../engine/ty
 import { getCharacterDef, getStuffDef, getAffairDef } from '../engine/cards/deck'
 import {
   activeCharacters, auraSummary, canAct, canAttack, countAttached, currentPlayer,
-  effectiveStat, explainStat, familySize, hasStatus, itemCap, limitTier, openSlots, totalItemCap,
+  effectiveStat, explainStat, familySize, hasStatus, itemCap, limitTier, limitTierName,
+  openSlots, totalItemCap,
 } from '../engine/selectors'
 import { needsTarget } from '../engine/effects'
 import { HAND_LIMIT } from '../engine/state'
 import { CardFace, cardLabel, EffectChips, stuffChips } from './CardFace'
-import { BoardToken, EmptyToken } from './BoardToken'
+import { BoardToken, EmptyToken, LimitMeters } from './BoardToken'
 import { CharacterPortrait } from './CharacterCard'
 import { Minigame } from './Minigame'
 
@@ -92,7 +93,19 @@ export function Table({
     const inst = state.stuff[iid]
     if (!inst) return []
     const def = getStuffDef(inst.defId)
-    if (def.subtype === 'Consumable') return []
+    if (def.subtype === 'Consumable') {
+      // A Consumable that names a target is only playable if one exists. It
+      // used to be unconditionally playable, which walked the player into a
+      // targeting step with an empty board and no way forward but Cancel.
+      const need = needsTarget(def.effects)
+      if (!need) return []
+      const pool = need === 'ally'
+        ? activeCharacters(state, you)
+        : need === 'enemy'
+          ? state.players.filter((p) => p !== you).flatMap((p) => activeCharacters(state, p))
+          : state.players.flatMap((p) => activeCharacters(state, p))
+      return pool.filter((ch) => ch.zone === 'active' && ch.hp > 0).map((c) => c.iid)
+    }
     const pool = ['Gear', 'Ride', 'Pet'].includes(def.subtype)
       ? activeCharacters(state, you)
       : state.players.flatMap((p) => activeCharacters(state, p))
@@ -118,7 +131,12 @@ export function Table({
     }
     const def = state.stuff[iid] ? getStuffDef(state.stuff[iid].defId) : null
     if (!def) return { ok: false }
-    if (def.subtype === 'Consumable') return { ok: true }
+    if (def.subtype === 'Consumable') {
+      if (!needsTarget(def.effects)) return { ok: true }
+      return legalTargets(iid).length > 0
+        ? { ok: true }
+        : { ok: false, why: 'Nobody to play it on yet' }
+    }
     return legalTargets(iid).length > 0
       ? { ok: true }
       : { ok: false, why: `Nobody can take another ${def.subtype}` }
@@ -209,8 +227,16 @@ export function Table({
   // ever discovering combat. Say it out loud, every Turn, until they have.
   const readyCount = activeCharacters(state, you).filter((c) =>
     !c.actedThisTurn && !hasStatus(c, 'Asleep') && !hasStatus(c, 'Away')).length
-  const turnHint = me.actionsLeft > 0 && readyCount > 0
-    ? `${me.actionsLeft} action${me.actionsLeft === 1 ? '' : 's'} left — tap one of your Characters to attack or use an ability`
+  const overHand = me.hand.length > HAND_LIMIT
+  const turnHint = overHand
+    ? `${me.hand.length} cards — over the limit of ${HAND_LIMIT}. Ending your turn discards down to ${HAND_LIMIT}.`
+    : readyCount === 0 && anyPlayable
+      // Having actions and nobody to spend them on is a different problem from
+      // having spent them, and telling the player the wrong one is worse than
+      // saying nothing.
+      ? 'Nobody in your family can act — play a Character from your hand.'
+    : me.actionsLeft > 0 && readyCount > 0
+      ? `${me.actionsLeft} action${me.actionsLeft === 1 ? '' : 's'} left — tap one of your Characters to attack or use an ability`
     : anyPlayable
       ? 'No actions left. You can still play a card from your hand.'
       : 'Nothing left to spend.'
@@ -400,7 +426,7 @@ export function Table({
       {!targeting && <div className={`handstrip ${state.phase === 'draw' ? 'predraw' : ''}`}>
         <div className="hs-head">
           <span>{state.phase === 'draw' ? 'Drawing…' : 'Your hand'}</span>
-          <b>{me.hand.length}/{HAND_LIMIT}</b>
+          <b className={me.hand.length > HAND_LIMIT ? 'over' : ''}>{me.hand.length}/{HAND_LIMIT}</b>
         </div>
         <div className="hs-rail">
           {me.hand.length === 0 && <span className="hs-empty">No cards</span>}
@@ -411,16 +437,26 @@ export function Table({
             return (
               <button
                 key={iid}
-                className={`hs-card ${p.ok ? 'playable' : ''}`}
+                className={`hs-card ${p.ok ? 'playable' : ''} ${chDef ? 'is-char' : 'is-stuff'}`}
                 style={{ '--accent': chDef?.color ?? stDef?.color ?? '#43284a' } as React.CSSProperties}
                 onClick={() => setHandCard(iid)}
               >
-                {chDef
-                  ? <span className="hs-art"><CharacterPortrait defId={chDef.id} /></span>
-                  : <span className="hs-glyph">{stDef?.icon ?? '❔'}</span>}
-                <span className="hs-name">{chDef?.name ?? stDef?.name}</span>
-                {chDef && <span className="hs-mini">⚔{chDef.stats.attack} 🛡{chDef.stats.defense}</span>}
-                {stDef && <EffectChips chips={stuffChips(stDef).slice(0, 3)} className="mini" />}
+                <span className="hs-art">
+                  {chDef
+                    ? <CharacterPortrait defId={chDef.id} />
+                    : stDef?.art
+                      ? <img src={`${import.meta.env.BASE_URL}art/${stDef.art}`} alt=""
+                          loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0' }} />
+                      : <span className="hs-glyph">{stDef?.icon ?? '❔'}</span>}
+                  {chDef && <span className="hs-hp">{chDef.stats.hp}</span>}
+                  <span className="hs-kind">{chDef ? 'CHARACTER' : stDef?.subtype}</span>
+                </span>
+                <span className="hs-body">
+                  <span className="hs-name">{chDef?.name ?? stDef?.name}</span>
+                  {chDef
+                    ? <span className="hs-mini">⚔{chDef.stats.attack} · 🛡{chDef.stats.defense}</span>
+                    : stDef && <EffectChips chips={stuffChips(stDef).slice(0, 3)} className="mini" />}
+                </span>
                 {p.ok && <span className="hs-ok" />}
               </button>
             )
@@ -761,6 +797,20 @@ function InspectSheet({ state, iid, onClose }: { state: GameState; iid: Instance
         <div className="bd-pair">
           <StatBreakdown state={state} ch={ch} stat="attack" />
           <StatBreakdown state={state} ch={ch} stat="defense" />
+        </div>
+
+        <div className="limitbox">
+          <span className="field-label">How they are holding up</span>
+          <LimitMeters ch={ch} />
+          <div className="limitnames">
+            <i>{limitTierName(ch, 'alcohol')}</i>
+            <i>{limitTierName(ch, 'weed')}</i>
+            <i>{limitTierName(ch, 'food')}</i>
+          </div>
+          <p className="limitnote">
+            Tolerance {def.tolerance.alcohol} 🍺 · {def.tolerance.weed} 🌿 · {def.tolerance.food} 🍔.
+            The last pip is their line — crossing it is what turns a bonus into a problem.
+          </p>
         </div>
 
         {auras.length > 0 && (

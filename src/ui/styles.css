@@ -268,11 +268,34 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
 .tok-stats s.down { color: #ff8b8b; }
 .tok-sm .tok-stats { font-size: .6rem; gap: 5px; }
 
-.tok-limits { display: flex; justify-content: center; gap: 3px; font-size: .56rem; }
-.tok-limits .lim { font-style: normal; opacity: .45; }
-.tok-limits .lim.t2 { opacity: .85; }
-.tok-limits .lim.t3 { opacity: 1; animation: pulseTrack 1.3s ease-in-out infinite; }
-@keyframes pulseTrack { 50% { filter: brightness(1.8) } }
+/* ------------------------------------------------------- LIMIT METERS -- */
+/* Drunk, High and Stuffed are carried all game and they move Attack and
+   Defense, so every Character shows all three all the time. A pip per step,
+   with the last pip marking that Character's own tolerance — the line is in a
+   different place for a Heavyweight than for a Lightweight, and a shared bar
+   would have hidden exactly that. */
+.meters { display: flex; flex-direction: column; gap: 2px; width: 100%; padding: 3px 4px 0; }
+.meter { display: flex; align-items: center; gap: 3px; }
+.meter .m-glyph { font-style: normal; font-size: .56rem; line-height: 1; opacity: .5; flex: none; }
+.meter.t1 .m-glyph { opacity: .8; }
+.meter.t2 .m-glyph, .meter.t3 .m-glyph { opacity: 1; }
+.meter.t3 .m-glyph { animation: pulseTrack 1.3s ease-in-out infinite; }
+@keyframes pulseTrack { 50% { filter: brightness(1.9) } }
+.m-pips { display: flex; gap: 2px; flex: 1 1 auto; font-style: normal; }
+.m-pips b {
+  flex: 1 1 0; height: 4px; border-radius: 2px;
+  background: #ffffff14; box-shadow: inset 0 0 0 1px #ffffff0d;
+}
+.m-pips b.over { background: #ffffff0a; box-shadow: inset 0 0 0 1px #ffffff22; }
+.m-alcohol .m-pips b.on, .meter.m-alcohol .m-pips b.on { background: #e07b3c; }
+.meter.m-alcohol .m-pips b.on.over { background: #ff5d5d; }
+.meter.m-weed .m-pips b.on { background: #6d9f52; }
+.meter.m-weed .m-pips b.on.over { background: #9ae06a; }
+.meter.m-food .m-pips b.on { background: #e0a43c; }
+.meter.m-food .m-pips b.on.over { background: #ffd479; }
+.meters.compact { padding: 2px 3px 0; gap: 1px; }
+.meters.compact .m-glyph { font-size: .46rem; }
+.meters.compact .m-pips b { height: 3px; }
 
 .tok.acted { filter: grayscale(.5) brightness(.72); }
 .tok.target {
@@ -353,26 +376,54 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
   color: var(--muted); font-weight: 900;
 }
 .hs-head b { margin-left: auto; color: var(--text); }
-.hs-rail { display: flex; gap: 7px; overflow-x: auto; padding: 5px 12px 9px; }
+.hs-rail { display: flex; gap: 8px; overflow-x: auto; padding: 5px 12px 10px; }
 .hs-empty { color: var(--muted); font-size: .8rem; padding: 10px 0; }
 
+/* A card in hand should look like a card: art on top, name and numbers under
+   it. At 76px wide with a two-line name clamp it read as a column of slivers,
+   and the whole point of the hand is that you can tell things apart in it. */
 .hs-card {
-  position: relative; flex: 0 0 auto; width: 76px; border-radius: 10px; padding: 6px 5px 5px;
+  position: relative; flex: 0 0 auto; width: 112px; border-radius: 12px;
+  padding: 0; overflow: hidden;
   background: linear-gradient(180deg, #2b1730, #190d1b);
   border: 2px solid color-mix(in srgb, var(--accent) 45%, #2c1a32);
-  display: flex; flex-direction: column; align-items: center; gap: 3px;
-  min-height: 44px; transition: transform .12s, box-shadow .12s;
+  display: flex; flex-direction: column; align-items: stretch;
+  transition: transform .12s, box-shadow .12s;
 }
 .hs-card:active { transform: translateY(-3px) scale(.97); }
 .hs-card.playable { border-color: var(--gold); box-shadow: 0 0 0 1px #ffc23344, 0 3px 12px #ffc23322; }
-.hs-art .portrait { width: 46px; height: 46px; border-radius: 9px; }
-.hs-glyph { font-size: 1.9rem; line-height: 1.35; }
+
+.hs-art {
+  position: relative; height: 84px; flex: none; overflow: hidden;
+  background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--accent) 40%, transparent), transparent 70%);
+  display: grid; place-items: center;
+}
+.hs-art img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 18%; display: block; }
+.hs-art .portrait { width: 100%; height: 100%; border-radius: 0; }
+.hs-art .portrait img { object-position: 50% 14%; }
+.hs-glyph { font-size: 2.5rem; line-height: 1; filter: drop-shadow(0 3px 8px rgba(0,0,0,.6)); }
+.hs-hp {
+  position: absolute; top: 4px; right: 4px; min-width: 22px; height: 22px;
+  border-radius: 7px; background: linear-gradient(180deg, #ff5d5d, #c62b2b);
+  display: grid; place-items: center; font-size: .66rem; font-weight: 900; color: #fff;
+  border: 1px solid #ffffff33; box-shadow: 0 2px 6px rgba(0,0,0,.5);
+}
+.hs-kind {
+  position: absolute; left: 0; right: 0; bottom: 0; padding: 2px 5px;
+  font-size: .44rem; font-weight: 900; letter-spacing: .12em; text-transform: uppercase;
+  color: #e9dcee; background: linear-gradient(180deg, transparent, #12080fdd 55%);
+  text-align: left;
+}
+.hs-body {
+  flex: 1 1 auto; display: flex; flex-direction: column; align-items: center;
+  justify-content: flex-start; gap: 3px; padding: 5px 5px 6px; min-height: 0;
+}
 .hs-name {
-  font-size: .56rem; font-weight: 800; line-height: 1.1; text-align: center;
+  font-size: .64rem; font-weight: 900; line-height: 1.15; text-align: center;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
-.hs-mini { font-size: .52rem; font-weight: 900; color: #cbb8d2; }
-.hs-ok { position: absolute; top: 4px; right: 4px; width: 7px; height: 7px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 7px var(--gold); }
+.hs-mini { font-size: .6rem; font-weight: 900; color: #cbb8d2; }
+.hs-ok { position: absolute; top: 4px; left: 4px; width: 8px; height: 8px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 8px var(--gold); }
 
 /* --------------------------------------------------------- CARD SHEET --- */
 
@@ -808,5 +859,20 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
 .fx-chip.note { background: #2a2340; color: #c2b4ff; border-color: #4b3f77; }
 .fx.big { margin-bottom: 9px; }
 .fx.big .fx-chip { font-size: .78rem; padding: 6px 9px; }
-.fx.mini { justify-content: center; gap: 3px; margin-top: 2px; }
-.fx.mini .fx-chip { font-size: .5rem; padding: 2px 4px; border-radius: 5px; }
+.fx.mini { justify-content: center; gap: 3px; margin-top: 1px; }
+.fx.mini .fx-chip { font-size: .54rem; padding: 3px 5px; border-radius: 5px; font-weight: 900; }
+.hs-head b.over { color: #ff8b9e; }
+
+.limitbox {
+  background: #150a16; border: 1px solid var(--line); border-radius: 11px;
+  padding: 9px 10px 10px; margin-bottom: 12px;
+}
+.limitbox .meters { padding: 6px 0 0; gap: 5px; }
+.limitbox .m-pips b { height: 7px; }
+.limitbox .m-glyph { font-size: .8rem; }
+.limitnames { display: flex; gap: 6px; margin-top: 7px; }
+.limitnames i {
+  flex: 1; font-style: normal; text-align: center; font-size: .6rem; font-weight: 900;
+  color: #cbb8d2; background: #ffffff0d; border-radius: 6px; padding: 3px 2px;
+}
+.limitnote { margin: 8px 0 0; font-size: .62rem; line-height: 1.4; color: var(--muted); }
