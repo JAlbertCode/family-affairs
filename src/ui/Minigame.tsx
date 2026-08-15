@@ -19,6 +19,42 @@ export function Minigame({
   const myTurn = myIndex >= 0 && mg.turn === myIndex
   const nameOf = (p: PlayerId) => state.playerState[p]?.name ?? p
 
+  if (mg.kind === 'rps') {
+    const OPTIONS = [
+      { i: 0, glyph: '✊', name: 'Rock' },
+      { i: 1, glyph: '✋', name: 'Paper' },
+      { i: 2, glyph: '✌️', name: 'Scissors' },
+    ]
+    return (
+      <div className="sheet-bg mg-bg">
+        <div className="mg">
+          <span className="mg-kicker">Settle it</span>
+          <h2>Shoot For It</h2>
+          <p className="mg-stake">{mg.prompt}</p>
+          {mg.ties > 0 && <p className="mg-tie">Draw {mg.ties} — go again</p>}
+
+          <div className="mg-players">
+            <span className={mg.turn === 0 ? 'on' : ''}>{nameOf(a)}{mg.picks[0] !== null && ' ✓'}</span>
+            <span className={mg.turn === 1 ? 'on' : ''}>{nameOf(b)}{mg.picks[1] !== null && ' ✓'}</span>
+          </div>
+
+          <div className="mg-rps">
+            {OPTIONS.map((o) => (
+              <button key={o.i} className="mg-throw" disabled={!myTurn}
+                onClick={() => send({ k: 'minigameMove', cell: o.i })}>
+                <span>{o.glyph}</span><i>{o.name}</i>
+              </button>
+            ))}
+          </div>
+
+          <p className="mg-turn">
+            {myTurn ? 'Throw' : `${nameOf(mg.players[mg.turn])} is choosing…`}
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="sheet-bg mg-bg">
       <div className="mg">

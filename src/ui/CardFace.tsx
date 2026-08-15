@@ -63,7 +63,16 @@ export function CardFace({
     const def = getStuffDef(stInst.defId)
     return (
       <article className={`face face-stuff sub-${def.subtype.toLowerCase()} ${focused ? 'focused' : ''}`} style={{ '--accent': def.color } as React.CSSProperties}>
-        <div className="face-glyph"><span>{def.icon ?? '❔'}</span></div>
+        {def.art ? (
+          <div className="face-art stuff">
+            <img src={`${BASE}art/${def.art}`} alt="" loading="lazy"
+              onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0' }} />
+            <div className="face-art-fade" />
+            <span className="face-glyph-mini">{def.icon ?? '❔'}</span>
+          </div>
+        ) : (
+          <div className="face-glyph"><span>{def.icon ?? '❔'}</span></div>
+        )}
         <header className="face-head">
           <p className="face-type">{def.subtype}</p>
           <h2>{def.name}</h2>
@@ -78,6 +87,17 @@ export function CardFace({
                 </span>
               ))}
             </div>
+          )}
+          {['Food', 'Drink', 'Smoke'].includes(def.subtype) && (
+            <p className="face-hint">
+              Can be given to <strong>anyone</strong>, including your rivals — pushing somebody past
+              Drunk, Stoned or Stuffed is a perfectly good use of a snack.
+            </p>
+          )}
+          {def.activated && (
+            <p className="face-hint gold">
+              <strong>{def.activated.name}</strong> — {def.activated.text}
+            </p>
           )}
           {def.interfere && (
             <p className="face-interfere">⚡ INTERFERE — can be played during someone else's battle</p>

@@ -63,6 +63,26 @@ export function BoardToken({
         <b>{ch.hp}</b>
       </span>
 
+      {(() => {
+        // Roll every temporary modifier into one readable chip per stat, so a
+        // buff that expires this Round is visible without opening anything.
+        const byStat: Record<string, number> = {}
+        for (const m of ch.mods) byStat[m.stat] = (byStat[m.stat] ?? 0) + m.amount
+        const chips = Object.entries(byStat).filter(([, v]) => v !== 0)
+        if (chips.length === 0) return null
+        const soonest = ch.mods.some((m) => m.duration === 'turn') ? 'turn' : 'round'
+        return (
+          <span className="tok-temp" title={`Temporary — ends this ${soonest}`}>
+            {chips.map(([st, v]) => (
+              <i key={st} className={v > 0 ? 'up' : 'down'}>
+                {st === 'attack' ? '⚔' : '🛡'}{v > 0 ? '+' : ''}{v}
+              </i>
+            ))}
+            <em>{soonest === 'turn' ? 'turn' : 'rnd'}</em>
+          </span>
+        )
+      })()}
+
       <span className="tok-stats">
         <s className={buffed(st.attack, def.stats.attack)}>⚔{st.attack}</s>
         <s className={buffed(st.defense, def.stats.defense)}>🛡{st.defense}</s>

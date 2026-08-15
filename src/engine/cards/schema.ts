@@ -45,6 +45,13 @@ export const RULES = {
 
 const ALL_TAGS = new Set<string>([...RELATIONSHIP_TAGS, ...PERSONALITY_TAGS])
 
+/** Characters a pack is allowed to reference. Filled in by the validator entry
+ *  point so a third-party pack can lock stuff to its OWN characters too. */
+const knownCharacterIds = new Set<string>()
+export function registerCharacterIds(ids: string[]) {
+  for (const id of ids) knownCharacterIds.add(id)
+}
+
 export interface Issue {
   card: string
   severity: 'error' | 'warn'
@@ -122,7 +129,9 @@ export function effectsCost(list: Effect[]): number {
 function abilityDiscount(a: Ability): number {
   let d = 1
   if (a.oncePerGame) d *= 0.45
-  else if (a.cooldown) d *= 1 - Math.min(0.35, a.cooldown * 0.15)
+  // A player gets one Turn per Round, so `cooldown: 1` already comes back
+  // around next Turn — it costs the card nothing and earns no discount here.
+  else if (a.cooldown) d *= 1 - Math.min(0.35, Math.max(0, a.cooldown - 1) * 0.15)
   if (a.requiresLimit && Object.keys(a.requiresLimit).length) d *= 0.85
   if (a.actionCost === 0) d *= 1.4 // free abilities are worth MORE, not less
   return d
@@ -238,7 +247,18 @@ export function validateCharacter(c: CharacterDef): Issue[] {
   if (!c.flaw) err('flaw', 'Every Character needs a Family Flaw. Disadvantages are mandatory.')
 
   if (c.ability) checkAbility(n, 'ability', c.ability, RULES.abilityBudget, out)
-  if (c.powerMove) checkAbility(n, 'powerMove', c.powerMove, RULES.powerMoveBudget, out)
+  if (c.powerMove) {
+    checkAbility(n, 'powerMove', c.powerMove, RULES.powerMoveBudget, out)
+    // A Power Move gets a bigger budget than an ability. The price of that is
+    // that it cannot also be available every single Turn — otherwise the
+    // Character's own ability is strictly worse and never gets played, which
+    // is exactly what the balance sim caught.
+    const raw = effectsCost(c.powerMove.effects)
+    const limited = c.powerMove.oncePerGame || (c.powerMove.cooldown ?? 0) >= 2
+    if (raw > RULES.abilityBudget && !limited) {
+      err('powerMove', `Power Move is worth ${raw.toFixed(1)}, above the ${RULES.abilityBudget}-point ability cap, so it needs cooldown 2+ or oncePerGame.`)
+    }
+  }
   if (!c.ability && !c.powerMove) err('ability', 'Needs at least one activated ability.')
 
   if (c.achievement) {
@@ -265,12 +285,29 @@ export function validateStuff(d: StuffDef): Issue[] {
   if (!d.id || !/^[a-z0-9]+$/.test(d.id)) err('id', 'Needs a lowercase alphanumeric id.')
   if (!d.text?.trim()) err('text', 'Needs rules text.')
   if (d.copies < 1 || d.copies > 4) err('copies', 'Between 1 and 4 copies in the deck.')
+  // Character-locked stuff has to name Characters that actually exist, or the
+  // card is simply unplayable once it is drawn.
+  if (d.onlyFor) {
+    if (!d.onlyFor.length) err('onlyFor', 'Lists no Characters, so nobody can ever hold it.')
+    if (d.subtype !== 'Gear' && d.subtype !== 'Ride' && d.subtype !== 'Pet') {
+      err('onlyFor', 'Only Gear, Rides and Pets can be locked to a Character.')
+    }
+    for (const id of d.onlyFor) {
+      if (!knownCharacterIds.has(id)) err('onlyFor', `Unknown Character id "${id}".`)
+    }
+  }
 
   for (const e of flatten(d.effects ?? [])) {
     if (e.k === 'damage' && e.amount > RULES.effect.damage) err('effects', `Deals ${e.amount}. Max is ${RULES.effect.damage} for Stuff.`)
     if (e.k === 'heal' && e.amount > RULES.effect.heal) err('effects', `Heals ${e.amount}. Max is ${RULES.effect.heal}.`)
     if (e.k === 'clout') err('effects', 'Cards may not award Clout directly.')
     if (e.k === 'statMod' && Math.abs(e.amount) > RULES.effect.statMod) err('effects', `Shifts a stat by ${e.amount}. Max is ±${RULES.effect.statMod}.`)
+  }
+
+  // An activated item ability is held to the same budget as a character's.
+  if (d.activated) checkAbility(n, 'activated', d.activated, RULES.abilityBudget, out)
+  if (d.activated && !['Gear', 'Ride', 'Pet'].includes(d.subtype)) {
+    err('activated', 'Only Gear, Rides and Pets can carry an activated ability.')
   }
 
   const total = (d.equipMods ?? []).reduce((n2, m) => n2 + Math.abs(m.amount), 0)
@@ -339,6 +376,10 @@ export function validatePack(pack: CardPack, knownIds: Set<string> = new Set()):
   const out: Issue[] = []
   if (!pack.name) out.push({ card: '(pack)', severity: 'error', field: 'name', message: 'Packs need a name.' })
   if (!pack.author) out.push({ card: '(pack)', severity: 'error', field: 'author', message: 'Packs need an author.' })
+
+  // A pack may lock its own stuff to its own characters, so register those
+  // before anything is checked.
+  registerCharacterIds((pack.characters ?? []).map((c) => c.id))
 
   const seen = new Set(knownIds)
   const claim = (id: string, label: string) => {

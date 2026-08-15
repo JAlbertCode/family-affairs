@@ -20,7 +20,7 @@ export const CHARACTERS: CharacterDef[] = [
     name: 'Chi Chi',
     title: 'The Trickster',
     archetype: 'Trickster',
-    stats: { hp: 11, attack: 5, defense: 3 },
+    stats: { hp: 13, attack: 5, defense: 3 },
     tags: ['Sister', 'Stoner', 'Troublemaker', 'Trickster'],
     tolerance: T(3, 4, 3), // Professional (§52)
     color: '#7c5cbf',
@@ -32,11 +32,11 @@ export const CHARACTERS: CharacterDef[] = [
     },
     ability: {
       name: 'Contact High',
-      text: 'Chi Chi gains +1 Weed. Adjacent Characters gain +1 Weed and +2 Attack this Turn. Everybody is having a great time.',
+      text: 'Chi Chi takes one to the dome: +1 Weed. She and the Characters beside her gain +2 Attack this Turn. Everybody is having a great time.',
       actionCost: 1,
       effects: [
         { k: 'limit', target: { scope: 'self' }, track: 'weed', amount: 1 },
-        { k: 'limit', target: { scope: 'adjacentAllies' }, track: 'weed', amount: 1 },
+        { k: 'statMod', target: { scope: 'self' }, stat: 'attack', amount: 2, duration: 'turn' },
         { k: 'statMod', target: { scope: 'adjacentAllies' }, stat: 'attack', amount: 2, duration: 'turn' },
       ],
     },
@@ -56,7 +56,7 @@ export const CHARACTERS: CharacterDef[] = [
     },
     flaw: {
       name: 'Bad Influence',
-      text: 'Characters adjacent to Chi Chi trigger Bad Luck on natural rolls of 1 or 2.',
+      text: 'Characters across the table from Chi Chi trigger Bad Luck on a natural 1 or 2. Her own family beside her still goes sideways on a natural 1.',
       hooks: ['adjacentBadLuck'],
     },
     achievement: {
@@ -183,10 +183,10 @@ export const CHARACTERS: CharacterDef[] = [
     },
     ability: {
       name: 'Slow But Steady',
-      text: 'Manny takes his time. Gain +3 Attack until the end of the Round. Manny may not attack this Turn.',
+      text: 'Manny takes his time. Gain +2 Attack until the end of the Round. Manny may not attack this Turn.',
       actionCost: 1,
       effects: [
-        { k: 'statMod', target: { scope: 'self' }, stat: 'attack', amount: 3, duration: 'round' },
+        { k: 'statMod', target: { scope: 'self' }, stat: 'attack', amount: 2, duration: 'round' },
         { k: 'status', target: { scope: 'self' }, status: 'Busy', duration: 0 },
       ],
     },
@@ -279,8 +279,9 @@ export const CHARACTERS: CharacterDef[] = [
     rideSlots: 2,
     ability: {
       name: 'Upbeat Jam',
-      text: 'All your Active Characters gain +1 Attack this Turn. Xavi also gains +1 Defense for the Round.',
+      text: 'All your Active Characters gain +1 Attack this Turn. Xavi also gains +1 Defense for the Round. He needs a Turn off before he plays it again.',
       actionCost: 1,
+      cooldown: 2,
       effects: [
         { k: 'statMod', target: { scope: 'allMyActive' }, stat: 'attack', amount: 1, duration: 'turn' },
         { k: 'statMod', target: { scope: 'self' }, stat: 'defense', amount: 1, duration: 'round' },
@@ -288,13 +289,13 @@ export const CHARACTERS: CharacterDef[] = [
     },
     powerMove: {
       name: 'Midnight Solo',
-      text: 'Roll d6. On 4-6 deal 5 damage to one enemy. On 1-3 deal 2 damage and Xavi becomes Busy.',
+      text: 'Roll d6. On 4-6 deal 4 damage to one enemy. On 1-3 deal 2 damage and Xavi becomes Busy.',
       actionCost: 1,
       effects: [
         {
           k: 'roll',
           branches: [
-            { on: [4, 5, 6], label: 'It rips', effects: [{ k: 'damage', target: { scope: 'chosenEnemyActive' }, amount: 5 }] },
+            { on: [4, 5, 6], label: 'It rips', effects: [{ k: 'damage', target: { scope: 'chosenEnemyActive' }, amount: 4 }] },
             {
               on: [1, 2, 3],
               label: 'Broke a string',
@@ -327,22 +328,23 @@ export const CHARACTERS: CharacterDef[] = [
     name: 'Amanda',
     title: 'The Baker',
     archetype: 'Support',
-    stats: { hp: 13, attack: 3, defense: 5 },
+    stats: { hp: 12, attack: 4, defense: 4 },
     tags: ['Mom', 'Baker', 'Cook', 'Lightweight', 'Adult'],
     tolerance: T(2, 3, 3), // Lightweight (§21)
     gearSlots: 2, // she carries more than most, but 3 stacked too much value
-    itemSlots: 4, // "Amanda can have up to 4 Items attached to her"
+    itemSlots: 3, // she out-performed the field at 4; three still reads as the one who carries everything
     color: '#e878a8',
     art: 'amanda.webp',
     passive: {
       name: 'Momma Bird',
-      text: 'Once per Round, redirect an attack targeting an adjacent ally onto Amanda instead.',
+      text: 'Once per Round, redirect an attack targeting an adjacent ally onto Amanda instead. Stepping in front of it costs her 1 HP.',
       hooks: ['mommaBird'],
     },
     ability: {
       name: 'Sugar Rush',
-      text: 'Create one Food and attach it to any of your Active Characters. Heal that Character 2 HP.',
+      text: 'Create one Food and attach it to any of your Active Characters. Heal that Character 2 HP. She needs a Turn to bake the next batch.',
       actionCost: 1,
+      cooldown: 2,
       effects: [
         { k: 'heal', target: { scope: 'chosenAllyActive' }, amount: 2 },
         { k: 'limit', target: { scope: 'chosenAllyActive' }, track: 'food', amount: 1 },
@@ -350,8 +352,9 @@ export const CHARACTERS: CharacterDef[] = [
     },
     powerMove: {
       name: 'Hot Fudge To The Face',
-      text: 'Deal 3 damage to an Active enemy, reduce their Attack by 2 for the Round, and their controller discards 1 card.',
+      text: 'Deal 3 damage to an Active enemy, reduce their Attack by 2 for the Round, and their controller discards 1 card. Cooldown 2 Rounds.',
       actionCost: 1,
+      cooldown: 2,
       effects: [
         { k: 'damage', target: { scope: 'chosenEnemyActive' }, amount: 3 },
         { k: 'statMod', target: { scope: 'chosenEnemyActive' }, stat: 'attack', amount: -2, duration: 'round' },
@@ -399,8 +402,9 @@ export const CHARACTERS: CharacterDef[] = [
     },
     powerMove: {
       name: 'Elephant Trample',
-      text: 'Ride the elephant in a straight line. Deal 3 damage to a chosen enemy and 2 to the Characters beside them.',
+      text: 'Ride the elephant in a straight line. Deal 3 damage to a chosen enemy and 2 to the Characters beside them. Cooldown 2 Rounds.',
       actionCost: 1,
+      cooldown: 2,
       effects: [
         { k: 'damage', target: { scope: 'chosenEnemyActive' }, amount: 3 },
         { k: 'damage', target: { scope: 'adjacentAllies' }, amount: 2 },
@@ -437,12 +441,14 @@ export const CHARACTERS: CharacterDef[] = [
       hooks: ['pacifistAura'],
     },
     ability: {
-      name: 'Angelic Guard',
-      text: 'Choose an ally. They gain +3 Defense until the end of the Round and heal 2 HP.',
+      name: 'Saying Grace',
+      text: 'Everyone at her end of the table bows their head. The Characters beside her heal 2 HP, and she and both of them gain +1 Defense for the Round. Once every other Turn.',
       actionCost: 1,
+      cooldown: 2,
       effects: [
-        { k: 'statMod', target: { scope: 'chosenAllyActive' }, stat: 'defense', amount: 3, duration: 'round' },
-        { k: 'heal', target: { scope: 'chosenAllyActive' }, amount: 2 },
+        { k: 'statMod', target: { scope: 'self' }, stat: 'defense', amount: 1, duration: 'round' },
+        { k: 'heal', target: { scope: 'adjacentAllies' }, amount: 2 },
+        { k: 'statMod', target: { scope: 'adjacentAllies' }, stat: 'defense', amount: 1, duration: 'round' },
       ],
     },
     powerMove: {
@@ -486,7 +492,7 @@ export const CHARACTERS: CharacterDef[] = [
     name: 'Gabby',
     title: 'The Wild Scout',
     archetype: 'Bruiser',
-    stats: { hp: 14, attack: 6, defense: 2 },
+    stats: { hp: 16, attack: 6, defense: 2 },
     tags: ['Brother', 'Athlete', 'Foodie', 'Troublemaker'],
     tolerance: T(3, 3, 3),
     color: '#6d8f3f',
@@ -507,8 +513,9 @@ export const CHARACTERS: CharacterDef[] = [
     },
     powerMove: {
       name: 'Rampage',
-      text: 'Gabby snaps. Gain +3 Attack for the Round and attack twice this Turn. He is Confused afterwards.',
+      text: 'Gabby snaps. Gain +3 Attack for the Round and attack twice this Turn. He is Confused afterwards. Cooldown 2 Rounds.',
       actionCost: 1,
+      cooldown: 2,
       effects: [
         { k: 'statMod', target: { scope: 'self' }, stat: 'attack', amount: 3, duration: 'round' },
         { k: 'extraAttack', target: { scope: 'self' } },
@@ -557,8 +564,9 @@ export const CHARACTERS: CharacterDef[] = [
     },
     powerMove: {
       name: 'EMP Blast',
-      text: 'Scramble every opposing Active Character for the Round: they lose 1 Attack and become Confused.',
+      text: 'Scramble every opposing Active Character for the Round: they lose 1 Attack and become Confused. Cooldown 2 Rounds.',
       actionCost: 1,
+      cooldown: 2,
       effects: [
         { k: 'statMod', target: { scope: 'allEnemyActive' }, stat: 'attack', amount: -1, duration: 'round' },
         { k: 'status', target: { scope: 'allEnemyActive' }, status: 'Confused', duration: 1 },
@@ -634,10 +642,11 @@ export const CHARACTERS: CharacterDef[] = [
     name: 'Nani',
     title: 'The One With The Spreadsheet',
     archetype: 'Support',
-    stats: { hp: 13, attack: 3, defense: 5 },
+    stats: { hp: 15, attack: 3, defense: 5 },
     tags: ['Sister', 'Caretaker', 'Athlete', 'Collector', 'Adult'],
     tolerance: { alcohol: 3, weed: 3, food: 3 },
     color: '#3fa87d',
+    art: 'nani.webp',
     petSlots: 2,
     passive: {
       name: 'Everything Is Handled',

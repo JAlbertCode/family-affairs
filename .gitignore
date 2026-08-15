@@ -10,3 +10,4 @@ tsconfig.tsbuildinfo
 _to_delete/
 _stage*/
 _incoming*.tar.gz
+art-src/

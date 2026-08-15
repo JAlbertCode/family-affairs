@@ -577,6 +577,8 @@ function runEffect(state: GameState, e: Effect, ctx: EffectCtx) {
         kind: e.kind,
         players: [ctx.controller, rival],
         board: Array(9).fill(null),
+        picks: [null, null],
+        ties: 0,
         turn: 0,
         stake: e.stake,
         winner: null,
@@ -585,7 +587,8 @@ function runEffect(state: GameState, e: Effect, ctx: EffectCtx) {
           ? `Winner deals ${e.stake.amount} damage`
           : e.stake.kind === 'draw' ? `Winner draws ${e.stake.n}` : `Loser is ${e.stake.status}`,
       }
-      log(state, `${state.playerState[ctx.controller].name} challenges ${state.playerState[rival].name} to tic tac toe.`, 'play')
+      const gameName = e.kind === 'rps' ? 'rock paper scissors' : 'tic tac toe'
+      log(state, `${state.playerState[ctx.controller].name} challenges ${state.playerState[rival].name} to ${gameName}.`, 'play')
       break
     }
     case 'note':

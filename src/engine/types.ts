@@ -133,7 +133,7 @@ export type Effect =
   | { k: 'roll'; branches: RollBranch[] }
   | { k: 'ifTag'; tag: Tag; present: boolean; then: Effect[]; else?: Effect[] }
   | { k: 'ifCharacterActive'; defId: DefId; then: Effect[]; else?: Effect[] }
-  | { k: 'startMinigame'; kind: 'tictactoe'; stake: { kind: 'damage'; amount: number } | { kind: 'draw'; n: number } | { kind: 'status'; status: StatusName } }
+  | { k: 'startMinigame'; kind: 'tictactoe' | 'rps'; stake: { kind: 'damage'; amount: number } | { kind: 'draw'; n: number } | { kind: 'status'; status: StatusName } }
   | { k: 'note'; text: string }
 
 export interface RollBranch {
@@ -216,12 +216,23 @@ export interface StuffDef {
   equipMods?: { stat: StatName; amount: number }[]
   /** Pet only: chance out of 6 that the pet loses its nerve and does nothing */
   skittish?: number
+  /** Gear/Ride/Pet may carry an ability the holder can trigger while equipped. */
+  activated?: Ability
+  /** Can this be handed to a RIVAL? A drink or an edible can be slipped to
+   *  somebody; a joint has to be rolled, lit and passed, so it cannot. */
+  giftable?: boolean
+  /** Some things belong to one person. Only these Characters may hold it. */
+  onlyFor?: DefId[]
   /** Food/Drink/Smoke: limit gained on consumption */
   limitGain?: Partial<Record<LimitTrack, number>>
   /** effects on use/consume */
   effects: Effect[]
   /** a single glyph shown on the card face; card packs may supply their own */
   icon?: string
+  /** filename under public/art/. When present it replaces the glyph on the
+   *  full-size card face and tints the board token. The glyph stays as the
+   *  fallback so a card is never blank while art is still being made. */
+  art?: string
   /** may be played during another player's battle (§16) */
   interfere?: boolean
   /** Interfere cards target: which window they are legal in */
@@ -399,14 +410,25 @@ export interface GameState {
 // --- Minigames (§ table interaction) ---------------------------------------
 
 export interface MinigameState {
-  kind: 'tictactoe'
+  /** 'rps' resolves in one pick each and exists because tic tac toe is the
+   *  long one — a minigame must never hold the table up for long. */
+  kind: 'tictactoe' | 'rps'
   /** the two players involved; [0] moves first and is X */
   players: [PlayerId, PlayerId]
-  /** 9 cells: null | 0 | 1 (index into players) */
+  /** tic tac toe: 9 cells, null | 0 | 1 (index into players) */
   board: (0 | 1 | null)[]
+  /** rock paper scissors: each player's pick, 0 rock / 1 paper / 2 scissors */
+  picks: (number | null)[]
+  /** how many times a tie has been replayed */
+  ties: number
   turn: 0 | 1
   /** what the winner gets */
-  stake: { kind: 'damage'; amount: number } | { kind: 'draw'; n: number } | { kind: 'status'; status: StatusName }
+  stake:
+    | { kind: 'damage'; amount: number }
+    | { kind: 'draw'; n: number }
+    | { kind: 'status'; status: StatusName }
+    /** raised by a tied combat roll: the loser's fighter takes the damage */
+    | { kind: 'battleTie'; damage: number; attackerChar: InstanceId; defenderChar: InstanceId }
   /** set once resolved */
   winner: PlayerId | null
   done: boolean
@@ -430,6 +452,7 @@ export type Intent =
   | { k: 'useAbility'; char: InstanceId; which: 'ability' | 'powerMove'; targetChar?: InstanceId }
   | { k: 'consume'; char: InstanceId; iid: InstanceId }
   | { k: 'minigameMove'; cell: number }
+  | { k: 'useItem'; char: InstanceId; iid: InstanceId; targetChar?: InstanceId }
   | { k: 'swap'; activeChar: InstanceId; benchChar: InstanceId }
   | { k: 'recoverStatus'; char: InstanceId; status: StatusName }
   | { k: 'interfere'; iid: InstanceId; targetChar?: InstanceId }

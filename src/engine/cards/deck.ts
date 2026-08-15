@@ -3,7 +3,13 @@ import { CHARACTERS, CHARACTERS_BY_ID } from './characters'
 import { STUFF, STUFF_BY_ID } from './stuff'
 import { AFFAIRS, AFFAIRS_BY_ID } from './affairs'
 
+import { registerCharacterIds } from './schema'
+
 export { CHARACTERS, STUFF, AFFAIRS, CHARACTERS_BY_ID, STUFF_BY_ID, AFFAIRS_BY_ID }
+
+// Base-game Characters are always a legal target for character-locked stuff,
+// including stuff that arrives later in a third-party pack.
+registerCharacterIds(CHARACTERS.map((c) => c.id))
 
 export function getCharacterDef(id: DefId): CharacterDef {
   const d = CHARACTERS_BY_ID[id]
@@ -33,7 +39,9 @@ export function getAnyDef(id: DefId): CardDef {
  */
 export function buildFamilyDeckDefIds(playerCount: number): DefId[] {
   const mult = playerCount <= 3 ? 1 : 2
-  const charCopies = playerCount <= 3 ? 1 : 2
+  // Characters are the point of the game; a table of six wants bodies to
+  // recruit far more than it wants a third copy of every utility card.
+  const charCopies = playerCount <= 3 ? 2 : 3
 
   const out: DefId[] = []
   for (const c of CHARACTERS) {

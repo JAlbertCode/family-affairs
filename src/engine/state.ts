@@ -137,6 +137,7 @@ export function createGame(
   log(state, `Family Affairs — ${players.length} players, first to ${state.cloutToWin} Clout.`)
   revealAffair(state)
   log(state, `Round 1 turn order: ${state.turnOrder.map((p) => state.playerState[p].name).join(' -> ')}`)
+  autoDraw(state)
   return state
 }
 
@@ -214,10 +215,11 @@ function badLuckThreshold(state: GameState, ch: CharacterInstance): number {
   let t = 0
   const s = ch.statuses.find((x) => x.name === 'Bad Luck')
   if (s) t = Math.max(t, s.threshold ?? 1)
-  // Chi Chi — Bad Influence: anyone beside her, and anyone across from her,
-  // triggers Bad Luck on a natural 1-2. It catches her own family too. (§28)
+  // Chi Chi — Bad Influence (§28). She is worse for the people she is winding
+  // up than for the people she loves: rivals across from her go sideways on a
+  // natural 1-2, her own family only on a natural 1. It still catches them.
   for (const a of adjacentAllies(state, ch.iid)) {
-    if (getCharacterDef(a.defId).id === 'chichi') t = Math.max(t, 2)
+    if (getCharacterDef(a.defId).id === 'chichi') t = Math.max(t, 1)
   }
   for (const e of acrossFrom(state, ch.iid)) {
     if (getCharacterDef(e.defId).id === 'chichi') t = Math.max(t, 2)
@@ -324,6 +326,49 @@ function handle(state: GameState, pid: PlayerId, intent: Intent): string | undef
       return useAbility(state, pid, intent.char, intent.which, intent.targetChar)
     }
 
+    // ---------------------------------------------------------- USE ITEM ----
+    // Gear, Rides and Pets can carry an ability the holder triggers. Same
+    // budget and cooldown rules as a Character ability.
+    case 'useItem': {
+      if (!isCurrentPlayer(state, pid)) return 'Not your turn.'
+      const ch = state.characters[intent.char]
+      if (!ch || ch.owner !== pid) return 'Not your Character.'
+      if (!ch.attached.includes(intent.iid)) return 'That item is not equipped to this Character.'
+      const inst = state.stuff[intent.iid]
+      if (!inst) return 'Unknown item.'
+      const sd = getStuffDef(inst.defId)
+      const ab = sd.activated
+      if (!ab) return `${sd.name} has nothing to activate.`
+
+      const act = canAct(state, ch)
+      if (!act.ok) return act.why
+      const ps2 = state.playerState[pid]
+      if (ps2.actionsLeft < ab.actionCost) return 'No Family Actions left.'
+      const cdKey = `item:${sd.id}`
+      if (ab.oncePerGame && ch.cooldowns[cdKey] === -1) return `${ab.name} is once per game.`
+      if (ab.cooldown && (ch.cooldowns[cdKey] ?? -99) > state.round) {
+        return `${ab.name} is on cooldown until Round ${ch.cooldowns[cdKey]}.`
+      }
+      const need = needsTarget(ab.effects)
+      if (need && !intent.targetChar) return `${ab.name} needs a target.`
+
+      ps2.actionsLeft -= ab.actionCost
+      ch.actedThisTurn = true
+      log(state, `${getCharacterDef(ch.defId).name} uses ${sd.name} — ${ab.name}.`, 'play')
+      if (actionFails(state, ch)) return
+
+      if (ab.oncePerGame) ch.cooldowns[cdKey] = -1
+      else if (ab.cooldown) ch.cooldowns[cdKey] = state.round + ab.cooldown
+
+      runEffects(state, ab.effects, {
+        controller: pid,
+        sourceChar: ch.iid,
+        eventTarget: intent.targetChar ?? ch.iid,
+        chosen: intent.targetChar ? [intent.targetChar] : [],
+      })
+      return
+    }
+
     // ----------------------------------------------------------- CONSUME ----
     // Free (no Family Action) but once per Character per Turn, so feeding stays
     // fast at the table while attached Stuff remains a real, raidable board state.
@@ -427,6 +472,32 @@ function handle(state: GameState, pid: PlayerId, intent: Intent): string | undef
       const mg = state.minigame
       if (!mg || mg.done) return 'No minigame in progress.'
       if (mg.players[mg.turn] !== pid) return 'Not your move.'
+
+      if (mg.kind === 'rps') {
+        if (intent.cell < 0 || intent.cell > 2) return 'Pick rock, paper or scissors.'
+        mg.picks[mg.turn] = intent.cell
+        if (mg.picks[0] === null || mg.picks[1] === null) { mg.turn = mg.turn === 0 ? 1 : 0; return }
+        const [a, b] = mg.picks as [number, number]
+        const NAMES = ['Rock', 'Paper', 'Scissors']
+        log(state, `${NAMES[a]} vs ${NAMES[b]}.`, 'play')
+        if (a === b) {
+          mg.ties += 1
+          mg.picks = [null, null]
+          if (mg.ties >= 3) {
+            mg.done = true; mg.winner = null
+            log(state, 'Three draws. Everyone gives up.', 'play')
+            state.minigame = null
+          }
+          return
+        }
+        const firstWins = (a === 0 && b === 2) || (a === 1 && b === 0) || (a === 2 && b === 1)
+        mg.winner = mg.players[firstWins ? 0 : 1]
+        mg.done = true
+        log(state, `${state.playerState[mg.winner].name} wins the shoot-out.`, 'play')
+        resolveMinigameStake(state)
+        return
+      }
+
       if (intent.cell < 0 || intent.cell > 8) return 'Invalid square.'
       if (mg.board[intent.cell] !== null) return 'That square is taken.'
       mg.board[intent.cell] = mg.turn
@@ -527,6 +598,10 @@ function playCard(
     case 'Ride': {
       if (!target) return `${def.name} must be equipped to a Character.`
       if (target.owner !== pid) return 'You can only equip your own Characters.'
+      if (def.onlyFor && !def.onlyFor.includes(target.defId)) {
+        const who = def.onlyFor.map((id) => getCharacterDef(id).name).join(' or ')
+        return `${def.name} belongs to ${who}.`
+      }
       if (target.zone === 'recovering') return 'That Character is recovering.'
       const limit = def.subtype === 'Gear' ? gearSlots(target) : rideSlots(target)
       if (countAttached(state, target, def.subtype) >= limit) {
@@ -737,7 +812,11 @@ function resolveBattle(state: GameState) {
     if (getCharacterDef(ally.defId).id === 'amanda' && !ally.scratch.mommaBirdUsed && ally.owner === dfn.owner) {
       ally.scratch.mommaBirdUsed = 1
       realDefender = ally
-      log(state, `Momma Bird — Amanda takes the hit for ${dfnDef.name}.`, 'combat')
+      // She will take it, but she feels it. Without this the redirect was
+      // pure profit and Amanda was the strongest card in the game by a mile.
+      applyDamage(state, ally, 1, { controller: ally.owner }, 'Momma Bird')
+      log(state, `Momma Bird — Amanda steps in front of ${dfnDef.name} and wears one.`, 'combat')
+      if (ally.hp <= 0) { realDefender = dfn }
       break
     }
   }
@@ -774,6 +853,26 @@ function resolveBattle(state: GameState) {
     `${atkDef.name} ${atkStat}+${attackRoll}${b.attackMod ? `${b.attackMod > 0 ? '+' : ''}${b.attackMod}` : ''} = ${attackScore}  vs  ${getCharacterDef(realDefender.defId).name} ${dfnStat}+${defenseRoll}${b.defenseMod ? `${b.defenseMod > 0 ? '+' : ''}${b.defenseMod}` : ''} = ${defenseScore}`,
     'combat',
   )
+
+  // A dead heat is not a shrug. Both families square off and settle it with a
+  // single throw — short by design, and it makes the minigame mean something.
+  if (attackScore === defenseScore && b.attackerPlayer !== realDefender.owner) {
+    log(state, 'Dead heat. Somebody has to settle this.', 'combat')
+    state.minigame = {
+      kind: 'rps',
+      players: [b.attackerPlayer, realDefender.owner],
+      board: Array(9).fill(null),
+      picks: [null, null],
+      ties: 0,
+      turn: 0,
+      stake: { kind: 'battleTie', damage: 3, attackerChar: atk.iid, defenderChar: realDefender.iid },
+      winner: null,
+      done: false,
+      prompt: 'Winner lands 3 damage',
+    }
+    state.battle = null
+    return
+  }
 
   // Step 5 — damage (§14)
   const raw = attackScore - defenseScore
@@ -881,10 +980,25 @@ function endTurn(state: GameState, pid: PlayerId, recover?: LimitTrack) {
     startNewRound(state)
   }
 
-  state.phase = state.phase === 'gameover' ? 'gameover' : 'draw'
-  if (state.phase !== 'gameover') {
-    log(state, `${state.playerState[currentPlayer(state)].name}'s Turn.`)
+  if (state.phase === 'gameover') return
+  state.phase = 'draw'
+  log(state, `${state.playerState[currentPlayer(state)].name}'s Turn.`)
+  autoDraw(state)
+}
+
+/** With no Kitchen Table there is nothing to decide about drawing, so draw
+ *  automatically and drop the player straight into their real turn. */
+export function autoDraw(state: GameState) {
+  if (state.phase !== 'draw' || state.useKitchenTable) return
+  const pid = currentPlayer(state)
+  drawCards(state, pid, 1)
+  const ps = state.playerState[pid]
+  const last = ps.hand[ps.hand.length - 1]
+  if (last) {
+    if (state.characters[last]) state.characters[last].owner = pid
+    else if (state.stuff[last]) state.stuff[last].owner = pid
   }
+  state.phase = 'main'
 }
 
 // --------------------------------------------------------------------------
@@ -911,6 +1025,17 @@ function resolveMinigameStake(state: GameState) {
   const loser = mg.players[0] === winner ? mg.players[1] : mg.players[0]
   const ctx: EffectCtx = { controller: winner }
 
+  if (mg.stake.kind === 'battleTie') {
+    // whichever fighter's controller lost the throw takes the hit
+    const loserChar = winner === mg.players[0] ? mg.stake.defenderChar : mg.stake.attackerChar
+    const target = state.characters[loserChar]
+    if (target && target.hp > 0) {
+      const winnerChar = winner === mg.players[0] ? mg.stake.attackerChar : mg.stake.defenderChar
+      applyDamage(state, target, mg.stake.damage, { controller: winner, attacker: winnerChar, sourceChar: winnerChar }, 'settled it')
+    }
+    state.minigame = null
+    return
+  }
   if (mg.stake.kind === 'draw') {
     drawCards(state, winner, mg.stake.n)
     log(state, `${state.playerState[winner].name} draws ${mg.stake.n}.`, 'play')

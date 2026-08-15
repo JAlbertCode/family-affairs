@@ -18,6 +18,7 @@ type Targeting =
   | { kind: 'placeChar'; iid: InstanceId }
   | { kind: 'attack'; char: InstanceId }
   | { kind: 'ability'; char: InstanceId; which: 'ability' | 'powerMove'; scope: 'enemy' | 'ally' | 'any' }
+  | { kind: 'useItem'; char: InstanceId; iid: InstanceId; scope: 'enemy' | 'ally' | 'any' }
   | { kind: 'interfere'; iid: InstanceId }
   | null
 
@@ -42,6 +43,7 @@ export function Table({
   const [showLog, setShowLog] = useState(false)
   const [affairOpen, setAffairOpen] = useState(false)
   const [turnFlash, setTurnFlash] = useState(false)
+  const [autoPass, setAutoPass] = useState(false)
   const prevTurn = useRef<PlayerId | null>(null)
   const prevAffair = useRef<string | null>(null)
 
@@ -59,15 +61,23 @@ export function Table({
   // A new Family Affair announces itself instead of quietly changing a strip.
   useEffect(() => {
     if (state.currentAffair && prevAffair.current !== null && state.currentAffair !== prevAffair.current) {
-      setAffairOpen(true)
-      const t = setTimeout(() => setAffairOpen(false), 3600)
-      prevAffair.current = state.currentAffair
-      return () => clearTimeout(t)
+      setAffairOpen(true)   // stays until dismissed — it never times out
     }
     prevAffair.current = state.currentAffair
   }, [state.currentAffair])
 
   useEffect(() => { if (battle || minigame) { setTargeting(null); setSelected(null) } }, [!!battle, !!minigame])
+
+  // Any sheet left open belongs to the player who opened it. When the device
+  // changes hands — or the turn moves on — clear the lot, or the next player
+  // inherits somebody else's open card.
+  useEffect(() => {
+    setInspect(null)
+    setSelected(null)
+    setHandCard(null)
+    setTargeting(null)
+    setShowLog(false)
+  }, [you, state.turnIndex, state.round])
 
   const affair = state.currentAffair ? getAffairDef(state.currentAffair) : null
   const opponents = state.players.filter((p) => p !== you)
@@ -141,6 +151,10 @@ export function Table({
           if (targeting.scope === 'enemy' && mine) return
           if (targeting.scope === 'ally' && (!mine || iid === targeting.char)) return
           send({ k: 'useAbility', char: targeting.char, which: targeting.which, targetChar: iid }); break
+        case 'useItem':
+          if (targeting.scope === 'enemy' && mine) return
+          if (targeting.scope === 'ally' && !mine) return
+          send({ k: 'useItem', char: targeting.char, iid: targeting.iid, targetChar: iid }); break
         default: return
       }
       setTargeting(null)
@@ -155,7 +169,7 @@ export function Table({
     if (targeting.kind === 'playStuff') return legalTargets(targeting.iid).includes(iid) ? 'target' : null
     if (targeting.kind === 'interfere') return 'target'
     if (targeting.kind === 'attack') return mine ? (targeting.char === iid ? 'selected' : null) : 'target'
-    if (targeting.kind === 'ability') {
+    if (targeting.kind === 'ability' || targeting.kind === 'useItem') {
       if (targeting.char === iid) return 'selected'
       if (targeting.scope === 'enemy') return mine ? null : 'target'
       if (targeting.scope === 'ally') return mine ? 'target' : null
@@ -166,12 +180,40 @@ export function Table({
 
   const targetPrompt = !targeting ? null
     : targeting.kind === 'placeChar' ? 'Tap a slot to place them'
-    : targeting.kind === 'playStuff' ? `Tap who gets ${cardLabel(state, targeting.iid)}`
+    : targeting.kind === 'playStuff'
+      ? `Tap who gets ${cardLabel(state, targeting.iid)} — anyone at the table`
     : targeting.kind === 'attack' ? 'Tap an enemy to attack'
     : targeting.kind === 'interfere' ? 'Tap who it hits'
+    : targeting.kind === 'useItem' ? (targeting.scope === 'enemy' ? 'Tap an enemy' : 'Tap a target')
     : targeting.scope === 'enemy' ? 'Tap an enemy'
     : targeting.scope === 'ally' ? 'Tap an ally'
     : 'Tap a target'
+
+  // Is there anything left this Turn? If not, say so plainly rather than
+  // leaving the player hunting for a move that does not exist.
+  const anyPlayable = me.hand.some((i) => playabilityOf(i).ok)
+  const anyActor = me.actionsLeft > 0 && activeCharacters(state, you).some((c) => {
+    if (c.actedThisTurn || hasStatus(c, 'Asleep') || hasStatus(c, 'Away')) return false
+    return true
+  })
+  const nothingToDo = isMyTurn && state.phase === 'main' && !battle && !minigame
+    && !anyPlayable && !anyActor
+
+  // If the Turn is genuinely dead — nothing playable, nobody able to act —
+  // there is no decision left to make, so the game makes it. Sitting on a
+  // board with no legal move and hunting for the End Turn button is not a
+  // choice, it is a chore, and it happens every single Round.
+  useEffect(() => {
+    if (!nothingToDo) { setAutoPass(false); return }
+    setAutoPass(true)
+    const t = setTimeout(() => {
+      if (me.hand.length > HAND_LIMIT) {
+        send({ k: 'discardDown', iids: me.hand.slice(0, me.hand.length - HAND_LIMIT) })
+      }
+      send({ k: 'endTurn' })
+    }, 1400)
+    return () => clearTimeout(t)
+  }, [nothingToDo, state.turnIndex, state.round])
 
   // ------------------------------------------------------------- game over
   if (state.phase === 'gameover') {
@@ -221,10 +263,12 @@ export function Table({
 
       {affair && (
         <button className="affair" onClick={() => setAffairOpen(true)}>
-          <span className="t">Affair</span>
-          <span className="n">{affair.name}</span>
-          <span className="d">{affair.text}</span>
-          <span className="more">?</span>
+          <span className="a-badge">FAMILY<br />AFFAIR</span>
+          <span className="a-body">
+            <span className="n">{affair.name}</span>
+            <span className="d">{affair.text}</span>
+          </span>
+          <span className="a-live">ACTIVE<br />NOW</span>
         </button>
       )}
 
@@ -326,9 +370,9 @@ export function Table({
       )}
 
       {/* ---------------------------------------------- HAND (bottom) ---- */}
-      <div className="handstrip">
+      {!targeting && <div className={`handstrip ${state.phase === 'draw' ? 'predraw' : ''}`}>
         <div className="hs-head">
-          <span>Your hand</span>
+          <span>{state.phase === 'draw' ? 'Drawing…' : 'Your hand'}</span>
           <b>{me.hand.length}/{HAND_LIMIT}</b>
         </div>
         <div className="hs-rail">
@@ -354,7 +398,7 @@ export function Table({
             )
           })}
         </div>
-      </div>
+      </div>}
 
       {/* ------------------------------------------------- ACTION BAR ---- */}
       <div className="actionbar">
@@ -376,13 +420,15 @@ export function Table({
               </div>
             )}
           </>
+        ) : targeting ? (
+          <button className="btn ghost" onClick={() => setTargeting(null)}>Cancel</button>
         ) : isMyTurn ? (
-          <button className="btn" onClick={() => {
+          <button className={`btn ${autoPass ? 'gold passing' : ''}`} data-testid="end-turn" onClick={() => {
             if (me.hand.length > HAND_LIMIT) {
               send({ k: 'discardDown', iids: me.hand.slice(0, me.hand.length - HAND_LIMIT) })
             }
             send({ k: 'endTurn' })
-          }}>End turn</button>
+          }}>{autoPass ? 'Nothing you can do — passing…' : 'End turn'}</button>
         ) : (
           <div className="waiting">Waiting for {state.playerState[currentPlayer(state)].name}…</div>
         )}
@@ -398,7 +444,7 @@ export function Table({
             <span className="ac-kicker">Family Affair</span>
             <h2>{affair.name}</h2>
             <p>{affair.text}</p>
-            <span className="ac-foot">Active for this Round — it affects everybody</span>
+            <span className="ac-foot">This is live for the whole Round and it hits everybody at the table.</span>
             <button className="btn" onClick={() => setAffairOpen(false)}>Got it</button>
           </div>
         </div>
@@ -470,6 +516,10 @@ function CharacterActions({
     const s = state.stuff[i]
     return s && ['Food', 'Drink', 'Smoke'].includes(getStuffDef(s.defId).subtype)
   })
+  const usableItems = ch.attached.filter((i: string) => {
+    const s = state.stuff[i]
+    return s && !!getStuffDef(s.defId).activated
+  })
 
   function abilityChip(which: 'ability' | 'powerMove') {
     const ab = which === 'ability' ? def.ability : def.powerMove
@@ -515,6 +565,26 @@ function CharacterActions({
         </button>
         {abilityChip('ability')}
         {abilityChip('powerMove')}
+
+        {usableItems.map((i: string) => {
+          const sd = getStuffDef(state.stuff[i].defId)
+          const ab = sd.activated!
+          const cdKey = `item:${sd.id}`
+          const onCd = ab.oncePerGame ? ch.cooldowns[cdKey] === -1
+            : (ab.cooldown ? (ch.cooldowns[cdKey] ?? -99) > state.round : false)
+          const need = needsTarget(ab.effects)
+          const disabled = !act.ok || me.actionsLeft < ab.actionCost || onCd
+          return (
+            <button key={i} className="chip item" disabled={disabled}
+              onClick={() => {
+                if (need) onTarget({ kind: 'useItem', char: ch.iid, iid: i, scope: need })
+                else { send({ k: 'useItem', char: ch.iid, iid: i }); onClose() }
+              }}>
+              <b>{sd.icon} {ab.name}</b>
+              <i>{onCd ? 'On cooldown' : ab.text.slice(0, 44) + (ab.text.length > 44 ? '…' : '')}</i>
+            </button>
+          )
+        })}
 
         {consumables.map((i: string) => {
           const sd = getStuffDef(state.stuff[i].defId)

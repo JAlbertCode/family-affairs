@@ -5,6 +5,7 @@ import {
   countAttached, limitTier, hasStatus, openSlots, currentPlayer, itemCap, totalItemCap,
 } from '../engine/selectors'
 import { needsTarget } from '../engine/effects'
+import { effectsCost } from '../engine/cards/schema'
 import { HAND_LIMIT } from '../engine/state'
 
 /**
@@ -37,6 +38,10 @@ export function botIntent(state: GameState, pid: PlayerId): Intent | null {
   const mg = state.minigame
   if (mg && !mg.done) {
     if (mg.players[mg.turn] !== pid) return null
+    if (mg.kind === 'rps') {
+      // vary the throw by seat and tie count so it is not always rock
+      return { k: 'minigameMove', cell: (pid.charCodeAt(1) + mg.ties) % 3 }
+    }
     return { k: 'minigameMove', cell: ticTacToeMove(mg.board, mg.turn) }
   }
 
@@ -95,7 +100,9 @@ export function botIntent(state: GameState, pid: PlayerId): Intent | null {
 
       if (def.subtype === 'Gear' || def.subtype === 'Ride') {
         const limit = def.subtype === 'Gear' ? gearSlots : rideSlots
-        const target = mine.find((c) => countAttached(state, c, def.subtype) < limit(c))
+        const target = mine.find((c) =>
+          countAttached(state, c, def.subtype) < limit(c)
+          && (!def.onlyFor || def.onlyFor.includes(c.defId)))
         if (target) return { k: 'playCard', iid, targetChar: target.iid }
       }
 
@@ -108,14 +115,24 @@ export function botIntent(state: GameState, pid: PlayerId): Intent | null {
       }
 
       if (def.subtype === 'Consumable' && !def.interfere) {
-        return { k: 'playCard', iid }
+        // A Consumable that says "choose a Character" is unplayable without
+        // one, so the bot has to pick — otherwise the card jams in hand and
+        // never contributes to the balance numbers.
+        const need = needsTarget(def.effects)
+        if (!need) return { k: 'playCard', iid }
+        const pool = need === 'ally' ? mine : enemies
+        if (pool[0]) return { k: 'playCard', iid, targetChar: pool[0].iid }
       }
     }
   }
 
   // ---- 2. spend Family Actions ----
   if (ps.actionsLeft > 0) {
-    // abilities first, they are usually stronger than a bare attack
+    // Abilities before a bare attack. Pick the strongest LEGAL option rather
+    // than always reaching for the Power Move: preferring the Power Move by
+    // position meant a Character's ability was never played and never tested,
+    // which quietly hid half of every kit from the balance numbers.
+    let best: { intent: Intent; score: number } | null = null
     for (const ch of mine) {
       if (ch.actedThisTurn || hasStatus(ch, 'Asleep') || hasStatus(ch, 'Away')) continue
       const def = getCharacterDef(ch.defId)
@@ -132,10 +149,37 @@ export function botIntent(state: GameState, pid: PlayerId): Intent | null {
           if (!ok) continue
         }
         const need = needsTarget(ab.effects)
-        if (!need) return { k: 'useAbility', char: ch.iid, which }
+        let intent: Intent | null = null
+        if (!need) intent = { k: 'useAbility', char: ch.iid, which }
+        else {
+          const pool = need === 'ally' ? mine.filter((c) => c.iid !== ch.iid) : enemies
+          const target = pool[0]
+          if (target) intent = { k: 'useAbility', char: ch.iid, which, targetChar: target.iid }
+        }
+        if (!intent) continue
+        // Save a limited move for when it is actually the better play.
+        const score = effectsCost(ab.effects) - (ab.oncePerGame ? 2 : (ab.cooldown ?? 0) * 0.5)
+        if (!best || score > best.score) best = { intent, score }
+      }
+    }
+    if (best) return best.intent
+
+    // activated Gear before a bare attack — it is usually stronger
+    for (const ch of mine) {
+      if (ch.actedThisTurn || hasStatus(ch, 'Asleep') || hasStatus(ch, 'Away')) continue
+      for (const i of ch.attached) {
+        const st = state.stuff[i]
+        if (!st) continue
+        const sd = getStuffDef(st.defId)
+        const ab = sd.activated
+        if (!ab) continue
+        const cdKey = `item:${sd.id}`
+        if (ab.oncePerGame && ch.cooldowns[cdKey] === -1) continue
+        if (ab.cooldown && (ch.cooldowns[cdKey] ?? -99) > state.round) continue
+        const need = needsTarget(ab.effects)
+        if (!need) return { k: 'useItem', char: ch.iid, iid: i }
         const pool = need === 'ally' ? mine.filter((c) => c.iid !== ch.iid) : enemies
-        const target = pool[0]
-        if (target) return { k: 'useAbility', char: ch.iid, which, targetChar: target.iid }
+        if (pool[0]) return { k: 'useItem', char: ch.iid, iid: i, targetChar: pool[0].iid }
       }
     }
 
