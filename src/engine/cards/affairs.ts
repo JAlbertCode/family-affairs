@@ -26,6 +26,7 @@ export const AFFAIRS: AffairDef[] = [
       { k: 'statMod', target: { scope: 'allActiveEveryone', withTag: 'Kid' }, stat: 'speed', amount: 1, duration: 'round' },
       { k: 'statMod', target: { scope: 'allActiveEveryone', withTag: 'Troublemaker' }, stat: 'attack', amount: 1, duration: 'round' },
       { k: 'statMod', target: { scope: 'allActiveEveryone', withTag: 'Brother' }, stat: 'attack', amount: -1, duration: 'round' },
+      { k: 'draw', player: 'all', n: 1 },
     ],
   },
   {
@@ -43,6 +44,7 @@ export const AFFAIRS: AffairDef[] = [
     effects: [
       { k: 'status', target: { scope: 'allActiveEveryone', withTag: 'Sister' }, status: 'Busy', duration: 1 },
       { k: 'status', target: { scope: 'allActiveEveryone', withTag: 'Elder' }, status: 'Fired Up', duration: 1 },
+      { k: 'statMod', target: { scope: 'allActiveEveryone' }, stat: 'defense', amount: -1, duration: 'round' },
     ],
   },
   {
@@ -64,9 +66,9 @@ export const AFFAIRS: AffairDef[] = [
   },
   {
     kind: 'affair', id: 'listedonebay', name: 'Listed On eBay', duration: 'immediate', color: C,
-    text: 'Somebody sold somebody else’s stuff. Every Wheel Gang Character loses their equipped Ride. Their controllers draw 2 cards.',
+    text: 'Somebody sold somebody else’s stuff. Every Character loses their equipped Ride and everyone draws a card with the proceeds.',
     effects: [
-      { k: 'destroyStuff', from: { scope: 'allActiveEveryone', withTag: 'Wheel Gang' }, subtype: 'Ride' },
+      { k: 'destroyStuff', from: { scope: 'allActiveEveryone' }, subtype: 'Ride' },
       { k: 'draw', player: 'all', n: 1 },
     ],
   },
@@ -140,9 +142,10 @@ export const AFFAIRS: AffairDef[] = [
   },
   {
     kind: 'affair', id: 'everyonesbroke', name: "Everyone's Broke Until Friday", duration: 'round', color: C,
-    text: 'Every player discards 1 card at random. Collectors draw 1 instead because they already had it.',
+    text: 'Every player discards 1 card at random. Everyone loses 1 Attack this Round from the mood.',
     effects: [
       { k: 'discard', player: 'all', n: 1, random: true },
+      { k: 'statMod', target: { scope: 'allActiveEveryone' }, stat: 'attack', amount: -1, duration: 'round' },
     ],
   },
   {

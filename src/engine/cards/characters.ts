@@ -24,7 +24,7 @@ export const CHARACTERS: CharacterDef[] = [
     tags: ['Sister', 'Stoner', 'Troublemaker', 'Trickster'],
     tolerance: T(3, 4, 3), // Professional (§52)
     color: '#7c5cbf',
-    art: 'chichi.png',
+    art: 'chichi.webp',
     passive: {
       name: 'Professional Stoner',
       text: 'Chi Chi becomes Zooted at Weed 4 instead of Weed 3.',
@@ -78,7 +78,7 @@ export const CHARACTERS: CharacterDef[] = [
     tags: ['Brother', 'Foodie', 'Caretaker', 'Heavyweight'],
     tolerance: T(3, 3, 4), // Bottomless Pit (§53)
     color: '#e0a43c',
-    art: 'dorian.png',
+    art: 'dorian.webp',
     passive: {
       name: 'Bottomless Pit',
       text: 'Dorian may reach Food 4. He does not become Stuffed until Food 4.',
@@ -127,7 +127,7 @@ export const CHARACTERS: CharacterDef[] = [
     tags: ['Kid', 'Twin', 'Psychic', 'Troublemaker'],
     tolerance: DEFAULT_TOL,
     color: '#e2603f',
-    art: 'mikeymoe.png',
+    art: 'mikeymoe.webp',
     passive: {
       name: 'Twin Energy',
       text: 'Adjacent allied Characters gain +1 Speed.',
@@ -175,7 +175,7 @@ export const CHARACTERS: CharacterDef[] = [
     tags: ['Uncle', 'Psychic', 'Heavyweight', 'Wheel Gang', 'Adult'],
     tolerance: T(4, 3, 4), // heavyweight
     color: '#8e5bb5',
-    art: 'manny.png',
+    art: 'manny.webp',
     passive: {
       name: 'Big Chain',
       text: 'Adjacent allied Characters gain +1 Attack. Manny is Heavyweight: Alcohol tolerance 4.',
@@ -221,7 +221,7 @@ export const CHARACTERS: CharacterDef[] = [
     tags: ['Grandma', 'Elder', 'Cook', 'Adult'],
     tolerance: DEFAULT_TOL,
     color: '#c9772f',
-    art: 'grandma.png',
+    art: 'grandma.webp',
     passive: {
       name: 'I Knew It',
       text: 'The first time each Round a Family Affair negatively affects Grandma, she gains +1 Attack for the Round.',
@@ -270,7 +270,7 @@ export const CHARACTERS: CharacterDef[] = [
     tags: ['Brother', 'Musician', 'Wheel Gang', 'Party Animal'],
     tolerance: T(4, 3, 3), // party animal handles his liquor
     color: '#4aa3d8',
-    art: 'xavi.png',
+    art: 'xavi.webp',
     passive: {
       name: 'Wheel Life',
       text: 'Xavi may equip two Rides simultaneously and ignores Speed penalties from Rides.',
@@ -328,12 +328,12 @@ export const CHARACTERS: CharacterDef[] = [
     title: 'The Baker',
     archetype: 'Support',
     stats: { hp: 13, attack: 3, defense: 4, speed: 4 },
-    tags: ['Mom', 'Baker', 'Cook', 'Animal Lover', 'Lightweight', 'Adult'],
+    tags: ['Mom', 'Baker', 'Cook', 'Lightweight', 'Adult'],
     tolerance: T(2, 3, 3), // Lightweight (§21)
     gearSlots: 2, // she carries more than most, but 3 stacked too much value
     itemSlots: 4, // "Amanda can have up to 4 Items attached to her"
     color: '#e878a8',
-    art: 'amanda.png',
+    art: 'amanda.webp',
     passive: {
       name: 'Momma Bird',
       text: 'Once per Round, redirect an attack targeting an adjacent ally onto Amanda instead.',
@@ -382,7 +382,7 @@ export const CHARACTERS: CharacterDef[] = [
     tags: ['Aunt', 'Collector', 'Party Animal', 'Troublemaker', 'Adult'],
     tolerance: T(4, 3, 3),
     color: '#d98cae',
-    art: 'titibum.png',
+    art: 'titibum.webp',
     passive: {
       name: 'Good Luck Charm',
       text: 'Your other Active Characters ignore the first Bad Luck trigger each Round.',
@@ -430,7 +430,7 @@ export const CHARACTERS: CharacterDef[] = [
     tags: ['Aunt', 'Elder', 'Caretaker', 'Cook', 'Adult'],
     tolerance: DEFAULT_TOL,
     color: '#b9a24a',
-    art: 'titibibi.png',
+    art: 'titibibi.webp',
     passive: {
       name: 'No Violence In This House',
       text: 'Adjacent enemy Characters suffer -1 Attack. Titi Bibi never attacks first willingly.',
@@ -490,7 +490,7 @@ export const CHARACTERS: CharacterDef[] = [
     tags: ['Brother', 'Athlete', 'Foodie', 'Troublemaker'],
     tolerance: T(3, 3, 3),
     color: '#6d8f3f',
-    art: 'gabby.png',
+    art: 'gabby.webp',
     passive: {
       name: 'Always Prepared',
       text: 'Gabby ignores the first Bad Luck effect that would hit him each Round.',
@@ -541,7 +541,7 @@ export const CHARACTERS: CharacterDef[] = [
     tags: ['Dad', 'Tech', 'Psychic', 'Adult'],
     tolerance: DEFAULT_TOL,
     color: '#3fb6c9',
-    art: 'jay.png',
+    art: 'jay.webp',
     passive: {
       name: 'Avatar Mode',
       text: 'Jay is immune to Confused and Charmed. He fights through code.',
@@ -589,7 +589,7 @@ export const CHARACTERS: CharacterDef[] = [
     tags: ['Sister', 'Collector', 'Troublemaker', 'Psychic'],
     tolerance: DEFAULT_TOL,
     color: '#a63a63',
-    art: 'dainese.png',
+    art: 'dainese.webp',
     passive: {
       name: 'Fear Feed',
       text: 'Whenever an enemy Character gains a status effect, Dainese heals 1 HP.',

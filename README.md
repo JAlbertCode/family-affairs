@@ -4,19 +4,75 @@ A competitive family battle card game. 2–6 players, live, on their own phones.
 
 Digital implementation of **Game Design & Ruleset v0.1**.
 
-## Play
+## Run it
 
-- **Online:** one person taps *Host a game* and reads out the 4-letter room code; everyone else taps *Join with a code*. The host's browser runs the game — if they close the tab, the game ends.
-- **One device:** *Pass and play on this device* runs the whole table on one phone. Good for testing and for a real kitchen table.
-- **Install it:** open the site on a phone and Add to Home Screen. It runs full-screen like an app.
+One command. It installs, builds, and serves:
+
+```bash
+npm start
+```
+
+It prints two URLs:
+
+```
+  Local:   http://localhost:4173/
+  Network: http://192.168.1.42:4173/     <- open this one on your phone
+```
+
+The **Network** URL works on any device on the same wifi, which is how you test
+with real phones before deploying anywhere.
+
+## How to test it
+
+**Fastest — one device, no setup.** Open the site, tap **Play on this device**,
+pick a player count, hit Start. Every player shares the one screen and a gold
+banner at the top tells you whose turn it is. You can play all the seats yourself
+to learn the game; nothing is hidden between seats in this mode.
+
+**Two browser tabs.** Tab 1: *Host a game* → note the 4-letter code. Tab 2: open
+the same URL → *Join with a code* → type it. Two tabs in one browser share the
+saved name, so the second one shows up as e.g. "Jay (2)" — that is expected. Once
+2 players are in the lobby, the host's Start button turns gold.
+
+**Real phones.** Run `npm start`, open the **Network** URL on each phone, then
+host on one and join on the others. This is the setup worth testing before a real
+game night, because it exercises the actual peer-to-peer path.
+
+> The host's device runs the game. If the host closes the tab or their phone
+> sleeps, the game ends for everyone.
 
 ## Develop
 
 ```bash
 npm install
-npm run dev        # local dev server
+npm run dev        # dev server with hot reload, also on the network
 npm run build      # typecheck + production build
+npm test           # seat-assignment tests, card validation, balance sim
 ```
+
+## Card validation
+
+Every card — ours and anyone else's — is checked against the ruleset before it
+can load. Run it with:
+
+```bash
+npm run validate
+```
+
+`src/engine/cards/schema.ts` holds the hard constraints (HP 8-18,
+Attack+Defense+Speed 10-12, damage ceilings, mandatory Family Flaw, no card may
+hand out Clout directly) plus a **power budget** that prices each ability's
+effects and rejects anything over cap. Self-inflicted drawbacks score negative,
+so a character who pays for their own power is priced correctly.
+
+This is what makes third-party cards safe: `validatePack()` takes a
+`CardPack` of characters, stuff and affairs from anyone, and returns every
+violation. Anything with severity `error` must block loading. A model writing
+cards cannot invent a 40-damage ability, a stat line that breaks the budget, or
+a tag the engine has never heard of — the validator refuses it.
+
+The budget is a guardrail against absurd cards, not a balance oracle. Real
+balance still comes from the simulator and from humans playing.
 
 ## Balance tooling
 

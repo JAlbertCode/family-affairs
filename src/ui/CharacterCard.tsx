@@ -43,7 +43,15 @@ export function CharacterCard({
       onClick={onClick}
       disabled={disabled || !onClick}
     >
-      {def.art && <img className="ch-art" src={`${BASE}art/${def.art}`} alt="" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />}
+      {def.art && (
+        <>
+          <img
+            className="ch-art" src={`${BASE}art/${def.art}`} alt="" loading="lazy"
+            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+          />
+          <span className="ch-scrim" />
+        </>
+      )}
       <span className="ch-body">
         <span className="ch-name" style={{ color: def.color }}>{def.name}</span>
 

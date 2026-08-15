@@ -4,13 +4,17 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "start": "npm install && npm run build && vite preview --host --port 4173",
+    "dev": "vite --host",
     "build": "tsc -b --noEmit && vite build",
-    "preview": "vite preview",
-    "sim": "tsx src/sim/simulate.ts",
-    "test": "tsx src/sim/simulate.ts",
+    "preview": "vite preview --host --port 4173",
     "icons": "node scripts/make-icons.mjs",
-    "prebuild": "node scripts/make-icons.mjs"
+    "prebuild": "node scripts/make-icons.mjs",
+    "validate": "tsx src/engine/cards/validate.ts",
+    "sim": "tsx src/sim/simulate.ts",
+    "sweep": "tsx src/sim/sweep.ts",
+    "diagnose": "tsx src/sim/diagnose.ts",
+    "test": "tsx src/net/seat.test.ts && tsx src/engine/cards/validate.ts && tsx src/sim/simulate.ts"
   },
   "dependencies": {
     "peerjs": "^1.5.4",

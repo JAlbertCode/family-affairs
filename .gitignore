@@ -8,4 +8,5 @@ dbg.mjs
 public/icons/*.png
 tsconfig.tsbuildinfo
 _to_delete/
-_incoming.tar.gz
+_stage/
+_incoming*.tar.gz

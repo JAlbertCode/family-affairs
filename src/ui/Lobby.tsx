@@ -73,26 +73,34 @@ export function Lobby({
             </div>
 
             <div className="card-panel">
-              <span className="field-label">Kitchen Table (optional rule §42)</span>
+              <span className="field-label">Shared card row</span>
               <div className="seg">
                 <button aria-pressed={!kitchen} onClick={() => setKitchen(false)}>Off</button>
                 <button aria-pressed={kitchen} onClick={() => setKitchen(true)}>On</button>
               </div>
               <div className="lobby-tag" style={{ marginTop: 8 }}>
-                Three cards face-up in the middle. On your draw you may take one instead of drawing blind.
+                Puts three cards face-up in the middle. On your turn you can take one of those
+                instead of drawing blind — so everyone can see what everyone else wants.
               </div>
             </div>
 
             <button className="btn gold" disabled={count < 2 || busy} onClick={() => onStart(clout, kitchen)}>
-              Start the Family Affair
+              {count < 2 ? 'Waiting for one more player…' : 'Start the Family Affair'}
             </button>
+            {count < 2 && (
+              <div className="lobby-tag" style={{ marginTop: -8 }}>
+                You need at least 2 players. Share the code <strong>{view.code}</strong>, or go back
+                and pick <strong>Play on this device</strong> to try the game on your own.
+              </div>
+            )}
           </>
         ) : (
           <div className="lobby-tag">Waiting for the host to start…</div>
         )}
 
         <div className="warn">
-          Heads up: the host's device runs the game. If they close this tab, the game ends for everyone.
+          Your device is running the game. If you close this tab, the game ends for everyone —
+          so keep it open and don't let your phone sleep.
         </div>
         {view.error && <div className="err">{view.error}</div>}
       </div>
@@ -129,20 +137,29 @@ export function Lobby({
             Join with a code
           </button>
           <button className="btn ghost" data-testid="local-mode" onClick={() => setScreen('local')}>
-            Pass and play on this device
+            Play on this device
           </button>
+          <div className="lobby-tag">
+            <strong style={{ color: 'var(--gold)' }}>Just want to see how it plays?</strong> Pick
+            “Play on this device”. It runs every player on this one screen and you take each turn
+            in order — no second phone, nobody else needed.
+          </div>
         </>
       ) : screen === 'local' ? (
         <>
           <div className="card-panel">
-            <span className="field-label">How many players at this table?</span>
+            <span className="field-label">How many players?</span>
             <div className="seg">
               {[2, 3, 4, 5, 6].map((n) => (
                 <button key={n} aria-pressed={localCount === n} onClick={() => setLocalCount(n)}>{n}</button>
               ))}
             </div>
             <div className="lobby-tag" style={{ marginTop: 8 }}>
-              One device, passed around. First to {defaultCloutToWin(localCount)} Clout — about 30-40 minutes.
+              Everyone plays on this screen, one turn at a time. A gold banner at the top always
+              says whose turn it is, so you know when to hand it over. You can also play all the
+              seats yourself to learn the game.
+              <br /><br />
+              First to {defaultCloutToWin(localCount)} Clout wins — roughly 30-40 minutes.
             </div>
           </div>
           <button
@@ -151,7 +168,7 @@ export function Lobby({
               Array.from({ length: localCount }, (_, i) => `Player ${i + 1}`),
               defaultCloutToWin(localCount), false,
             )}
-          >Start pass-and-play</button>
+          >Start game</button>
           <button className="btn ghost" onClick={() => setScreen('home')}>Back</button>
         </>
       ) : (
@@ -174,8 +191,8 @@ export function Lobby({
       {view.error && <div className="err">{view.error}</div>}
 
       <div className="lobby-tag" style={{ marginTop: 'auto', paddingTop: 12 }}>
-        Everyone plays on their own device. One person hosts and shares the 4-letter code.
-        Add this page to your home screen to play it like an app.
+        To play with other people: one person hosts and reads out the 4-letter code, everyone
+        else joins with it. Add this page to your home screen to play it like an app.
       </div>
     </div>
   )

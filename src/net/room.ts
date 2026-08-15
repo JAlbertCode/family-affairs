@@ -2,7 +2,7 @@ import Peer, { type DataConnection } from 'peerjs'
 import type { GameState, Intent, PlayerId } from '../engine/types'
 import { applyIntent, createGame, redactFor } from '../engine/state'
 import {
-  PROTOCOL_VERSION, makeRoomCode, normalizeRoomCode, peerIdForRoom,
+  PROTOCOL_VERSION, makeRoomCode, normalizeRoomCode, peerIdForRoom, assignSeat,
   type ClientMsg, type HostMsg, type LobbyPlayer,
 } from './protocol'
 
@@ -206,24 +206,22 @@ export class Room {
         this.send(conn, { t: 'kicked', reason: 'Different game version — everyone should reload the page.' })
         return
       }
-      // reconnect to an existing seat if the name matches
-      let pid: PlayerId | undefined
-      for (const [id, n] of this.names) {
-        if (n === msg.name && !(this.conns.get(id)?.open)) { pid = id; break }
+      const seatResult = assignSeat({
+        name: msg.name,
+        order: this.order,
+        names: this.names,
+        connOpen: new Map([...this.conns].map(([id, c]) => [id, c.open])),
+        hostSeat: this.you,
+        started: !!this.game,
+        maxPlayers: 6,
+      })
+      if (!seatResult.ok) {
+        this.send(conn, { t: 'kicked', reason: seatResult.reason })
+        return
       }
-      if (!pid) {
-        if (this.game) {
-          this.send(conn, { t: 'kicked', reason: 'That game has already started.' })
-          return
-        }
-        if (this.order.length >= 6) {
-          this.send(conn, { t: 'kicked', reason: 'This game is full (6 players).' })
-          return
-        }
-        pid = `p${this.order.length}`
-        this.order.push(pid)
-      }
-      this.names.set(pid, msg.name || `Player ${this.order.length}`)
+      const pid = seatResult.seat
+      if (seatResult.isNewSeat) this.order.push(pid)
+      this.names.set(pid, seatResult.name)
       this.conns.set(pid, conn)
       if (this.game) this.game.playerState[pid].connected = true
 
