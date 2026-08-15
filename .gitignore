@@ -6,3 +6,7 @@ dist/
 shots/
 dbg.mjs
 public/icons/*.png
+tsconfig.tsbuildinfo
+_to_delete/
+_stage*/
+_incoming*.tar.gz
