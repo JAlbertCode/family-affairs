@@ -5,6 +5,7 @@ dist/
 .vite/
 shots/
 stuck.png
+dbg.mjs
 public/icons/*.png
 tsconfig.tsbuildinfo
 _to_delete/
