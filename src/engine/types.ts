@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// FAMILY AFFAIRS — core types
+// FAMILY AFFAIRS - core types
 // Implements Game Design & Ruleset v0.1
 // ---------------------------------------------------------------------------
 
@@ -205,7 +205,7 @@ export interface CharacterDef {
   powerMove?: Ability
   flaw?: Passive
   achievement?: Achievement
-  /** art file in /public/art, e.g. "chichi.png" — optional */
+  /** art file in /public/art, e.g. "chichi.png" - optional */
   art?: string
   /** accent colour for the card frame */
   color: string
@@ -231,7 +231,7 @@ export interface StuffDef {
   /** Some things belong to one person. Only these Characters may hold it. */
   onlyFor?: DefId[]
   /** A Gear or Ride that can also be eaten. Consuming it applies limitGain and
-   *  effects the same way Food does, and the item is gone afterwards — which
+   *  effects the same way Food does, and the item is gone afterwards - which
    *  is the whole decision: wear it, or eat it once. */
   edible?: boolean
   /** Food/Drink/Smoke: limit gained on consumption */
@@ -389,7 +389,7 @@ export interface GameState {
   familyDiscard: InstanceId[]
   affairsDeck: DefId[]
   affairsDiscard: DefId[]
-  /** the Kitchen Table market (§42) — 3 face-up cards */
+  /** the Kitchen Table market (§42) - 3 face-up cards */
   kitchenTable: (InstanceId | null)[]
   useKitchenTable: boolean
   currentAffair: DefId | null
@@ -401,10 +401,10 @@ export interface GameState {
   /** Set once someone crosses the Clout threshold. The Round is played out so
    *  every seat gets the same number of Turns, then the game ends. */
   finalRound: boolean
-  /** order in which players crossed the threshold — breaks ties */
+  /** order in which players crossed the threshold - breaks ties */
   reachedThreshold: PlayerId[]
   winner: PlayerId | null
-  /** Clout scored per player, per achievement key — once each, per player. */
+  /** Clout scored per player, per achievement key - once each, per player. */
   achievementsScored: Record<PlayerId, string[]>
   /** Scoreboard breakdown, survives log truncation. */
   cloutSources: Record<PlayerId, { combat: number; achievement: number; other: number }>
@@ -422,7 +422,7 @@ export interface GameState {
 
 export interface MinigameState {
   /** 'rps' resolves in one pick each and exists because tic tac toe is the
-   *  long one — a minigame must never hold the table up for long. */
+   *  long one - a minigame must never hold the table up for long. */
   kind: 'tictactoe' | 'rps'
   /** the two players involved; [0] moves first and is X */
   players: [PlayerId, PlayerId]

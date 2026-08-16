@@ -53,13 +53,17 @@ export function Table({
   // which is where the Drunk/High/Stuffed meters live. If you cannot see those
   // without opening something, they may as well not be on the board.
   const [handOpen, setHandOpen] = useState(true)
+  // A nudge, not a shot clock. Auto-passing somebody's turn in a party game
+  // punishes the person telling a story, which is most of why anyone is here;
+  // a visible clock gets the table to move without taking anything away.
+  const [elapsed, setElapsed] = useState(0)
   // While choosing a target, a tap commits. That left no way to check what you
   // are aiming at, which is exactly when you most want to know.
   const [peek, setPeek] = useState(false)
   // Attacking lived two taps deep behind a Character token, and players kept
   // finishing whole games without finding it. It gets its own button.
   const [pickAttacker, setPickAttacker] = useState(false)
-  // Applying a card to somebody resolved silently — the only record was a log
+  // Applying a card to somebody resolved silently - the only record was a log
   // you had to open. This surfaces the result of your own action for a beat.
   const [flash, setFlash] = useState<string[] | null>(null)
   const lastTick = useRef<number>(-1)
@@ -80,7 +84,7 @@ export function Table({
   // A new Family Affair announces itself instead of quietly changing a strip.
   useEffect(() => {
     if (state.currentAffair && prevAffair.current !== null && state.currentAffair !== prevAffair.current) {
-      setAffairOpen(true)   // stays until dismissed — it never times out
+      setAffairOpen(true)   // stays until dismissed - it never times out
     }
     prevAffair.current = state.currentAffair
   }, [state.currentAffair])
@@ -100,7 +104,7 @@ export function Table({
   }, [targeting?.kind, (targeting as any)?.iid, (targeting as any)?.char, pickAttacker])
 
   // Any sheet left open belongs to the player who opened it. When the device
-  // changes hands — or the turn moves on — clear the lot, or the next player
+  // changes hands - or the turn moves on - clear the lot, or the next player
   // inherits somebody else's open card.
   useEffect(() => {
     setInspect(null)
@@ -126,6 +130,13 @@ export function Table({
     const t = setTimeout(() => setFlash(null), 2600)
     return () => clearTimeout(t)
   }, [state.tick])
+
+  useEffect(() => {
+    setElapsed(0)
+    if (!isMyTurn) return
+    const id = setInterval(() => setElapsed((n) => n + 1), 1000)
+    return () => clearInterval(id)
+  }, [state.turnIndex, state.round, isMyTurn])
 
   const affair = state.currentAffair ? getAffairDef(state.currentAffair) : null
   const opponents = state.players.filter((p) => p !== you)
@@ -260,7 +271,7 @@ export function Table({
   const targetPrompt = !targeting ? null
     : targeting.kind === 'placeChar' ? 'Tap a slot to place them'
     : targeting.kind === 'playStuff'
-      ? `Tap who gets ${cardLabel(state, targeting.iid)} — anyone at the table`
+      ? `Tap who gets ${cardLabel(state, targeting.iid)} - anyone at the table`
     : targeting.kind === 'attack' ? 'Tap an enemy to attack'
     : targeting.kind === 'interfere' ? 'Tap who it hits'
     : targeting.kind === 'useItem' ? (targeting.scope === 'enemy' ? 'Tap an enemy' : 'Tap a target')
@@ -290,20 +301,19 @@ export function Table({
     && me.actionsLeft > 0 && attackers.length > 0 && enemyCount > 0
   const overHand = me.hand.length > HAND_LIMIT
   const turnHint = overHand
-    ? `${me.hand.length} cards — over the limit of ${HAND_LIMIT}. Ending your turn discards down to ${HAND_LIMIT}.`
+    ? `${me.hand.length} cards - over the limit of ${HAND_LIMIT}. Ending your turn discards down to ${HAND_LIMIT}.`
     : readyCount === 0 && anyPlayable
       // Having actions and nobody to spend them on is a different problem from
       // having spent them, and telling the player the wrong one is worse than
       // saying nothing.
-      ? 'Nobody in your family can act — play a Character from your hand.'
+      ? 'Nobody in your family can act - play a Character from your hand.'
     : me.actionsLeft > 0 && readyCount > 0
-      ? `${me.actionsLeft} action${me.actionsLeft === 1 ? '' : 's'} left — tap one of your Characters to attack or use an ability`
+      ? `${me.actionsLeft} action${me.actionsLeft === 1 ? '' : 's'} left - tap one of your Characters to attack or use an ability`
     : anyPlayable
       ? 'No actions left. You can still play a card from your hand.'
       : 'Nothing left to spend.'
 
-  // If the Turn is genuinely dead — nothing playable, nobody able to act —
-  // there is no decision left to make, so the game makes it. Sitting on a
+  // If the Turn is genuinely dead - nothing playable, nobody able to act - // there is no decision left to make, so the game makes it. Sitting on a
   // board with no legal move and hunting for the End Turn button is not a
   // choice, it is a chore, and it happens every single Round.
   useEffect(() => {
@@ -356,6 +366,11 @@ export function Table({
         <span className={`turn ${isMyTurn ? 'you' : ''}`}>
           {isMyTurn ? 'YOUR TURN' : `${state.playerState[currentPlayer(state)].name}'s turn`}
         </span>
+        {isMyTurn && (
+          <span className={`turnclock ${elapsed >= 90 ? 'late' : elapsed >= 45 ? 'slow' : ''}`}>
+            {Math.floor(elapsed / 60)}:{String(elapsed % 60).padStart(2, '0')}
+          </span>
+        )}
         <span className="clout-me">{me.clout}<s>/{state.cloutToWin}</s></span>
         <button className="icon-btn" onClick={() => setShowLog(true)} aria-label="Game log">☰</button>
       </header>
@@ -405,12 +420,12 @@ export function Table({
         {/* ------------------------------------- YOUR SIDE (bottom) ------ */}
         <div className="myzone">
           <div className="fam-head">
-            <span className="fam-label">{isMyTurn ? `${me.name} — your family` : `${me.name}'s family`}</span>
+            <span className="fam-label">{isMyTurn ? `${me.name} - your family` : `${me.name}'s family`}</span>
+            {/* Both halves of the budget, spent and left, without arithmetic:
+                a filled pip is still yours, a hollow one is gone. */}
             <span className="fam-budget">
-              <i className={me.cardsPlayedThisTurn < 2 && isMyTurn ? 'on' : ''}>{2 - me.cardsPlayedThisTurn} plays</i>
-              <i className={me.actionsLeft > 0 && isMyTurn ? 'on' : 'spent'}>
-                {me.actionsLeft === 0 ? 'no actions left' : `${me.actionsLeft} actions`}
-              </i>
+              <Budget label="cards" left={2 - me.cardsPlayedThisTurn} total={2} live={isMyTurn} />
+              <Budget label="actions" left={me.actionsLeft} total={2} live={isMyTurn} />
             </span>
           </div>
 
@@ -459,7 +474,7 @@ export function Table({
       </div>
 
       {/* The selected Character's actions. This used to sit inside the board,
-          which has a fixed height and clips — so on a phone the attack button
+          which has a fixed height and clips - so on a phone the attack button
           was underneath the hand strip and simply could not be reached. */}
       {selCh && !targeting && (
         <div className="actionsheet-bg" onClick={() => setSelected(null)}>
@@ -485,7 +500,7 @@ export function Table({
 
       {targetPrompt && (
         <div className={`targetbar ${peek ? 'peeking' : ''}`}>
-          <span>{peek ? 'Tap anyone to read them — targeting is paused' : targetPrompt}</span>
+          <span>{peek ? 'Tap anyone to read them - targeting is paused' : targetPrompt}</span>
           <button className={peek ? 'on' : ''} onClick={() => setPeek((v) => !v)}>
             {peek ? 'Done' : 'ⓘ Look'}
           </button>
@@ -573,7 +588,7 @@ export function Table({
             <button className="btn attack-cta" data-testid="attack-cta"
               onClick={() => {
                 setSelected(null)
-                // One legal attacker means there is nothing to choose — go
+                // One legal attacker means there is nothing to choose - go
                 // straight to picking who they hit.
                 if (attackers.length === 1) setTargeting({ kind: 'attack', char: attackers[0].iid })
                 else setPickAttacker(true)
@@ -586,7 +601,7 @@ export function Table({
               send({ k: 'discardDown', iids: me.hand.slice(0, me.hand.length - HAND_LIMIT) })
             }
             send({ k: 'endTurn' })
-          }}>{autoPass ? 'Nothing you can do — passing…' : 'End turn'}</button>
+          }}>{autoPass ? 'Nothing you can do - passing…' : 'End turn'}</button>
           </>
         ) : (
           <div className="waiting">Waiting for {state.playerState[currentPlayer(state)].name}…</div>
@@ -645,7 +660,7 @@ export function Table({
                   if (need) setTargeting({ kind: 'useItem', char: itemCard.char, iid: itemCard.iid, scope: need })
                   else send({ k: 'useItem', char: itemCard.char, iid: itemCard.iid })
                 }}>
-                {onCd ? 'On cooldown' : `Use ${ab.name}${need ? ' —' : ''}`}
+                {onCd ? 'On cooldown' : `Use ${ab.name}${need ? ' -' : ''}`}
               </button>
             )}
             {eatable && (
@@ -690,7 +705,7 @@ export function Table({
 /**
  * Every full-card popup in the game: a card in hand, an item on the board, and
  * inspecting a Character. They were three separate implementations and two of
- * them could be open at once — the styled card sheet with the plain inspect
+ * them could be open at once - the styled card sheet with the plain inspect
  * panel stacked on top, showing the same rules text twice in worse type.
  */
 function CardSheet({
@@ -733,7 +748,7 @@ function CharacterNumbers({ state, ch }: { state: GameState; ch: any }) {
         </div>
         <p className="limitnote">
           Tolerance {def.tolerance.alcohol} 🍺 · {def.tolerance.weed} 🌿 · {def.tolerance.food} 🍔.
-          The last pip is their line — crossing it turns a bonus into a problem.
+          The last pip is their line - crossing it turns a bonus into a problem.
         </p>
       </div>
       {auras.length > 0 && (
@@ -746,8 +761,24 @@ function CharacterNumbers({ state, ch }: { state: GameState; ch: any }) {
   )
 }
 
+/** "2 actions" told you what was left but never what you had. */
+function Budget({ label, left, total, live }: { label: string; left: number; total: number; live: boolean }) {
+  const used = total - left
+  return (
+    <i className={`budget ${live && left > 0 ? 'on' : ''} ${left === 0 ? 'spent' : ''}`}
+      title={`${used} of ${total} ${label} used`}>
+      <b>
+        {Array.from({ length: total }, (_, n) => (
+          <s key={n} className={n < left ? 'left' : 'used'} />
+        ))}
+      </b>
+      {left} of {total} {label}
+    </i>
+  )
+}
+
 // ---------------------------------------------------------------------------
-// Inline actions — attacking should not require opening a menu first.
+// Inline actions - attacking should not require opening a menu first.
 // ---------------------------------------------------------------------------
 
 function CharacterActions({
@@ -974,7 +1005,7 @@ function BattleBar({
       <button className="btn" disabled={passed} onClick={() => send({ k: 'passInterference' })}>
         {passed
           ? `Waiting for ${state.players.length - b.passed.length} more…`
-          : canInterfere ? 'Pass — let it happen' : 'Continue'}
+          : canInterfere ? 'Pass - let it happen' : 'Continue'}
       </button>
     </div>
   )

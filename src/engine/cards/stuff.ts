@@ -1,7 +1,7 @@
 import type { StuffDef } from '../types'
 
 // ---------------------------------------------------------------------------
-// STUFF (§17-19, §37-39) — Food, Drink, Smoke, Gear, Ride, Consumable.
+// STUFF (§17-19, §37-39) - Food, Drink, Smoke, Gear, Ride, Consumable.
 // `copies` follows the §50 prototype composition. deck.ts scales it up for
 // 4-6 player games so the deck does not run dry.
 // ---------------------------------------------------------------------------
@@ -295,7 +295,7 @@ export const STUFF: StuffDef[] = [
   // ------------------------------------------------------------------ PET --
   {
     kind: 'stuff', id: 'cash', name: 'Cash The Dog', subtype: 'Pet', copies: 2, icon: '🐕', color: '#c98d4a',
-    text: 'Pet. +2 Attack, +1 Defense. Cash is brave right up until he is not — on a roll of 1 he hides and gives nothing this battle.',
+    text: 'Pet. +2 Attack, +1 Defense. Cash is brave right up until he is not - on a roll of 1 he hides and gives nothing this battle.',
     equipMods: [{ stat: 'attack', amount: 2 }, { stat: 'defense', amount: 1 }],
     skittish: 1,
     effects: [],
@@ -374,7 +374,7 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'tictactoe', name: 'Tic Tac Toe', subtype: 'Consumable', copies: 1, icon: '⭕', color: '#b06fb0',
-    text: 'Settle it properly. Play a real game of tic tac toe against an opponent — the winner deals 4 damage to a Character of their choice.',
+    text: 'Settle it properly. Play a real game of tic tac toe against an opponent - the winner deals 4 damage to a Character of their choice.',
     effects: [{ k: 'startMinigame', kind: 'tictactoe', stake: { kind: 'damage', amount: 4 } }],
   },
   {
@@ -403,7 +403,7 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'flatcoke', name: 'Flat Coke', subtype: 'Drink', copies: 2, giftable: true, icon: '🥤', color: DRINK,
-    text: 'No fizz. No alcohol. -1 Attack for the Round — too disappointed to fight anybody.',
+    text: 'No fizz. No alcohol. -1 Attack for the Round - too disappointed to fight anybody.',
     effects: [{ k: 'statMod', target: { scope: 'eventTarget' }, stat: 'attack', amount: -1, duration: 'round' }],
   },
   {
@@ -429,7 +429,7 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'scoobysnacks', name: 'Twin Scooby Snacks', subtype: 'Food', copies: 2, giftable: true, icon: '🍪', color: FOOD,
-    text: '+1 Food. Heal 2 HP. The Character beside them gets one too — there are always exactly two.',
+    text: '+1 Food. Heal 2 HP. The Character beside them gets one too - there are always exactly two.',
     limitGain: { food: 1 },
     effects: [
       { k: 'heal', target: { scope: 'eventTarget' }, amount: 2 },
@@ -525,7 +525,7 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'basketball', name: 'The Basketball', subtype: 'Gear', copies: 2, icon: '🏀', color: GEAR,
-    text: 'Equip. +1 Attack. Call somebody out and play them for it — winner lands 3 damage.',
+    text: 'Equip. +1 Attack. Call somebody out and play them for it - winner lands 3 damage.',
     equipMods: [{ stat: 'attack', amount: 1 }],
     activated: {
       name: 'Game of 21',
@@ -545,7 +545,7 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'marlboros', name: 'Pack Of Marlboros', subtype: 'Smoke', copies: 3, icon: '🚬', color: SMOKE,
-    text: 'Stepping outside for one. +1 Defense for the Round and shake off Busy — whatever it was, it can wait.',
+    text: 'Stepping outside for one. +1 Defense for the Round and shake off Busy - whatever it was, it can wait.',
     limitGain: {},
     effects: [
       { k: 'statMod', target: { scope: 'self' }, stat: 'defense', amount: 1, duration: 'round' },
@@ -659,7 +659,7 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'freshjs', name: 'A Fresh Pair Of Js', subtype: 'Gear', copies: 2, icon: '👟', color: GEAR,
-    text: 'Equip. Straight out the box. +3 Attack — but you are not going near anything wet, so -1 Defense.',
+    text: 'Equip. Straight out the box. +3 Attack - but you are not going near anything wet, so -1 Defense.',
     equipMods: [{ stat: 'attack', amount: 3 }, { stat: 'defense', amount: -1 }],
     effects: [],
   },
@@ -744,7 +744,7 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'ninjastars', name: "Amanda's Ninja Star Cookies", subtype: 'Food', copies: 3, giftable: true, icon: '🍪', color: FOOD,
-    text: 'Baked with points on them, on purpose. Heal 2 and +1 Food — or throw one at a rival for 2 damage. Nobody has ever asked why.',
+    text: 'Baked with points on them, on purpose. Heal 2 and +1 Food - or throw one at a rival for 2 damage. Nobody has ever asked why.',
     limitGain: { food: 1 },
     effects: [{ k: 'heal', target: { scope: 'self' }, amount: 2 }],
   },
@@ -790,8 +790,18 @@ export const STUFF: StuffDef[] = [
     effects: [],
   },
   {
+    kind: 'stuff', id: 'mate', name: 'Mate', subtype: 'Drink', copies: 3, giftable: true, icon: '🧉', color: DRINK,
+    text: 'The gourd goes round and you do not refuse it. No Alcohol. Clear 1 Alcohol, shake off Asleep, and +1 Defense for the Round from sitting still long enough to finish it.',
+    limitGain: {},
+    effects: [
+      { k: 'limit', target: { scope: 'self' }, track: 'alcohol', amount: -1 },
+      { k: 'removeStatus', target: { scope: 'self' }, status: 'Asleep' },
+      { k: 'statMod', target: { scope: 'self' }, stat: 'defense', amount: 1, duration: 'round' },
+    ],
+  },
+  {
     kind: 'stuff', id: 'redbull', name: 'Red Bull', subtype: 'Drink', copies: 3, giftable: true, icon: '🐂', color: DRINK,
-    text: 'No Alcohol. +2 Attack for the Round and shake off Asleep — somebody has to stay up.',
+    text: 'No Alcohol. +2 Attack for the Round and shake off Asleep - somebody has to stay up.',
     limitGain: {},
     effects: [
       { k: 'statMod', target: { scope: 'self' }, stat: 'attack', amount: 2, duration: 'round' },
@@ -871,7 +881,7 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'weedbutter', name: "Chi Chi's Weed Butter", subtype: 'Food', copies: 2, giftable: true, icon: '🧈', color: FOOD,
-    text: 'She puts it on everything and tells nobody. +2 Food and +2 Weed at once — Stuffed and Stoned in a single sitting.',
+    text: 'She puts it on everything and tells nobody. +2 Food and +2 Weed at once - Stuffed and Stoned in a single sitting.',
     limitGain: { food: 2, weed: 2 },
     effects: [],
   },
@@ -901,7 +911,7 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'baseballbat', name: 'The Baseball Bat', subtype: 'Gear', copies: 2, icon: '🏏', color: GEAR,
-    text: 'It lives behind the door and it is not for baseball. Equip. +3 Attack, -1 Defense — you are committed either way.',
+    text: 'It lives behind the door and it is not for baseball. Equip. +3 Attack, -1 Defense - you are committed either way.',
     equipMods: [{ stat: 'attack', amount: 3 }, { stat: 'defense', amount: -1 }],
     effects: [],
   },
@@ -933,7 +943,7 @@ export const STUFF: StuffDef[] = [
     equipMods: [],
     activated: {
       name: 'Messing Around',
-      text: 'Zap an Active enemy for 2 damage. They are Busy for the Round and so is the wielder — it was funnier in theory.',
+      text: 'Zap an Active enemy for 2 damage. They are Busy for the Round and so is the wielder - it was funnier in theory.',
       actionCost: 1,
       cooldown: 2,
       effects: [
@@ -988,7 +998,7 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'glasselephant', name: "Titi's Glass Elephant", subtype: 'Gear', copies: 2, icon: '🐘', color: GEAR,
-    text: 'It has sat on that shelf untouched for thirty years. Equip. +2 Defense — nobody dares come near it.',
+    text: 'It has sat on that shelf untouched for thirty years. Equip. +2 Defense - nobody dares come near it.',
     equipMods: [{ stat: 'defense', amount: 2 }],
     activated: {
       name: 'Do Not Touch That',
@@ -1049,7 +1059,7 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'soccerball', name: 'The Soccer Ball', subtype: 'Gear', copies: 2, icon: '⚽', color: GEAR,
-    text: 'Equip. +1 Defense. Start a game in the driveway — whoever wins comes back inside with something.',
+    text: 'Equip. +1 Defense. Start a game in the driveway - whoever wins comes back inside with something.',
     equipMods: [{ stat: 'defense', amount: 1 }],
     activated: {
       name: 'Driveway Match',

@@ -1,7 +1,7 @@
 import type { AffairDef } from '../types'
 
 // ---------------------------------------------------------------------------
-// FAMILY AFFAIRS (§29-33) — one is revealed at the start of every Round.
+// FAMILY AFFAIRS (§29-33) - one is revealed at the start of every Round.
 // Rule of thumb from §48: change strategy, hit several Characters, create
 // opportunities to exploit, and get out of the way quickly.
 // Every Affair is written against Tags so it never whiffs (§29).

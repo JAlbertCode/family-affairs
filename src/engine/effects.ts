@@ -134,12 +134,12 @@ export function applyDamage(
   let dmg = amount
   const def = getCharacterDef(target.defId)
 
-  // Jay — Glass Body: +1 damage from fast attackers
+  // Jay - Glass Body: +1 damage from fast attackers
   if (def.id === 'jay' && ctx.attacker) {
     const atk = state.characters[ctx.attacker]
     if (atk && effectiveStat(state, atk, 'attack') >= 5) dmg += 1
   }
-  // Dainese — Light Exposes: Elders hit her harder
+  // Dainese - Light Exposes: Elders hit her harder
   if (def.id === 'dainese' && ctx.attacker) {
     const atk = state.characters[ctx.attacker]
     if (atk && hasTag(atk, 'Elder')) dmg += 2
@@ -149,7 +149,7 @@ export function applyDamage(
   if (hasGloves) dmg = Math.max(0, dmg - 1)
 
   target.hp = Math.max(0, target.hp - dmg)
-  log(state, `${def.name} takes ${dmg} damage${note ? ` (${note})` : ''} — ${target.hp} HP left.`, 'combat')
+  log(state, `${def.name} takes ${dmg} damage${note ? ` (${note})` : ''} - ${target.hp} HP left.`, 'combat')
 
   if (target.hp <= 0) knockOut(state, target, ctx)
 }
@@ -168,10 +168,10 @@ export function applyHeal(state: GameState, target: CharacterInstance, amount: n
       src.scratch.healed = ((src.scratch.healed as number) ?? 0) + healed
     }
   }
-  log(state, `${getCharacterDef(target.defId).name} heals ${healed} — ${target.hp} HP.`, 'status')
+  log(state, `${getCharacterDef(target.defId).name} heals ${healed} - ${target.hp} HP.`, 'status')
 }
 
-/** §15 KO. Not elimination — the Clout race continues. */
+/** §15 KO. Not elimination - the Clout race continues. */
 export function knockOut(state: GameState, target: CharacterInstance, ctx: EffectCtx) {
   const def = getCharacterDef(target.defId)
   target.mods = []
@@ -214,7 +214,7 @@ export function awardClout(state: GameState, pid: PlayerId, n: number, why: stri
   if (why.startsWith("KO'd")) bucket.combat += n
   else if (why.includes(':')) bucket.achievement += n
   else bucket.other += n
-  log(state, `${ps.name} gains ${n} Clout (${why}) — now ${ps.clout}.`, 'clout')
+  log(state, `${ps.name} gains ${n} Clout (${why}) - now ${ps.clout}.`, 'clout')
 
   // Crossing the threshold does NOT end the game immediately. The Round is
   // played to completion so every seat has had the same number of Turns, then
@@ -223,7 +223,7 @@ export function awardClout(state: GameState, pid: PlayerId, n: number, why: stri
     if (!state.reachedThreshold.includes(pid)) state.reachedThreshold.push(pid)
     if (!state.finalRound) {
       state.finalRound = true
-      log(state, `${ps.name} hits ${state.cloutToWin} Clout! Final Round — everyone finishes their Turn.`, 'clout')
+      log(state, `${ps.name} hits ${state.cloutToWin} Clout! Final Round - everyone finishes their Turn.`, 'clout')
     }
   }
 }
@@ -232,7 +232,7 @@ export function applyStatus(
   state: GameState, target: CharacterInstance, name: StatusName, duration: number, ctx: EffectCtx, threshold?: number,
 ) {
   const def = getCharacterDef(target.defId)
-  // Jay — Avatar Mode: immune to Confused and Charmed
+  // Jay - Avatar Mode: immune to Confused and Charmed
   if (def.id === 'jay' && (name === 'Confused' || name === 'Charmed')) {
     log(state, `Jay's avatar shrugs off ${name}.`, 'status')
     return
@@ -250,7 +250,7 @@ export function applyStatus(
     })
     log(state, `${def.name} is now ${name}.`, 'status')
 
-    // Dainese — Fear Feed: heals when an enemy gains a status
+    // Dainese - Fear Feed: heals when an enemy gains a status
     for (const c of allActiveEveryone(state)) {
       if (getCharacterDef(c.defId).id === 'dainese' && c.owner !== target.owner) {
         applyHeal(state, c, 1, { controller: c.owner, sourceChar: c.iid })
@@ -274,7 +274,7 @@ export function removeStatus(state: GameState, target: CharacterInstance, name: 
 export function applyLimit(state: GameState, target: CharacterInstance, track: LimitTrack, amount: number, ctx: EffectCtx) {
   const def = getCharacterDef(target.defId)
 
-  // Elias — Empty Stomach. Drinking on nothing hits twice as hard, which is
+  // Elias - Empty Stomach. Drinking on nothing hits twice as hard, which is
   // why somebody handing him tequila before dinner is a real decision.
   if (def.id === 'elias' && track === 'alcohol' && amount > 0 && target.limits.food === 0) {
     amount += 1
@@ -290,13 +290,13 @@ export function applyLimit(state: GameState, target: CharacterInstance, track: L
     log(state, `${def.name} is now ${names[after]}.`, 'status')
   }
 
-  // Dorian — Food Coma: exceeding tolerance puts him to sleep
+  // Dorian - Food Coma: exceeding tolerance puts him to sleep
   if (track === 'food' && def.id === 'dorian' && target.limits.food > def.tolerance.food) {
     applyStatus(state, target, 'Asleep', 1, ctx)
     log(state, 'Dorian enters Food Coma.', 'status')
   }
 
-  // Elias — What Were We Making? Crossing into Stoned sends him to the fridge
+  // Elias - What Were We Making? Crossing into Stoned sends him to the fridge
   // whether or not that was the plan. Eating a Food only moves the Food track,
   // so this cannot re-enter itself.
   if (track === 'weed' && def.id === 'elias' && before < 2 && after >= 2) {
@@ -318,13 +318,13 @@ export function applyStatMod(
 }
 
 // ---------------------------------------------------------------------------
-// Bad Luck (§28) — d6 table, no second deck
+// Bad Luck (§28) - d6 table, no second deck
 // ---------------------------------------------------------------------------
 
 export function rollBadLuck(state: GameState, target: CharacterInstance, ctx: EffectCtx) {
   const def = getCharacterDef(target.defId)
 
-  // Gabby — Always Prepared / Titi The Bum — Good Luck Charm
+  // Gabby - Always Prepared / Titi The Bum - Good Luck Charm
   if (def.id === 'gabby' && !target.scratch.badLuckIgnored) {
     target.scratch.badLuckIgnored = 1
     log(state, 'Gabby was Always Prepared. Bad Luck ignored.', 'status')
@@ -340,7 +340,7 @@ export function rollBadLuck(state: GameState, target: CharacterInstance, ctx: Ef
 
   const r = d6(state.seed)
   state.seed = r.seed
-  log(state, `Bad Luck for ${def.name} — rolled ${r.face}.`, 'status')
+  log(state, `Bad Luck for ${def.name} - rolled ${r.face}.`, 'status')
 
   switch (r.face) {
     case 1:
@@ -361,17 +361,17 @@ export function rollBadLuck(state: GameState, target: CharacterInstance, ctx: Ef
       applyStatus(state, target, 'Busy', 1, ctx)
       break
     case 4: {
-      log(state, 'Wrong Group Chat — hand revealed.', 'status')
+      log(state, 'Wrong Group Chat - hand revealed.', 'status')
       state.playerState[target.owner].hand.forEach(() => {})
       break
     }
     case 5: {
-      log(state, 'Ride Trouble — the Ride does nothing this Round.', 'status')
+      log(state, 'Ride Trouble - the Ride does nothing this Round.', 'status')
       applyStatMod(state, target, 'defense', -2, 'round')
       break
     }
     case 6:
-      log(state, 'Lucky Break — nothing happens.', 'status')
+      log(state, 'Lucky Break - nothing happens.', 'status')
       break
   }
 }
@@ -440,7 +440,7 @@ export function consumeCard(state: GameState, ch: CharacterInstance, iid: Instan
   const innerCtx: EffectCtx = { ...ctx, eventTarget: ch.iid }
 
   // Food is food. Eating always moves the Food track whether or not the card
-  // bothered to say so — leaving it to each author meant a card could quietly
+  // bothered to say so - leaving it to each author meant a card could quietly
   // opt out of the one rule its whole subtype exists to express. Drink and
   // Smoke are deliberately NOT defaulted: a Red Bull is not alcohol and a
   // cigarette is not weed, and those cards mean their empty limitGain.
@@ -452,7 +452,7 @@ export function consumeCard(state: GameState, ch: CharacterInstance, iid: Instan
   }
   runEffects(state, def.effects, innerCtx)
 
-  // Mikey & Moe — We Don't Want To Share
+  // Mikey & Moe - We Don't Want To Share
   if (chDef.id === 'mikeymoe' && def.id === 'burger') {
     applyStatus(state, ch, 'Confused', 1, innerCtx)
     log(state, 'Mikey & Moe fight over the Burger.', 'status')
@@ -590,7 +590,7 @@ function runEffect(state: GameState, e: Effect, ctx: EffectCtx) {
       const r = d6(state.seed)
       state.seed = r.seed
       const branch = e.branches.find((b) => b.on.includes(r.face))
-      log(state, `Rolled ${r.face}${branch?.label ? ` — ${branch.label}` : ''}.`, 'combat')
+      log(state, `Rolled ${r.face}${branch?.label ? ` - ${branch.label}` : ''}.`, 'combat')
       if (branch) runEffects(state, branch.effects, ctx)
       break
     }
@@ -607,7 +607,7 @@ function runEffect(state: GameState, e: Effect, ctx: EffectCtx) {
       break
     }
     case 'startMinigame': {
-      // Pick the opponent with the most Clout — the game should target the leader.
+      // Pick the opponent with the most Clout - the game should target the leader.
       const rivals = state.players.filter((p) => p !== ctx.controller)
       const rival = rivals.sort((a, b) => state.playerState[b].clout - state.playerState[a].clout)[0]
       if (!rival) break

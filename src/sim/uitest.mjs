@@ -6,7 +6,7 @@
 //       node src/sim/uitest.mjs
 //
 // Selectors here track the real DOM. When the UI is restructured this file has
-// to move with it — a harness that silently stops finding the play button
+// to move with it - a harness that silently stops finding the play button
 // reports a perfectly healthy game in which nobody ever does anything, which is
 // worse than no harness at all.
 import { chromium } from 'playwright'
@@ -81,11 +81,11 @@ for (let i = 0; i < STEPS; i++) {
       played++; idle = 0; continue
     }
     // A board token's sheet: attack, ability, Power Move or an item. Scope this
-    // to the sheet itself — matching glyphs anywhere on the page started
+    // to the sheet itself - matching glyphs anywhere on the page started
     // catching board tokens once Characters began rendering 🍺🌿🍔 limit meters
     // and item icons, and the harness spent every step clicking tokens.
     // .chip.ghost is "Details", which opens a read-only sheet and consumes
-    // nothing — cycling onto it just reopens the same panel forever.
+    // nothing - cycling onto it just reopens the same panel forever.
     const act = page.locator('.actionsheet .chip:not([disabled]):not(.ghost)')
     if (await act.count()) {
       const k = await act.count()

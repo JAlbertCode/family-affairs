@@ -165,8 +165,8 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
 .board { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow-y: auto; }
 
 /* Opponents sit at the top and your own side at the bottom, the way every
-   physical TCG lays a table out — your stuff is nearest your hands. */
-/* The opponents must never be squeezed to nothing — on a 667px screen this
+   physical TCG lays a table out - your stuff is nearest your hands. */
+/* The opponents must never be squeezed to nothing - on a 667px screen this
    column had collapsed to 12px, which is the whole board you are playing
    against. */
 .oppzone { flex: 1 1 auto; overflow-y: auto; padding: 8px 10px 4px; min-height: 56px; }
@@ -287,7 +287,7 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
 /* ------------------------------------------------------- LIMIT METERS -- */
 /* Drunk, High and Stuffed are carried all game and they move Attack and
    Defense, so every Character shows all three all the time. A pip per step,
-   with the last pip marking that Character's own tolerance — the line is in a
+   with the last pip marking that Character's own tolerance - the line is in a
    different place for a Heavyweight than for a Lightweight, and a shared bar
    would have hidden exactly that. */
 .meters { display: flex; flex-direction: column; gap: 2px; width: 100%; padding: 3px 4px 0; }
@@ -817,7 +817,7 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
   margin: 0; border-radius: 16px; padding: 11px;
   box-shadow: 0 -10px 30px rgba(0,0,0,.55);
 }
-/* stacked, not a horizontal scroller — a row that scrolls sideways hides the
+/* stacked, not a horizontal scroller - a row that scrolls sideways hides the
    actions past the third one, which is where Power Moves live */
 .actionsheet .chips { flex-direction: column; overflow-x: visible; }
 .actionsheet .chip { min-width: 0; width: 100%; }
@@ -875,7 +875,7 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
 
 /* --------------------------------------------- WHAT THE CARD ACTUALLY DOES -- */
 /* Derived from the card's own data, not from its prose, so the numbers on the
-   chip and the numbers the engine applies cannot drift apart — and a card
+   chip and the numbers the engine applies cannot drift apart - and a card
    somebody else writes gets the same summary for free. */
 .fx { display: flex; flex-wrap: wrap; gap: 4px; }
 .fx-chip {
@@ -931,7 +931,7 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
 
 /* ------------------------------------------------ COLLAPSIBLE HAND ------- */
 /* The hand is ~190px of a phone screen and it sits directly on top of your own
-   family — which is where the Drunk / High / Stuffed meters are. Being able to
+   family - which is where the Drunk / High / Stuffed meters are. Being able to
    put it away is the difference between those meters existing and being seen. */
 .hs-head {
   width: 100%; background: none; border: none; text-align: left;
@@ -1007,8 +1007,7 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
 /* ------------------------------------------------- SHORT-SCREEN BUDGET --- */
 /* You should not have to put the hand away to read your own Characters. On a
    667px-tall phone the hand wanted 193px, .myzone took whatever it needed, and
-   the bottom of every token — the stats and the Drunk/High/Stuffed meters —
-   ended up behind the hand strip. Everything below buys that space back.
+   the bottom of every token - the stats and the Drunk/High/Stuffed meters - ended up behind the hand strip. Everything below buys that space back.
    Cards in hand stay tappable and open full-size, so the rail does not need to
    be readable at a glance; the board does. */
 @media (max-height: 760px) {
@@ -1037,3 +1036,33 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
 }
 /* Your own family is the one thing that must never scroll out of reach. */
 .myzone { flex: none; position: sticky; bottom: 0; z-index: 2; }
+
+.sharerow { display: flex; gap: 8px; }
+.sharerow .btn { flex: 1; min-height: 46px; }
+
+/* A nudge, not a shot clock. Nothing is taken away when it runs on; it just
+   stops being invisible that the table has been waiting. */
+.turnclock {
+  font-size: .72rem; font-weight: 900; font-variant-numeric: tabular-nums;
+  color: var(--muted); padding: 2px 7px; border-radius: 999px;
+  background: #ffffff0d; border: 1px solid var(--line);
+}
+.turnclock.slow { color: var(--gold); border-color: #6b4d15; background: #241a10; }
+.turnclock.late { color: #ffabb9; border-color: #7d2b3c; background: #3a1520; animation: pulseTrack 1.4s ease-in-out infinite; }
+
+/* Spent and remaining at a glance. A filled pip is still yours. */
+.fam-budget .budget {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-style: normal; font-size: .58rem; font-weight: 900; letter-spacing: .04em;
+  padding: 3px 8px; border-radius: 999px;
+  background: #ffffff0d; border: 1px solid var(--line); color: var(--muted);
+}
+.fam-budget .budget.on { background: var(--pink); border-color: var(--pink); color: #2a0716; }
+.fam-budget .budget.spent { background: #4a1420; border-color: #a8384a; color: #ffc9d1; }
+.fam-budget .budget b { display: inline-flex; gap: 2px; }
+.fam-budget .budget s {
+  width: 7px; height: 7px; border-radius: 50%; display: block; text-decoration: none;
+  border: 1.5px solid currentColor;
+}
+.fam-budget .budget s.left { background: currentColor; }
+.fam-budget .budget s.used { opacity: .45; }

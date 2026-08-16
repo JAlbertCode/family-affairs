@@ -18,7 +18,7 @@ const base = (over: Partial<SeatRequest> = {}): SeatRequest => ({
   name: 'Jay',
   order: ['p0'],
   names: new Map([['p0', 'Jay']]),
-  connOpen: new Map(),      // host has no connection entry — that was the trap
+  connOpen: new Map(),      // host has no connection entry - that was the trap
   hostSeat: 'p0',
   started: false,
   maxPlayers: 6,
@@ -96,6 +96,68 @@ const base = (over: Partial<SeatRequest> = {}): SeatRequest => ({
   const r = assignSeat(base({ name: '   ', names: new Map([['p0', 'Host']]) }))
   check('blank name falls back to a default', r.ok && r.name === 'Player')
 }
+
+// --- the ghost-seat bug ---------------------------------------------------
+// Reported from a real game: somebody backed out, their old seat stayed in the
+// lobby, and they came back as a second player called "Jay (2)". The old check
+// only reconnected you when the host had already seen your socket close, and a
+// closed tab does not always report that in time.
+{
+  // Same browser returns while the host still believes the old socket is open.
+  const r = assignSeat(base({
+    name: 'Jay',
+    clientId: 'cabc',
+    order: ['p0', 'p1'],
+    names: new Map([['p0', 'Host'], ['p1', 'Jay']]),
+    clients: new Map([['p1', 'cabc']]),
+    connOpen: new Map([['p1', true]]),
+  }))
+  check('same browser reclaims its seat even while the old socket looks open',
+    r.ok && r.seat === 'p1' && !r.isNewSeat && r.takeover === true)
+  check('and keeps its own name rather than becoming Jay (2)', r.ok && r.name === 'Jay')
+}
+{
+  // A genuinely different person with the same name still gets their own seat.
+  const r = assignSeat(base({
+    name: 'Jay',
+    clientId: 'cdifferent',
+    order: ['p0', 'p1'],
+    names: new Map([['p0', 'Host'], ['p1', 'Jay']]),
+    clients: new Map([['p1', 'cabc']]),
+    connOpen: new Map([['p1', true]]),
+  }))
+  check('a different browser with the same name gets a new seat',
+    r.ok && r.seat === 'p2' && r.isNewSeat)
+  check('and is disambiguated in the lobby', r.ok && r.name === 'Jay (2)')
+}
+{
+  // A returning browser gets its seat back even after the game has started,
+  // which is the case that matters most: mid-game refresh.
+  const r = assignSeat(base({
+    name: 'Jay',
+    clientId: 'cabc',
+    order: ['p0', 'p1'],
+    names: new Map([['p0', 'Host'], ['p1', 'Jay']]),
+    clients: new Map([['p1', 'cabc']]),
+    connOpen: new Map([['p1', false]]),
+    started: true,
+  }))
+  check('a mid-game reconnect is allowed back into a started game',
+    r.ok && r.seat === 'p1' && !r.isNewSeat)
+}
+{
+  // The host's chair is never reclaimable by a guest, id or no id.
+  const r = assignSeat(base({
+    name: 'Host',
+    clientId: 'chost',
+    order: ['p0'],
+    names: new Map([['p0', 'Host']]),
+    clients: new Map([['p0', 'chost']]),
+    connOpen: new Map(),
+  }))
+  check('the host seat is still never handed to a joiner', r.ok && r.seat !== 'p0')
+}
+
 
 console.log(`\n=== SEAT ASSIGNMENT ===`)
 console.log(`${pass} passed, ${failures.length} failed`)

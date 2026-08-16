@@ -7,7 +7,7 @@ import { RELATIONSHIP_TAGS, PERSONALITY_TAGS } from '../types'
 // CARD SCHEMA & POWER BUDGET
 //
 // The point of this file: anyone should be able to author cards for Family
-// Affairs — a friend, a fan, a model — without being able to break the game.
+// Affairs - a friend, a fan, a model - without being able to break the game.
 // Every constraint here comes from the ruleset, and every card in the game
 // (ours and theirs) is checked against it. If a card cannot pass, it does not
 // load. That is what makes "other people issue their own cards" safe.
@@ -77,7 +77,7 @@ const BAD_STATUSES = new Set(['Confused', 'Asleep', 'Busy', 'Bad Luck', 'Charmed
 const onSelf = (t: any) => t?.scope === 'self'
 
 /** Rough point value of a single effect, scaled up when it hits a whole board.
- *  Drawbacks a card inflicts on itself score NEGATIVE — they are a cost the
+ *  Drawbacks a card inflicts on itself score NEGATIVE - they are a cost the
  *  designer paid, and pricing them as power is how you end up rejecting a
  *  character who is already losing. */
 export function effectCost(e: Effect): number {
@@ -137,7 +137,7 @@ function abilityDiscount(a: Ability): number {
   let d = 1
   if (a.oncePerGame) d *= 0.45
   // A player gets one Turn per Round, so `cooldown: 1` already comes back
-  // around next Turn — it costs the card nothing and earns no discount here.
+  // around next Turn - it costs the card nothing and earns no discount here.
   else if (a.cooldown) d *= 1 - Math.min(0.35, Math.max(0, a.cooldown - 1) * 0.15)
   if (a.requiresLimit && Object.keys(a.requiresLimit).length) d *= 0.85
   if (a.actionCost === 0) d *= 1.4 // free abilities are worth MORE, not less
@@ -160,7 +160,7 @@ function checkAbility(name: string, label: string, a: Ability, budget: number, o
     out.push({ card: name, severity: 'error', field: `${label}.text`, message: 'Needs rules text players can read.' })
   }
   if (a.text && a.text.length > 220) {
-    out.push({ card: name, severity: 'warn', field: `${label}.text`, message: 'Card text should stay short — flavour belongs in the art.' })
+    out.push({ card: name, severity: 'warn', field: `${label}.text`, message: 'Card text should stay short - flavour belongs in the art.' })
   }
   if (!a.effects?.length) {
     out.push({ card: name, severity: 'error', field: `${label}.effects`, message: 'Does nothing.' })
@@ -234,7 +234,7 @@ export function validateCharacter(c: CharacterDef): Issue[] {
   }
 
   // Tanks get high HP but must pay for it in offence, and vice versa.
-  if (s.hp >= 15 && s.attack >= 6) warn('stats', 'High HP and high Attack together — check this against a Tank archetype.')
+  if (s.hp >= 15 && s.attack >= 6) warn('stats', 'High HP and high Attack together - check this against a Tank archetype.')
 
   if (!Array.isArray(c.tags) || c.tags.length < RULES.tags.min || c.tags.length > RULES.tags.max) {
     err('tags', `Needs ${RULES.tags.min}-${RULES.tags.max} tags.`)
@@ -257,7 +257,7 @@ export function validateCharacter(c: CharacterDef): Issue[] {
   if (c.powerMove) {
     checkAbility(n, 'powerMove', c.powerMove, RULES.powerMoveBudget, out)
     // A Power Move gets a bigger budget than an ability. The price of that is
-    // that it cannot also be available every single Turn — otherwise the
+    // that it cannot also be available every single Turn - otherwise the
     // Character's own ability is strictly worse and never gets played, which
     // is exactly what the balance sim caught.
     const raw = effectsCost(c.powerMove.effects)
@@ -304,11 +304,11 @@ export function validateStuff(d: StuffDef): Issue[] {
   if (d.subtype === 'Food' && !(d.limitGain?.food)) {
     out.push({
       card: n, severity: 'warn', field: 'limitGain',
-      message: 'Food with no food gain. The engine adds +1 anyway — say so on the card so the text matches what happens.',
+      message: 'Food with no food gain. The engine adds +1 anyway - say so on the card so the text matches what happens.',
     })
   }
   if (d.edible && !['Gear', 'Ride', 'Pet'].includes(d.subtype)) {
-    err('edible', 'Food, Drink and Smoke are already consumable — `edible` is for Gear and Rides.')
+    err('edible', 'Food, Drink and Smoke are already consumable - `edible` is for Gear and Rides.')
   }
   // Character-locked stuff has to name Characters that actually exist, or the
   // card is simply unplayable once it is drawn.
@@ -360,7 +360,7 @@ export function validateAffair(a: AffairDef): Issue[] {
   if (!flat.length) err('effects', 'Does nothing.')
 
   for (const e of flat) {
-    if (e.k === 'clout') err('effects', 'Family Affairs may not award Clout directly — that decides games at random.')
+    if (e.k === 'clout') err('effects', 'Family Affairs may not award Clout directly - that decides games at random.')
     if (e.k === 'damage' && e.amount > 3) err('effects', `Deals ${e.amount} to a whole board. Keep Affair damage at 3 or less.`)
     if (e.k === 'heal' && e.amount > 3) err('effects', `Heals ${e.amount} board-wide. Keep it at 3 or less.`)
     if (e.k === 'statMod' && Math.abs(e.amount) > 2) err('effects', `Shifts a stat by ${e.amount} board-wide. Max ±2 for an Affair.`)
@@ -374,14 +374,14 @@ export function validateAffair(a: AffairDef): Issue[] {
 
   const tagGated = flat.every((e) => 'target' in e && (e as any).target?.withTag)
   if (tagGated && flat.length > 0) {
-    warn('effects', 'Every effect is gated behind a tag — this Affair does nothing if that tag is absent. Add a fallback.')
+    warn('effects', 'Every effect is gated behind a tag - this Affair does nothing if that tag is absent. Add a fallback.')
   }
 
   return out
 }
 
 // ---------------------------------------------------------------------------
-// Card packs — the third-party entry point
+// Card packs - the third-party entry point
 // ---------------------------------------------------------------------------
 
 export interface CardPack {

@@ -16,7 +16,7 @@ export interface LobbyPlayer {
 // ---- client -> host --------------------------------------------------------
 
 export type ClientMsg =
-  | { t: 'join'; name: string; protocol: number }
+  | { t: 'join'; name: string; protocol: number; clientId?: string }
   | { t: 'intent'; intent: Intent }
   | { t: 'rename'; name: string }
   | { t: 'ping' }
@@ -33,7 +33,7 @@ export type HostMsg =
 
 // ---- room codes ------------------------------------------------------------
 
-// No I/O/0/1 — they get misread when people say the code out loud.
+// No I/O/0/1 - they get misread when people say the code out loud.
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 
 export function makeRoomCode(len = 4): string {
@@ -63,10 +63,15 @@ export function peerIdForRoom(code: string): string {
 export interface SeatRequest {
   /** requested display name */
   name: string
+  /** stable per-browser id, so a reconnect is recognised even when the old
+   *  socket has not been reported as closed yet */
+  clientId?: string
   /** seats already handed out, in order */
   order: PlayerId[]
   /** seat -> name */
   names: Map<PlayerId, string>
+  /** seat -> clientId, for the seats we know one for */
+  clients?: Map<PlayerId, string>
   /** seat -> is that seat's connection currently open? absent = never connected */
   connOpen: Map<PlayerId, boolean>
   /** the host's own seat, which no one may ever take */
@@ -77,17 +82,34 @@ export interface SeatRequest {
 }
 
 export type SeatResult =
-  | { ok: true; seat: PlayerId; name: string; isNewSeat: boolean }
+  | { ok: true; seat: PlayerId; name: string; isNewSeat: boolean; takeover?: boolean }
   | { ok: false; reason: string }
 
 export function assignSeat(req: SeatRequest): SeatResult {
-  // 1. Reconnect: only to a seat that actually held a connection and dropped,
-  //    and never to the host's own seat (the host has no connection entry, so
-  //    a naive check matches it and a same-named guest steals the chair).
   let seat: PlayerId | undefined
-  for (const [id, n] of req.names) {
-    if (id === req.hostSeat) continue
-    if (n === req.name && req.connOpen.has(id) && req.connOpen.get(id) === false) { seat = id; break }
+  let takeover = false
+
+  // 1. Same browser coming back. This is the reliable signal: a closed tab does
+  //    not always report its socket as closed before the player reconnects, so
+  //    matching on "their old connection has dropped" left the dead seat in the
+  //    game and handed the returning player a brand new one, named "Jay (2)".
+  //    The client id says it is the same person regardless of socket state.
+  if (req.clientId && req.clients) {
+    for (const [id, cid] of req.clients) {
+      if (id === req.hostSeat) continue
+      if (cid === req.clientId) { seat = id; takeover = true; break }
+    }
+  }
+
+  // 2. Older clients send no id. Fall back to the name, and only to a seat that
+  //    actually held a connection and dropped - never to the host's own seat,
+  //    which has no connection entry, so a naive check matches it and a
+  //    same-named guest steals the chair.
+  if (!seat) {
+    for (const [id, n] of req.names) {
+      if (id === req.hostSeat) continue
+      if (n === req.name && req.connOpen.has(id) && req.connOpen.get(id) === false) { seat = id; break }
+    }
   }
 
   let isNewSeat = false
@@ -107,5 +129,5 @@ export function assignSeat(req: SeatRequest): SeatResult {
     name = `${name} (${i})`
   }
 
-  return { ok: true, seat, name, isNewSeat }
+  return { ok: true, seat, name, isNewSeat, takeover }
 }

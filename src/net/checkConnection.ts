@@ -8,15 +8,15 @@ import { iceServers, hasTurn } from './config'
  * they can see. This gathers ICE candidates against the actual configured
  * servers and reports which kinds came back:
  *
- *   host   — this machine's own addresses. Always present.
- *   srflx  — STUN worked: the internet can see a route back to this browser.
+ *   host - this machine's own addresses. Always present.
+ *   srflx - STUN worked: the internet can see a route back to this browser.
  *            Enough on its own for most players.
- *   relay  — TURN worked: even if a direct route is impossible, traffic can be
+ *   relay - TURN worked: even if a direct route is impossible, traffic can be
  *            bounced through the relay. This is the one that saves the 10-20%
  *            of players behind symmetric NAT or strict wifi.
  *
  * No relay candidate while TURN is configured means the credentials are wrong
- * or exhausted — worth knowing before six people are sitting around waiting.
+ * or exhausted - worth knowing before six people are sitting around waiting.
  */
 
 export type CheckVerdict = 'good' | 'direct-only' | 'blocked' | 'unsupported'
@@ -62,7 +62,7 @@ export async function checkConnection(timeoutMs = 6000): Promise<CheckResult> {
         }
       }
 
-      // A data channel is required or nothing is gathered at all — this is the
+      // A data channel is required or nothing is gathered at all - this is the
       // same transport the game itself uses, so the test is representative.
       pc.createDataChannel('probe')
       pc.createOffer()
@@ -99,6 +99,6 @@ function verdictFor(f: { host: boolean; srflx: boolean; relay: boolean }): { ver
   }
   return {
     verdict: 'blocked',
-    message: 'This network is blocking the connection the game needs — office and guest wifi often do. Try a phone hotspot, or play pass-and-play on one device.',
+    message: 'This network is blocking the connection the game needs - office and guest wifi often do. Try a phone hotspot, or play pass-and-play on one device.',
   }
 }

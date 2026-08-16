@@ -9,7 +9,7 @@ import { effectsCost } from '../engine/cards/schema'
 import { HAND_LIMIT } from '../engine/state'
 
 /**
- * A deliberately simple greedy bot. Its job is not to play well — it is to
+ * A deliberately simple greedy bot. Its job is not to play well - it is to
  * exercise every code path in the engine so balance numbers and crashes show up.
  */
 const TTT_LINES = [
@@ -53,7 +53,7 @@ export function botIntent(state: GameState, pid: PlayerId): Intent | null {
   if (state.phase === 'draw') return { k: 'drawCard' }
 
   const mine = activeCharacters(state, pid)
-  // Sort enemies by softness, never by seat index — indexing by seat made the
+  // Sort enemies by softness, never by seat index - indexing by seat made the
   // lowest-numbered player absorb every ability in the sim and faked a bias.
   const enemies = state.players
     .filter((p) => p !== pid)
@@ -62,7 +62,7 @@ export function botIntent(state: GameState, pid: PlayerId): Intent | null {
     .sort((a, b) => {
       const d = (a.hp + effectiveStat(state, a, 'defense')) - (b.hp + effectiveStat(state, b, 'defense'))
       if (d !== 0) return d
-      // tie-break on the instance id, NOT array position — sorting ties by
+      // tie-break on the instance id, NOT array position - sorting ties by
       // array order made seat 1 absorb everything and faked a turn-order bias
       return a.iid < b.iid ? -1 : 1
     })
@@ -116,7 +116,7 @@ export function botIntent(state: GameState, pid: PlayerId): Intent | null {
 
       if (def.subtype === 'Consumable' && !def.interfere) {
         // A Consumable that says "choose a Character" is unplayable without
-        // one, so the bot has to pick — otherwise the card jams in hand and
+        // one, so the bot has to pick - otherwise the card jams in hand and
         // never contributes to the balance numbers.
         const need = needsTarget(def.effects)
         if (!need) return { k: 'playCard', iid }
@@ -164,7 +164,7 @@ export function botIntent(state: GameState, pid: PlayerId): Intent | null {
     }
     if (best) return best.intent
 
-    // activated Gear before a bare attack — it is usually stronger
+    // activated Gear before a bare attack - it is usually stronger
     for (const ch of mine) {
       if (ch.actedThisTurn || hasStatus(ch, 'Asleep') || hasStatus(ch, 'Away')) continue
       for (const i of ch.attached) {

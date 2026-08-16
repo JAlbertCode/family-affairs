@@ -703,7 +703,7 @@ export const CHARACTERS: CharacterDef[] = [
     art: 'elias.webp',
     passive: {
       name: 'One-Man Production',
-      text: 'Elias works alone. While no allied Character sits beside him he gains +1 Attack and +1 Defense. Every Stoned Character beside him costs him 1 of each — they are ruining the shot.',
+      text: 'Elias works alone. While no allied Character sits beside him he gains +1 Attack and +1 Defense. Every Stoned Character beside him costs him 1 of each - they are ruining the shot.',
       hooks: ['oneManProduction', 'ruiningTheShot'],
     },
     ability: {
@@ -716,7 +716,7 @@ export const CHARACTERS: CharacterDef[] = [
     },
     powerMove: {
       name: 'Authentic Reaction',
-      text: 'Elias pulls a prop gun on the family. BANG — a little flag comes out. Every opposing Active Character becomes Confused, and Elias gains +2 Attack for the Round because the reaction was perfect. Cooldown 2 Rounds.',
+      text: 'Elias pulls a prop gun on the family. BANG - a little flag comes out. Every opposing Active Character becomes Confused, and Elias gains +2 Attack for the Round because the reaction was perfect. Cooldown 2 Rounds.',
       actionCost: 1,
       cooldown: 2,
       effects: [
@@ -740,8 +740,8 @@ export const CHARACTERS: CharacterDef[] = [
   // ----------------------------------------------------------------- KEVIN --
   // The only Character in the game who WANTS the Food meter maxed. Everyone
   // else is trying not to get Stuffed; Kevin's whole loop is eat, stuff,
-  // destroy, and the two things the rest of the table runs on — drink and
-  // smoke — take him apart. See limitStatDelta for the inverted curve.
+  // destroy, and the two things the rest of the table runs on - drink and
+  // smoke - take him apart. See limitStatDelta for the inverted curve.
   {
     kind: 'character',
     id: 'kevin',
@@ -756,7 +756,7 @@ export const CHARACTERS: CharacterDef[] = [
     gearSlots: 2,
     passive: {
       name: 'Always Fed',
-      text: 'Food makes Kevin stronger instead of slower. Fed: +1 Attack. Stuffed: +2 Defense and nothing gets through. Alcohol costs him Defense and Weed costs him Attack — he does not drink and he does not smoke.',
+      text: 'Food makes Kevin stronger instead of slower. Fed: +1 Attack. Stuffed: +2 Defense and nothing gets through. Alcohol costs him Defense and Weed costs him Attack - he does not drink and he does not smoke.',
       hooks: ['alwaysFed', 'iDontEvenDrink', 'whyAmIHere'],
     },
     ability: {

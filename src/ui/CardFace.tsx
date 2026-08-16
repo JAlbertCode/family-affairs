@@ -6,14 +6,14 @@ const BASE = import.meta.env.BASE_URL
 
 /**
  * The full-size, fully readable card. This is what a player looks at while
- * deciding — so nothing here is abbreviated and nothing is below ~12px.
+ * deciding - so nothing here is abbreviated and nothing is below ~12px.
  * Board pieces get a completely different, compact treatment (BoardToken):
  * card-game UI convention is that a card in hand and the same card in play
  * should not look alike, because they answer different questions.
  */
 
 /**
- * The rules text scrolls inside the card when it does not fit — which on a
+ * The rules text scrolls inside the card when it does not fit - which on a
  * short phone it often does not. A fade alone reads as "the card ends here",
  * so say it plainly instead: a card whose flaw is cut off mid-sentence is a
  * card the player has not read.
@@ -117,17 +117,17 @@ export function CardFace({
           <p className="face-rule big">{def.text}</p>
           {['Food', 'Drink', 'Smoke'].includes(def.subtype) && (
             <p className="face-hint">
-              Can be given to <strong>anyone</strong>, including your rivals — pushing somebody past
+              Can be given to <strong>anyone</strong>, including your rivals - pushing somebody past
               Drunk, Stoned or Stuffed is a perfectly good use of a snack.
             </p>
           )}
           {def.activated && (
             <p className="face-hint gold">
-              <strong>{def.activated.name}</strong> — {def.activated.text}
+              <strong>{def.activated.name}</strong> - {def.activated.text}
             </p>
           )}
           {def.interfere && (
-            <p className="face-interfere">⚡ INTERFERE — can be played during someone else's battle</p>
+            <p className="face-interfere">⚡ INTERFERE - can be played during someone else's battle</p>
           )}
         </ScrollableBody>
       </article>

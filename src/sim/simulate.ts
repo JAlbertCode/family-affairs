@@ -108,7 +108,7 @@ function main() {
   console.log(`Est. length:   ~${Math.round(mean(rounds) * PLAYERS * 0.5)} min at 30s/turn`)
   console.log(`KOs per game:  ${mean(results.map((r) => r.kos)).toFixed(1)}`)
 
-  // seat fairness — with fair rules every seat should win ~1/PLAYERS of the time
+  // seat fairness - with fair rules every seat should win ~1/PLAYERS of the time
   const seatWins = new Array(PLAYERS).fill(0)
   for (const r of finished) {
     const idx = Number(r.winner!.slice(1))
@@ -120,7 +120,7 @@ function main() {
     console.log(`  Seat ${i + 1}: ${pct.toFixed(1)}%  ${'#'.repeat(Math.round(pct))}`)
   })
 
-  // character strength — win rate when recruited
+  // character strength - win rate when recruited
   const app: Record<string, number> = {}
   const win: Record<string, number> = {}
   for (const r of results) {
@@ -137,7 +137,7 @@ function main() {
     })
 
   if (allErrors.size) {
-    console.log(`\nRejected intents (bot tried something illegal — expected, but check for engine bugs):`)
+    console.log(`\nRejected intents (bot tried something illegal - expected, but check for engine bugs):`)
     ;[...allErrors.entries()].sort((a, b) => b[1] - a[1]).slice(0, 12)
       .forEach(([e, n]) => console.log(`  ${n.toString().padStart(5)}x  ${e}`))
   }

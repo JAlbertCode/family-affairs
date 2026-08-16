@@ -31,7 +31,7 @@ export function Minigame({
           <span className="mg-kicker">Settle it</span>
           <h2>Shoot For It</h2>
           <p className="mg-stake">{mg.prompt}</p>
-          {mg.ties > 0 && <p className="mg-tie">Draw {mg.ties} — go again</p>}
+          {mg.ties > 0 && <p className="mg-tie">Draw {mg.ties} - go again</p>}
 
           <div className="mg-players">
             <span className={mg.turn === 0 ? 'on' : ''}>{nameOf(a)}{mg.picks[0] !== null && ' ✓'}</span>

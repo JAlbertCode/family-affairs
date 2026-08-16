@@ -5,7 +5,7 @@ import { effectiveStats, limitTier, limitTierName, auraSummary, incomingAuras } 
 const BASE = import.meta.env.BASE_URL
 
 /**
- * A character in play. Deliberately NOT a small copy of the hand card — on the
+ * A character in play. Deliberately NOT a small copy of the hand card - on the
  * board you only need to answer "how hurt, how dangerous, what's wrong with
  * them", so that is all this shows. Full detail lives one tap away.
  */
@@ -18,7 +18,7 @@ export function BoardToken({
   mode?: 'target' | 'selected' | null
   size?: 'sm' | 'md'
   showAura?: boolean
-  /** This Character can still do something this Turn — say so visually,
+  /** This Character can still do something this Turn - say so visually,
    *  or combat stays a secret the player has to be told about. */
   ready?: boolean
 }) {
@@ -79,7 +79,7 @@ export function BoardToken({
         if (chips.length === 0) return null
         const soonest = ch.mods.some((m) => m.duration === 'turn') ? 'turn' : 'round'
         return (
-          <span className="tok-temp" title={`Temporary — ends this ${soonest}`}>
+          <span className="tok-temp" title={`Temporary - ends this ${soonest}`}>
             {chips.map(([st, v]) => (
               <i key={st} className={v > 0 ? 'up' : 'down'}>
                 {st === 'attack' ? '⚔' : '🛡'}{v > 0 ? '+' : ''}{v}
@@ -113,7 +113,7 @@ export function BoardToken({
 
 /**
  * One row per track: the glyph, then a pip per step up to the Character's own
- * tolerance. The last pip is the line — crossing it is what makes you Wasted,
+ * tolerance. The last pip is the line - crossing it is what makes you Wasted,
  * Zooted or Stuffed, and different Characters have the line in different
  * places, which is exactly what a shared bar would have hidden.
  */
@@ -133,7 +133,7 @@ export function LimitMeters({ ch, compact }: { ch: CharacterInstance; compact?: 
         const tier = limitTier(ch, key)
         const steps = tol + 1   // the step past tolerance is the one that undoes you
         return (
-          <span key={key} className={`meter m-${key} t${tier}`} title={`${limitTierName(ch, key)} — ${lvl}/${tol}`}>
+          <span key={key} className={`meter m-${key} t${tier}`} title={`${limitTierName(ch, key)} - ${lvl}/${tol}`}>
             <i className="m-glyph">{glyph}</i>
             <i className="m-pips">
               {Array.from({ length: steps }, (_, n) => (

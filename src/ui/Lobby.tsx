@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { normalizeRoomCode } from '../net/protocol'
 import { hasTurn } from '../net/config'
 import { checkConnection, type CheckResult } from '../net/checkConnection'
 import type { RoomView } from '../net/room'
@@ -6,20 +7,44 @@ import { defaultCloutToWin } from '../engine/state'
 import { deckSummary } from '../engine/cards/deck'
 
 export function Lobby({
-  view, onHost, onJoin, onStart, onLocal, busy,
+  view, onHost, onJoin, onStart, onLocal, onLeave, busy,
 }: {
   view: RoomView
   onHost: (name: string) => void
   onJoin: (code: string, name: string) => void
   onStart: (cloutToWin: number, useKitchenTable: boolean) => void
   onLocal: (names: string[], cloutToWin: number, useKitchenTable: boolean) => void
+  onLeave: () => void
   busy: boolean
 }) {
   const [localCount, setLocalCount] = useState(4)
   const [localNames, setLocalNames] = useState<string[]>([])
+  const [shared, setShared] = useState<'link' | 'code' | null>(null)
+
+  const joinUrl = (code: string) => `${location.origin}${location.pathname}?room=${code}`
+
+  function copy(text: string, kind: 'link' | 'code') {
+    try { navigator.clipboard?.writeText(text) } catch { /* insecure context */ }
+    setShared(kind)
+    setTimeout(() => setShared(null), 1800)
+  }
+
+  /** Native share sheet where there is one, clipboard everywhere else. */
+  async function share(code: string) {
+    const url = joinUrl(code)
+    const data = { title: 'Family Affairs', text: `Join my game. Room ${code}.`, url }
+    try {
+      if (navigator.share) { await navigator.share(data); return }
+    } catch { /* dismissed, fall through to copying */ }
+    copy(url, 'link')
+  }
   const [name, setName] = useState(() => localStorage.getItem('fa.name') ?? '')
-  const [code, setCode] = useState('')
-  const [screen, setScreen] = useState<'home' | 'join' | 'local'>('home')
+  const [code, setCode] = useState(() => {
+    try { return normalizeRoomCode(new URLSearchParams(location.search).get('room') ?? '') } catch { return '' }
+  })
+  const [screen, setScreen] = useState<'home' | 'join' | 'local'>(() => {
+    try { return new URLSearchParams(location.search).get('room') ? 'join' : 'home' } catch { return 'home' }
+  })
   const [kitchen, setKitchen] = useState(false)
   const [cloutOverride, setCloutOverride] = useState<number | null>(null)
   const [check, setCheck] = useState<CheckResult | 'running' | null>(null)
@@ -41,14 +66,20 @@ export function Lobby({
     return (
       <div className="lobby">
         <div>
-          <span className="field-label">Room code — everyone types this in</span>
+          <span className="field-label">Room code</span>
           <div className="card-panel">
             <div className="roomcode">{view.code}</div>
-            <button
-              className="btn ghost sm"
-              style={{ margin: '6px auto 0' }}
-              onClick={() => navigator.clipboard?.writeText(view.code)}
-            >Copy code</button>
+            <p className="lobby-tag" style={{ textAlign: 'center', fontSize: '.76rem', margin: '2px 0 10px' }}>
+              Send the link and they join without typing anything.
+            </p>
+            <div className="sharerow">
+              <button className="btn" onClick={() => share(view.code)}>
+                {shared === 'link' ? 'Link copied' : 'Share link'}
+              </button>
+              <button className="btn ghost" onClick={() => copy(view.code, 'code')}>
+                {shared === 'code' ? 'Copied' : 'Copy code'}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -76,7 +107,7 @@ export function Lobby({
               </div>
               <div className="lobby-tag" style={{ marginTop: 8 }}>
                 {cloutOverride == null
-                  ? `${suggested} is tuned for ${count} player${count === 1 ? '' : 's'} — about 45 minutes.`
+                  ? `${suggested} is tuned for ${count} player${count === 1 ? '' : 's'} - about 45 minutes.`
                   : `Recommended for ${count} players: ${suggested}.`}
               </div>
             </div>
@@ -89,7 +120,7 @@ export function Lobby({
               </div>
               <div className="lobby-tag" style={{ marginTop: 8 }}>
                 Puts three cards face-up in the middle. On your turn you can take one of those
-                instead of drawing blind — so everyone can see what everyone else wants.
+                instead of drawing blind - so everyone can see what everyone else wants.
               </div>
             </div>
 
@@ -107,11 +138,24 @@ export function Lobby({
           <div className="lobby-tag">Waiting for the host to start…</div>
         )}
 
-        <div className="warn">
-          Your device is running the game. If you close this tab, the game ends for everyone —
-          so keep it open and don't let your phone sleep.
-        </div>
+        {isHost && (
+          <div className="warn">
+            Your device is running the game. Keep this tab open and don't let your phone sleep.
+            If it reloads by accident the room comes back on the same code, but if you close it
+            deliberately the game ends for everyone.
+          </div>
+        )}
         {view.error && <div className="err">{view.error}</div>}
+
+        <button
+          className="btn ghost"
+          onClick={() => {
+            const msg = isHost
+              ? 'Close the room? This ends the game for everyone in it.'
+              : 'Leave this room?'
+            if (confirm(msg)) onLeave()
+          }}
+        >{isHost ? 'Close the room' : 'Leave room'}</button>
       </div>
     )
   }
@@ -151,7 +195,7 @@ export function Lobby({
           <div className="lobby-tag">
             <strong style={{ color: 'var(--gold)' }}>Just want to see how it plays?</strong> Pick
             “Play on this device”. It runs every player on this one screen and you take each turn
-            in order — no second phone, nobody else needed.
+            in order - no second phone, nobody else needed.
           </div>
           <div className="lobby-tag subtle">
             Games connect your phones directly to each other, so it depends on your network more
@@ -198,10 +242,10 @@ export function Lobby({
               ))}
             </div>
             <div className="lobby-tag" style={{ marginTop: 8 }}>
-              Names are optional, but the game says whose turn it is by name — so on one screen it
+              Names are optional, but the game says whose turn it is by name - so on one screen it
               is a lot easier to know who to hand it to. A gold banner at the top always shows it.
               <br /><br />
-              First to {defaultCloutToWin(localCount)} Clout wins — about 45 minutes.
+              First to {defaultCloutToWin(localCount)} Clout wins - about 45 minutes.
             </div>
           </div>
           <button

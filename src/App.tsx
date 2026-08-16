@@ -63,6 +63,8 @@ export default function App() {
     setBusy(false)
   }, [room])
 
+  const onLeave = useCallback(() => { room.leave(); setResuming(false) }, [room])
+
   const send = useCallback((intent: Intent) => {
     if (view.you) room.submit(view.you, intent)
   }, [room, view.you])
@@ -100,6 +102,7 @@ export default function App() {
         onJoin={onJoin}
         onStart={(cloutToWin, useKitchenTable) => send({ k: 'startGame', cloutToWin, useKitchenTable })}
         onLocal={(names, cloutToWin, useKitchenTable) => room.startLocal(names, { cloutToWin, useKitchenTable })}
+        onLeave={onLeave}
       />
     </div>
   )

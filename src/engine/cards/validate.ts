@@ -25,7 +25,7 @@ console.log('\n=== CARD VALIDATION ===')
 console.log(`${CHARACTERS.length} characters, ${STUFF.length} stuff, ${AFFAIRS.length} affairs\n`)
 
 if (errors.length) {
-  console.log(`ERRORS (${errors.length}) — these would block a card pack from loading:`)
+  console.log(`ERRORS (${errors.length}) - these would block a card pack from loading:`)
   for (const i of errors) console.log(`  ✗ ${i.card.padEnd(18)} ${i.field.padEnd(18)} ${i.message}`)
   console.log('')
 }
@@ -36,7 +36,7 @@ if (warns.length) {
 }
 if (!errors.length && !warns.length) console.log('All cards pass.\n')
 
-// Power budget table — the thing to eyeball when adding a character.
+// Power budget table - the thing to eyeball when adding a character.
 console.log('Ability power budgets (ability cap ' + RULES.abilityBudget + ', power move cap ' + RULES.powerMoveBudget + '):')
 const rows = CHARACTERS.map((c) => ({
   name: c.name,

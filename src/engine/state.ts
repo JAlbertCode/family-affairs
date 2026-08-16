@@ -149,8 +149,12 @@ export function createGame(
 
   if (state.useKitchenTable) refillKitchenTable(state)
 
-  log(state, `Family Affairs — ${players.length} players, first to ${state.cloutToWin} Clout.`)
-  revealAffair(state)
+  log(state, `Family Affairs - ${players.length} players, first to ${state.cloutToWin} Clout.`)
+  // No Affair in Round 1. It used to reveal here, during setup, when every
+  // board in the game is still empty: measured across 25 six-player games,
+  // 100% of Round 1 Affairs resolved against zero Characters and did literally
+  // nothing. The first one anybody sees is now the Round 2 one, which lands on
+  // an average of 8 Characters.
   log(state, `Round 1 turn order: ${state.turnOrder.map((p) => state.playerState[p].name).join(' -> ')}`)
   autoDraw(state)
   return state
@@ -204,12 +208,18 @@ function revealAffair(state: GameState) {
   state.currentAffair = id
 
   const def = getAffairDef(id)
-  log(state, `FAMILY AFFAIR: ${def.name} — ${def.text}`, 'affair')
+  const hit = allActiveEveryone(state).length
+  log(state, `FAMILY AFFAIR: ${def.name}. ${def.text}`, 'affair')
 
   // Grandma "I Knew It" bookkeeping: she reacts to anything that hits her
   const before = new Map(allActiveEveryone(state).map((c) => [c.iid, c.hp]))
 
   runEffects(state, def.effects, { controller: currentPlayer(state) })
+
+  // An Affair that changed nothing should say so rather than looking active.
+  log(state, hit > 0
+    ? `${def.name} lands on ${hit} Character${hit === 1 ? '' : 's'}.`
+    : `${def.name} lands on nobody. There is not a single Character on the table yet.`, 'affair')
 
   for (const c of allActiveEveryone(state)) {
     if (getCharacterDef(c.defId).id !== 'grandma') continue
@@ -230,7 +240,7 @@ function badLuckThreshold(state: GameState, ch: CharacterInstance): number {
   let t = 0
   const s = ch.statuses.find((x) => x.name === 'Bad Luck')
   if (s) t = Math.max(t, s.threshold ?? 1)
-  // Chi Chi — Bad Influence (§28). She is worse for the people she is winding
+  // Chi Chi - Bad Influence (§28). She is worse for the people she is winding
   // up than for the people she loves: rivals across from her go sideways on a
   // natural 1-2, her own family only on a natural 1. It still catches them.
   for (const a of adjacentAllies(state, ch.iid)) {
@@ -255,7 +265,7 @@ function actionFails(state: GameState, ch: CharacterInstance): boolean {
   const failed = r.face <= 2
   log(
     state,
-    `${getCharacterDef(ch.defId).name} is ${wasted ? 'Wasted' : 'Confused'} — rolled ${r.face}. ${failed ? 'The Action fails.' : 'It works.'}`,
+    `${getCharacterDef(ch.defId).name} is ${wasted ? 'Wasted' : 'Confused'} - rolled ${r.face}. ${failed ? 'The Action fails.' : 'It works.'}`,
     'status',
   )
   return failed
@@ -291,7 +301,7 @@ function handle(state: GameState, pid: PlayerId, intent: Intent): string | undef
 
   // --- interference is the only thing legal while a battle is open ---
   if (state.battle && !['interfere', 'passInterference', 'confirmRolls'].includes(intent.k)) {
-    return 'A battle is in progress — resolve it first.'
+    return 'A battle is in progress - resolve it first.'
   }
 
   switch (intent.k) {
@@ -369,7 +379,7 @@ function handle(state: GameState, pid: PlayerId, intent: Intent): string | undef
 
       ps2.actionsLeft -= ab.actionCost
       ch.actedThisTurn = true
-      log(state, `${getCharacterDef(ch.defId).name} uses ${sd.name} — ${ab.name}.`, 'play')
+      log(state, `${getCharacterDef(ch.defId).name} uses ${sd.name} - ${ab.name}.`, 'play')
       if (actionFails(state, ch)) return
 
       if (ab.oncePerGame) ch.cooldowns[cdKey] = -1
@@ -653,8 +663,7 @@ function playCard(
     case 'Drink':
     case 'Smoke': {
       // Consumables ATTACH to the Character and sit there until eaten. That is
-      // what makes them stealable, force-feedable, and worth fighting over —
-      // and it is what Amanda's "up to 4 Items attached / max 2 Food" implies.
+      // what makes them stealable, force-feedable, and worth fighting over - // and it is what Amanda's "up to 4 Items attached / max 2 Food" implies.
       if (!target) return `${def.name} must be given to a Character.`
       if (target.zone === 'recovering') return 'That Character is recovering.'
       if (countAttached(state, target, def.subtype) >= itemCap(target, def.subtype)) {
@@ -765,7 +774,7 @@ function declareAttack(
     ? (atk.zone === 'active' && !hasStatus(atk, 'Asleep') && !hasStatus(atk, 'Away') ? { ok: true as const } : { ok: false as const, why: 'Cannot act' })
     : canAttack(state, atk)
   if (!check.ok) return check.why
-  if (charmBlocks(atk, defenderIid)) return 'Charmed — cannot attack that Character.'
+  if (charmBlocks(atk, defenderIid)) return 'Charmed - cannot attack that Character.'
   if (!free && ps.actionsLeft < 1) return 'No Family Actions left.'
 
   if (free) {
@@ -841,7 +850,7 @@ function resolveBattle(state: GameState) {
   const atkDef = getCharacterDef(atk.defId)
   const dfnDef = getCharacterDef(dfn.defId)
 
-  // Amanda — Momma Bird: redirect onto her, once per Round
+  // Amanda - Momma Bird: redirect onto her, once per Round
   let realDefender = dfn
   for (const ally of adjacentAllies(state, dfn.iid)) {
     if (getCharacterDef(ally.defId).id === 'amanda' && !ally.scratch.mommaBirdUsed && ally.owner === dfn.owner) {
@@ -850,7 +859,7 @@ function resolveBattle(state: GameState) {
       // She will take it, but she feels it. Without this the redirect was
       // pure profit and Amanda was the strongest card in the game by a mile.
       applyDamage(state, ally, 1, { controller: ally.owner }, 'Momma Bird')
-      log(state, `Momma Bird — Amanda steps in front of ${dfnDef.name} and wears one.`, 'combat')
+      log(state, `Momma Bird - Amanda steps in front of ${dfnDef.name} and wears one.`, 'combat')
       if (ally.hp <= 0) { realDefender = dfn }
       break
     }
@@ -863,7 +872,7 @@ function resolveBattle(state: GameState) {
     return
   }
 
-  // Step 3 & 4 — rolls (§14)
+  // Step 3 & 4 - rolls (§14)
   let r = d6(state.seed); state.seed = r.seed
   const attackRoll = r.face
   r = d6(state.seed); state.seed = r.seed
@@ -890,7 +899,7 @@ function resolveBattle(state: GameState) {
   )
 
   // A dead heat is not a shrug. Both families square off and settle it with a
-  // single throw — short by design, and it makes the minigame mean something.
+  // single throw - short by design, and it makes the minigame mean something.
   if (attackScore === defenseScore && b.attackerPlayer !== realDefender.owner) {
     log(state, 'Dead heat. Somebody has to settle this.', 'combat')
     state.minigame = {
@@ -909,7 +918,7 @@ function resolveBattle(state: GameState) {
     return
   }
 
-  // Step 5 — damage (§14)
+  // Step 5 - damage (§14)
   const raw = attackScore - defenseScore
   const damage = Math.max(0, raw - pacifistPenalty)
   b.damageDealt = damage
@@ -930,7 +939,7 @@ function resolveBattle(state: GameState) {
       atk.scratch.koWithGear = 1
     }
   } else {
-    log(state, 'No damage — the Defense held.', 'combat')
+    log(state, 'No damage - the Defense held.', 'combat')
   }
 
   // Natural rolls (§14)
@@ -1037,7 +1046,7 @@ export function autoDraw(state: GameState) {
 }
 
 // --------------------------------------------------------------------------
-// Minigames — table interaction that is not combat
+// Minigames - table interaction that is not combat
 // --------------------------------------------------------------------------
 
 const TTT_LINES = [
@@ -1125,7 +1134,7 @@ function startNewRound(state: GameState) {
   state.round += 1
 
   if (state.round > MAX_ROUNDS) {
-    log(state, `Round ${MAX_ROUNDS} — somebody has to go home. Highest Clout takes it.`, 'clout')
+    log(state, `Round ${MAX_ROUNDS} - somebody has to go home. Highest Clout takes it.`, 'clout')
     finishGame(state)
     return
   }
@@ -1138,24 +1147,24 @@ function startNewRound(state: GameState) {
   state.turnOrder = ro.arr
   state.seed = ro.seed
 
-  // Titi The Bum — Attention Hunger
+  // Titi The Bum - Attention Hunger
   for (const ch of allActiveEveryone(state)) {
     if (getCharacterDef(ch.defId).id === 'titibum' && !ch.scratch.engaged) {
       applyStatMod(state, ch, 'attack', -1, 'round')
       log(state, 'Titi The Bum was ignored all Round. -1 Attack.', 'status')
     }
-    // Kevin — Never Skip Leg Day. His entire kit scales off Food, so running
+    // Kevin - Never Skip Leg Day. His entire kit scales off Food, so running
     // on empty is the one state that actually slows him down.
     if (getCharacterDef(ch.defId).id === 'kevin' && ch.limits.food === 0) {
       applyStatMod(state, ch, 'attack', -1, 'round')
       log(state, 'Kevin has not eaten. -1 Attack until he does.', 'status')
     }
 
-    // Kevin — OVERFED. Staying Stuffed is his whole gameplan, and without a
+    // Kevin - OVERFED. Staying Stuffed is his whole gameplan, and without a
     // ceiling it is simply the best deal in the game: he ran 29% win-share in
     // 150 six-player games as the strongest Character in the deck. Two full
     // Rounds at Stuffed and the third one is a Food Coma. Eat, stuff, destroy,
-    // destroy, rest — the rhythm is the balance.
+    // destroy, rest - the rhythm is the balance.
     if (getCharacterDef(ch.defId).id === 'kevin') {
       const stuffed = limitTier(ch, 'food') >= 2
       const rounds = stuffed ? ((ch.cooldowns.overfedRounds ?? 0) + 1) : 0
@@ -1165,7 +1174,7 @@ function startNewRound(state: GameState) {
         ch.limits.food = 0
         applyStatus(state, ch, 'Asleep', 1, { controller: ch.owner })
         applyHeal(state, ch, 4, { controller: ch.owner })
-        log(state, 'Kevin is Overfed. Food coma — he rests and comes back empty.', 'status')
+        log(state, 'Kevin is Overfed. Food coma - he rests and comes back empty.', 'status')
       }
     }
   }
@@ -1189,7 +1198,7 @@ function checkAchievements(state: GameState) {
     const def = getCharacterDef(ch.defId)
     const a = def.achievement
     if (!a || !ch.owner) continue
-    // Scored per PLAYER, not per card instance — a 6-player deck holds two
+    // Scored per PLAYER, not per card instance - a 6-player deck holds two
     // copies of every Character and double-dipping was a real Clout leak.
     const scored = state.achievementsScored[ch.owner] ?? (state.achievementsScored[ch.owner] = [])
     if (scored.includes(a.key)) continue
@@ -1243,7 +1252,7 @@ function achievementMet(state: GameState, ch: CharacterInstance, key: string): b
 }
 
 // ---------------------------------------------------------------------------
-// Redaction — each client only sees its own hand (§ hidden information)
+// Redaction - each client only sees its own hand (§ hidden information)
 // ---------------------------------------------------------------------------
 
 export function redactFor(state: GameState, viewer: PlayerId): GameState {

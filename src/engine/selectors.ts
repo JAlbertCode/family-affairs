@@ -107,7 +107,7 @@ function limitStatDelta(ch: CharacterInstance): Record<StatName, number> {
     if (a === 2 || a === 3) { d.attack += 2; d.defense -= 1 }
   }
 
-  // Weed (§22) — buys Defense, costs the ability to hit anything
+  // Weed (§22) - buys Defense, costs the ability to hit anything
   const w = limitTier(ch, 'weed')
   if (isKevin) {
     // Why Am I Here. He does not smoke, and it takes the fight out of him
@@ -124,14 +124,14 @@ function limitStatDelta(ch: CharacterInstance): Record<StatName, number> {
   const f = limitTier(ch, 'food')
   if (isKevin) {
     // ALWAYS FED. Every other Character is trying not to get Stuffed. Kevin is
-    // trying to stay there — this is the one curve in the game that rewards
+    // trying to stay there - this is the one curve in the game that rewards
     // running the meter all the way up, and it is his entire gameplay loop.
     if (f === 1) d.attack += 1
     // Leans Defense rather than both: at +2/+2 he came out of his first 150
     // games as the strongest Character in the deck. He is a tank, so the wall
     // is the part he keeps.
     // Pure wall. Two nerfs in he was still debuting as a top-two Character, so
-    // Stuffed now buys Defense only — the Attack has to come from his Power
+    // Stuffed now buys Defense only - the Attack has to come from his Power
     // Move, his items, or somebody feeding him a Protein Shake.
     if (f >= 2) d.defense += 2
   } else {
@@ -255,7 +255,7 @@ export function canAttack(state: GameState, ch: CharacterInstance): { ok: boolea
   const base = canAct(state, ch)
   if (!base.ok) return base
   if (hasStatus(ch, 'Busy')) return { ok: false, why: 'Busy' }
-  if (limitTier(ch, 'weed') === 3) return { ok: false, why: 'Zooted — cannot initiate attacks' }
+  if (limitTier(ch, 'weed') === 3) return { ok: false, why: 'Zooted - cannot initiate attacks' }
   return { ok: true }
 }
 
@@ -283,7 +283,7 @@ export function itemCap(ch: CharacterInstance, subtype: string): number {
   if (subtype === 'Gear') return def.gearSlots ?? 1
   if (subtype === 'Ride') return def.rideSlots ?? 1
   if (subtype === 'Pet') return def.petSlots ?? 1
-  return 2 // Food / Drink / Smoke — "can't have more than 2 Food items attached"
+  return 2 // Food / Drink / Smoke - "can't have more than 2 Food items attached"
 }
 
 /** Total attached Stuff limit. Amanda carries more; everyone else gets 3. */
@@ -467,7 +467,7 @@ export function incomingAuras(state: GameState, ch: CharacterInstance): string[]
     const ns = adjacentAllies(state, ch.iid)
     if (ns.length === 0) out.push('+1 ⚔ +1 🛡 working alone')
     for (const n of ns) {
-      if (limitTier(n, 'weed') >= 2) out.push(`-1 ⚔ -1 🛡 — ${getCharacterDef(n.defId).name} is ruining the shot`)
+      if (limitTier(n, 'weed') >= 2) out.push(`-1 ⚔ -1 🛡 - ${getCharacterDef(n.defId).name} is ruining the shot`)
     }
   }
   return out

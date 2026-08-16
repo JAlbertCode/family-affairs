@@ -41,7 +41,7 @@ const PEER_OPTS = peerOptions()
 
 /**
  * PeerJS error types are accurate and unreadable. Each one here maps to a thing
- * the player can actually do something about — and 'unavailable-id' in
+ * the player can actually do something about - and 'unavailable-id' in
  * particular means the room code is taken, not that anything is broken.
  */
 export function explainPeerError(err: unknown): string {
@@ -56,13 +56,13 @@ export function explainPeerError(err: unknown): string {
     case 'server-error':
     case 'socket-error':
     case 'socket-closed':
-      return 'Lost the connection to the signalling server. It brokers the introduction only — try again in a moment.'
+      return 'Lost the connection to the signalling server. It brokers the introduction only - try again in a moment.'
     case 'browser-incompatible':
       return 'This browser does not support the peer-to-peer connection the game needs. Chrome, Edge, Firefox or Safari 15+ all work.'
     case 'webrtc':
       return hasTurn
         ? 'Could not open a direct connection, and the relay did not answer either. Try again, or play pass-and-play on one device.'
-        : 'Could not open a direct connection. Some networks — office wifi and a few mobile carriers — block this, and no relay is configured. Pass-and-play on one device always works.'
+        : 'Could not open a direct connection. Some networks - office wifi and a few mobile carriers - block this, and no relay is configured. Pass-and-play on one device always works.'
     default:
       return msg
   }
@@ -73,13 +73,28 @@ export function explainPeerError(err: unknown): string {
  * A refresh should not cost you the game.
  *
  * Phones reload tabs on their own, people pull-to-refresh by accident, and a
- * hosted game has no server to fall back on — so the room remembers who you
+ * hosted game has no server to fall back on - so the room remembers who you
  * were. Clients re-announce with the same name and `assignSeat` hands their
  * chair back; the host restores the authoritative state it was already
  * holding, because when the host disappears there is nowhere else for it to
  * live.
  */
 const SESSION_KEY = 'fa.session'
+const CLIENT_ID_KEY = 'fa.clientId'
+
+/** Stable per-browser id. Identity that survives a reload, unlike a socket. */
+export function clientId(): string {
+  try {
+    let id = localStorage.getItem(CLIENT_ID_KEY)
+    if (!id) {
+      id = `c${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`
+      localStorage.setItem(CLIENT_ID_KEY, id)
+    }
+    return id
+  } catch {
+    return `c${Math.random().toString(36).slice(2)}`
+  }
+}
 const SESSION_MAX_AGE_MS = 4 * 60 * 60 * 1000
 
 export interface SavedSession {
@@ -92,6 +107,7 @@ export interface SavedSession {
   game?: GameState
   order?: PlayerId[]
   names?: [PlayerId, string][]
+  clients?: [PlayerId, string][]
 }
 
 export function loadSession(): SavedSession | null {
@@ -112,7 +128,7 @@ export function clearSession() {
 function saveSession(s: Omit<SavedSession, 'v' | 'at'>) {
   try {
     localStorage.setItem(SESSION_KEY, JSON.stringify({ ...s, v: 1, at: Date.now() }))
-  } catch { /* quota or private mode — losing the session is not fatal */ }
+  } catch { /* quota or private mode - losing the session is not fatal */ }
 }
 
 export class Room {
@@ -129,6 +145,7 @@ export class Room {
   // host-side
   private conns = new Map<PlayerId, DataConnection>()
   private names = new Map<PlayerId, string>()
+  private clients = new Map<PlayerId, string>()
   private order: PlayerId[] = []
   private game: GameState | null = null
 
@@ -156,6 +173,7 @@ export class Room {
       game: this.game ?? undefined,
       order: this.order,
       names: [...this.names.entries()],
+      clients: [...this.clients.entries()],
     })
   }
 
@@ -240,6 +258,7 @@ export class Room {
     this.code = s.code
     this.you = 'p0'
     this.names = new Map(s.names ?? [['p0', s.name]])
+    this.clients = new Map(s.clients ?? [])
     this.order = s.order?.length ? s.order : ['p0']
     this.game = s.game ?? null
     // Everyone else is, by definition, not connected yet.
@@ -289,7 +308,7 @@ export class Room {
     return new Promise((resolve, reject) => {
       const p = new Peer(id, PEER_OPTS as any)
       const timer = setTimeout(
-        () => reject(new Error('Timed out reaching the signalling server. It may be busy — try again in a moment.')),
+        () => reject(new Error('Timed out reaching the signalling server. It may be busy - try again in a moment.')),
         12000,
       )
       p.on('open', () => { clearTimeout(timer); this.peer = p; resolve(p) })
@@ -328,13 +347,15 @@ export class Room {
 
     if (msg.t === 'join') {
       if (msg.protocol !== PROTOCOL_VERSION) {
-        this.send(conn, { t: 'kicked', reason: 'Different game version — everyone should reload the page.' })
+        this.send(conn, { t: 'kicked', reason: 'Different game version - everyone should reload the page.' })
         return
       }
       const seatResult = assignSeat({
         name: msg.name,
+        clientId: msg.clientId,
         order: this.order,
         names: this.names,
+        clients: this.clients,
         connOpen: new Map([...this.conns].map(([id, c]) => [id, c.open])),
         hostSeat: this.you,
         started: !!this.game,
@@ -346,7 +367,16 @@ export class Room {
       }
       const pid = seatResult.seat
       if (seatResult.isNewSeat) this.order.push(pid)
+
+      // Same browser reclaiming its chair: hang up the old socket first, or the
+      // ghost keeps its seat in the lobby while the player sits in a new one.
+      if (seatResult.takeover) {
+        const stale = this.conns.get(pid)
+        if (stale && stale !== conn) { try { stale.close() } catch { /* already gone */ } }
+      }
+
       this.names.set(pid, seatResult.name)
+      if (msg.clientId) this.clients.set(pid, msg.clientId)
       this.conns.set(pid, conn)
       if (this.game) this.game.playerState[pid].connected = true
 
@@ -370,6 +400,36 @@ export class Room {
     if (msg.t === 'intent') {
       this.submit(pid, msg.intent)
     }
+  }
+
+  /**
+   * Get out of the room. A guest simply disconnects and their seat is left for
+   * them to reclaim; a host closing up ends it for everybody, so they are told
+   * that before they do it. Either way the saved session goes, or the next load
+   * would drag you straight back into the room you just left.
+   */
+  leave() {
+    clearSession()
+    for (const c of this.conns.values()) { try { c.close() } catch { /* already gone */ } }
+    this.conns.clear()
+    try { this.hostConn?.close() } catch { /* already gone */ }
+    this.hostConn = null
+    try { this.peer?.destroy() } catch { /* already gone */ }
+    this.peer = null
+
+    this.role = 'host'
+    this.hotseat = false
+    this.status = 'idle'
+    this.code = ''
+    this.you = null
+    this.error = null
+    this.names.clear()
+    this.clients.clear()
+    this.order = []
+    this.game = null
+    this.myState = null
+    this.lobbyCache = []
+    this.emit()
   }
 
   /** Host-side entry point for every intent, local or remote. */
@@ -460,7 +520,10 @@ export class Room {
         clearTimeout(timer)
         this.hostConn = conn
         this.status = 'connected'
-        conn.send({ t: 'join', name: displayName, protocol: PROTOCOL_VERSION } satisfies ClientMsg)
+        conn.send({
+          t: 'join', name: displayName,
+          protocol: PROTOCOL_VERSION, clientId: clientId(),
+        } satisfies ClientMsg)
         this.emit()
         resolve()
       })
@@ -511,12 +574,4 @@ export class Room {
     if (this.hostConn?.open) this.hostConn.send(msg)
   }
 
-  leave() {
-    this.peer?.destroy()
-    this.peer = null
-    this.hostConn = null
-    this.conns.clear()
-    this.status = 'closed'
-    this.emit()
-  }
 }

@@ -24,14 +24,14 @@ with real phones before deploying anywhere.
 
 ## How to test it
 
-**Fastest — one device, no setup.** Open the site, tap **Play on this device**,
+**Fastest - one device, no setup.** Open the site, tap **Play on this device**,
 pick a player count, hit Start. Every player shares the one screen and a gold
 banner at the top tells you whose turn it is. You can play all the seats yourself
 to learn the game; nothing is hidden between seats in this mode.
 
 **Two browser tabs.** Tab 1: *Host a game* → note the 4-letter code. Tab 2: open
 the same URL → *Join with a code* → type it. Two tabs in one browser share the
-saved name, so the second one shows up as e.g. "Jay (2)" — that is expected. Once
+saved name, so the second one shows up as e.g. "Jay (2)" - that is expected. Once
 2 players are in the lobby, the host's Start button turns gold.
 
 **Real phones.** Run `npm start`, open the **Network** URL on each phone, then
@@ -55,7 +55,7 @@ Nothing, and that is structural rather than lucky. The game is static files: the
 rules engine runs in each player's browser and game traffic goes directly
 peer-to-peer. There is no server holding game state, so there is nothing that
 gets more expensive as more people play. A first visit is about 1.2 MB, mostly
-card art, and near-zero after that — GitHub Pages' 100 GB/month works out to
+card art, and near-zero after that - GitHub Pages' 100 GB/month works out to
 roughly 80,000 first-time visits.
 
 Cloudflare Pages, Netlify and Vercel are all equally free for this and want
@@ -66,9 +66,9 @@ the environment, so moving hosts is a setting, not a change.
 
 Neither of these is hosting, and both are configured in `.env.example`:
 
-**TURN relay — the one worth adding first.** Two browsers connect directly using
-STUN, which is free and works for most pairs. Roughly 10–20% of players — behind
-symmetric NAT, strict corporate wifi, or certain mobile carriers — cannot be
+**TURN relay - the one worth adding first.** Two browsers connect directly using
+STUN, which is free and works for most pairs. Roughly 10–20% of players - behind
+symmetric NAT, strict corporate wifi, or certain mobile carriers - cannot be
 connected without a relay, and for them the game does not work at all. A card
 game relays a few small JSON messages per turn, not video, so the volume is
 tiny.
@@ -85,12 +85,12 @@ credentials at a glance.
 Anyone can verify it end to end from the lobby: **Check my connection** gathers
 real ICE candidates against the configured servers and reports whether a relay
 candidate came back. No relay while TURN is configured means the hostname is
-wrong, the credentials are wrong, or the quota is spent — worth knowing before
+wrong, the credentials are wrong, or the quota is spent - worth knowing before
 six people are waiting.
 
 **Signalling.** The public PeerJS broker introduces two browsers and carries no
 game traffic. If it goes down, running games are unaffected and new ones cannot
-start. Self-hosting is `npx peer` behind TLS — a small stateless Node process
+start. Self-hosting is `npx peer` behind TLS - a small stateless Node process
 that fits in a free tier. Point `VITE_PEER_HOST` at it.
 
 Both are read in `src/net/config.ts`. With nothing set, the app runs exactly as
@@ -111,7 +111,7 @@ Every Character sits on the same budget: **Attack + Defense = 8**. Identity come
 from HP and abilities, not from a bigger number.
 
 Speed was removed. It appeared on every card but never entered combat
-resolution — attack rolls are Attack vs Defense, and nothing else read the
+resolution - attack rolls are Attack vs Defense, and nothing else read the
 value. It was a number that changed nothing, so the Limit tracks that used to
 drain Speed now cost Attack instead: getting Stoned or Stuffed buys you Defense
 and takes away your ability to hit anything, which is the same risk/reward with
@@ -124,12 +124,12 @@ Most of the layout rules below come from how established mobile card games solve
 the same problems.
 
 **Your side is at the bottom.** Opponents sit along the top, your family sits
-above your hand at the bottom of the screen — the way a physical table is laid
+above your hand at the bottom of the screen - the way a physical table is laid
 out, and the way Yu-Gi-Oh, Pokémon and Hearthstone all arrange a board. The
 things you touch most are nearest your thumbs.
 
 **Attacking is one tap from the board.** Tapping one of your characters raises a
-sheet of action chips — Attack first and largest. Tap Attack, tap an enemy, done.
+sheet of action chips - Attack first and largest. Tap Attack, tap an enemy, done.
 The action bar also states what the Turn is asking for, because combat turned out
 to be undiscoverable when nothing said so.
 
@@ -144,7 +144,7 @@ be a single marker with a tooltip, which is invisible on a phone.
 
 **Drunk, High and Stuffed are meters, not badges.** All three show on every
 Character all the time, one pip per step, with the last pip marking that
-Character's own tolerance — a Heavyweight's line sits in a different place from a
+Character's own tolerance - a Heavyweight's line sits in a different place from a
 Lightweight's, and that difference is the whole mechanic.
 
 **A card in hand and the same card in play look nothing alike.** In hand a card
@@ -154,20 +154,20 @@ compact token showing only how hurt it is, how dangerous it is, and what is wron
 with it. Full detail is one tap away. Trying to use one representation for both
 is what made earlier versions unreadable.
 
-**Reading a card and playing it are separate actions.** Tapping anything — a card
-in hand, an item already on the board — opens it to read. It only resolves when
+**Reading a card and playing it are separate actions.** Tapping anything - a card
+in hand, an item already on the board - opens it to read. It only resolves when
 you press the explicit Play or Use button, and then you still choose the target.
 The most common complaint about Slay the Spire's mobile port is that brushing the
 screen while reading a card plays it, and that is worth designing around.
 
 **Only offer what is legal.** Cards and actions with nowhere to go are disabled
-and say why — "Nobody to play it on yet", "Nobody on the other side of the table
-yet" — instead of walking you into a targeting step with nothing to tap. Playable
+and say why - "Nobody to play it on yet", "Nobody on the other side of the table
+yet" - instead of walking you into a targeting step with nothing to tap. Playable
 cards are outlined in gold. When a card needs a target, everything illegal dims
 and the valid targets pulse.
 
-**Numbers before prose.** Each card shows its effects as chips — `⚔+3`, `🛡-1`,
-`🍺+2`, `clears Busy` — derived from the card's own data rather than its rules
+**Numbers before prose.** Each card shows its effects as chips - `⚔+3`, `🛡-1`,
+`🍺+2`, `clears Busy` - derived from the card's own data rather than its rules
 text, so the chip and what the engine does cannot drift apart. A card written by
 somebody else gets the same summary for free.
 
@@ -184,7 +184,7 @@ subtle glow, because ambient turn cues get missed.
 
 ## Card validation
 
-Every card — ours and anyone else's — is checked against the ruleset before it
+Every card - ours and anyone else's - is checked against the ruleset before it
 can load. Run it with:
 
 ```bash
@@ -206,7 +206,7 @@ This is what makes third-party cards safe: `validatePack()` takes a
 `CardPack` of characters, stuff and affairs from anyone, and returns every
 violation. Anything with severity `error` must block loading. A model writing
 cards cannot invent a 40-damage ability, a stat line that breaks the budget, or
-a tag the engine has never heard of — the validator refuses it.
+a tag the engine has never heard of - the validator refuses it.
 
 The budget is a guardrail against absurd cards, not a balance oracle. Real
 balance still comes from the simulator and from humans playing.
@@ -227,17 +227,17 @@ Environment knobs: `GAMES`, `PLAYERS`, `CLOUT`.
 ## Layout
 
 ```
-src/engine/       pure rules engine — no React, no network, fully deterministic
+src/engine/       pure rules engine - no React, no network, fully deterministic
   types.ts        every game concept, one file
   state.ts        createGame + the authoritative reducer
   effects.ts      the declarative effect interpreter
   selectors.ts    derived stats, adjacency, legality
-  rng.ts          seeded RNG — games are reproducible from (seed, intents)
+  rng.ts          seeded RNG - games are reproducible from (seed, intents)
   cards/          characters.ts, stuff.ts, affairs.ts, deck.ts
 src/net/          host-authoritative P2P over WebRTC (PeerJS)
 src/ui/           React components
 src/sim/          bots, balance harnesses, browser test
-public/art/       art as <id>.webp — the card id, lowercase, no hyphens
+public/art/       art as <id>.webp - the card id, lowercase, no hyphens
                   (chichi.webp, titibum.webp, donutcrown.webp, …)
 ```
 
@@ -245,7 +245,7 @@ public/art/       art as <id>.webp — the card id, lowercase, no hyphens
 
 New cards are data, not code (§43 Modular Expansion Rule). A new character is one
 object in `src/engine/cards/characters.ts`; a new Family Affair is one object in
-`affairs.ts`. Effects are a declarative union in `types.ts` — the engine
+`affairs.ts`. Effects are a declarative union in `types.ts` - the engine
 interprets them, so most new content needs no engine changes at all.
 
 ## Where this deviates from the paper ruleset
@@ -253,7 +253,7 @@ interprets them, so most new content needs no engine changes at all.
 These are deliberate, and each one came out of running the simulator:
 
 1. **Turn order is re-rolled every Round.** With fixed seating, the last player
-   swings at the most-softened board and farms the kills — seat 6 won 39% of
+   swings at the most-softened board and farms the kills - seat 6 won 39% of
    games against seat 1's 4%. Rotating the order flattened it to within noise.
 2. **The game finishes the Round.** Crossing the Clout threshold starts a final
    Round instead of ending play instantly, so every seat gets the same number of
@@ -264,8 +264,7 @@ These are deliberate, and each one came out of running the simulator:
    players means more to KO each Round, and KOs are where most Clout comes from.
    §2's 7/10/15 presets are all still selectable in the lobby.
 9. **A game cannot run past 60 Rounds.** Highest Clout takes it. With enough
-   defensive Gear on the board nobody can KO anybody and the score stops moving
-   — one simulated game hit 1241 Rounds and another never ended. Card balance is
+   defensive Gear on the board nobody can KO anybody and the score stops moving - one simulated game hit 1241 Rounds and another never ended. Card balance is
    the real fix; this is the guarantee that a game in front of real people always
    finishes.
 4. **Food, Drinks and Smoke attach to a Character and are consumed later** as a

@@ -4,13 +4,13 @@
  * Two separate jobs, and it is worth keeping them straight because they fail
  * differently and cost differently:
  *
- *  1. SIGNALLING — a broker that introduces two browsers. It carries the
+ *  1. SIGNALLING - a broker that introduces two browsers. It carries the
  *     handshake and nothing else. If it goes down, games already running are
  *     unaffected; nobody can start a NEW one. Default is PeerJS's free public
  *     broker: fine for testing, shared and rate-limited, so it is the first
  *     thing to replace if hosting a game starts failing.
  *
- *  2. ICE (STUN + TURN) — how the two browsers actually reach each other once
+ *  2. ICE (STUN + TURN) - how the two browsers actually reach each other once
  *     introduced. STUN is free and gets most pairs connected directly. TURN
  *     relays the traffic when they cannot, which is the 10-20% of players on
  *     symmetric NAT, strict corporate wifi, or certain mobile carriers. Without
@@ -50,7 +50,7 @@ export function iceServers(): RTCIceServer[] {
 
 /**
  * PeerJS options. With no signalling env vars set this returns exactly what the
- * library defaults to — the public broker — so the app runs with zero config.
+ * library defaults to - the public broker - so the app runs with zero config.
  */
 export function peerOptions() {
   const host = env.VITE_PEER_HOST as string | undefined
