@@ -1008,6 +1008,59 @@ export const CHARACTERS: CharacterDef[] = [
       key: 'crossFaded',
     },
   },
+
+  // --------------------------------------------------------------- ADRIAN --
+  {
+    kind: 'character',
+    id: 'adrian',
+    name: 'Adrian',
+    title: 'The Hippie Adjuster',
+    archetype: 'Support',
+    stats: { hp: 14, attack: 3, defense: 5 },
+    tags: ['Cousin', 'Adult', 'Stoner', 'Psychic'],
+    // Weed 3 rather than 4: his sweet spot is tier 2 and the whole risk is that
+    // it sits one puff from Zooted. Food 2 so a plate takes him out of a Round.
+    tolerance: T(3, 3, 2),
+    color: '#5fae72',
+    art: 'adrian.webp',
+    startsWith: ['birkenstocks'],
+    passive: {
+      name: 'Higher Consciousness',
+      text: 'Stoned is where he wants to live: +1 Defense at High, +2 at Stoned. Drunk and High at the same time adds +2 Attack and +2 Defense on top. Good Vibes: while Chi Chi is also Active both gain +1 Defense, or +2 if they are both Stoned.',
+      hooks: ['higherConsciousness', 'goodVibes'],
+    },
+    ability: {
+      name: 'Spend A Day With A Tree',
+      text: 'He hugs a tree and checks out of family affairs entirely. +3 Defense for the Round and he falls Asleep until his next Turn. An emergency wall, paid for with his whole activation.',
+      actionCost: 1,
+      effects: [
+        { k: 'statMod', target: { scope: 'self' }, stat: 'defense', amount: 3, duration: 'round' },
+        { k: 'statMod', target: { scope: 'allEnemyActive' }, stat: 'attack', amount: -1, duration: 'round' },
+        { k: 'status', target: { scope: 'self' }, status: 'Asleep', duration: 1 },
+      ],
+    },
+    powerMove: {
+      name: 'Fake Claims',
+      text: 'Requires Stoned. He gets creative with the paperwork and every Character on the table has their Attack and Defense swapped for the Round. A 6/2 becomes a 2/6. Nobody is where they were. Cooldown 2 Rounds.',
+      actionCost: 1,
+      cooldown: 2,
+      requiresLimit: { weed: 2 },
+      effects: [
+        { k: 'swapStats', target: { scope: 'allActiveEveryone' } },
+      ],
+    },
+    flaw: {
+      name: 'Gone',
+      text: 'Two ways to lose him, and they are opposite mistakes. Zooted and he is completely lost in the moment; Stuffed, which for him is only two Food, and he is not getting up. Either one puts him Asleep until his next Turn.',
+      hooks: ['gone', 'tooFull'],
+    },
+    achievement: {
+      name: 'One Love',
+      text: 'End your Turn with Adrian and Chi Chi both Active and both Stoned. +1 Clout.',
+      clout: 1,
+      key: 'oneLove',
+    },
+  },
 ]
 
 export const CHARACTERS_BY_ID: Record<string, CharacterDef> = Object.fromEntries(

@@ -333,6 +333,17 @@ export function applyLimit(
     log(state, 'Larry goes Catatonic. He is present, and that is all.', 'status')
   }
 
+  // Adrian - GONE, and TOO FULL. Two ways to lose him for a Turn, and they are
+  // opposite mistakes: pushing the track he wants past its sweet spot, or
+  // feeding him at all. Weed 2 is where he is most useful, and it is one puff
+  // from being where he is no use whatsoever.
+  if (def.id === 'adrian' && before < 3 && after >= 3) {
+    applyStatus(state, target, 'Asleep', 1, ctx)
+    log(state, track === 'food'
+      ? 'Too full. Adrian is not getting up.'
+      : 'Adrian is Gone. Completely lost in the moment.', 'status')
+  }
+
   // Elias - What Were We Making? Crossing into Stoned sends him to the fridge
   // whether or not that was the plan. Eating a Food only moves the Food track,
   // so this cannot re-enter itself.

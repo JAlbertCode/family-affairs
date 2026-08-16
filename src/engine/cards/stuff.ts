@@ -790,6 +790,44 @@ export const STUFF: StuffDef[] = [
     effects: [],
   },
   {
+    kind: 'stuff', id: 'birkenstocks', name: 'The Birkenstocks', subtype: 'Gear', copies: 3, icon: '🩴', color: GEAR,
+    text: 'Footgear. +2 Defense. Worn with socks, and he will explain why if you let him.',
+    equipMods: [{ stat: 'defense', amount: 2 }],
+    effects: [],
+  },
+  {
+    kind: 'stuff', id: 'mushroomhat', name: 'The Mushroom Hat', subtype: 'Gear', copies: 2, onlyFor: ['adrian'], icon: '🍄', color: GEAR,
+    text: 'Equip. +1 Defense. Come Back Down: clear 1 Weed, for the Adrian who has gone one puff past the sweet spot and needs to be somewhere else.',
+    equipMods: [{ stat: 'defense', amount: 1 }],
+    activated: {
+      name: 'Come Back Down',
+      text: 'Clear 1 Weed and shake off Asleep. Cooldown 2 Rounds.',
+      actionCost: 1,
+      cooldown: 2,
+      effects: [
+        { k: 'limit', target: { scope: 'self' }, track: 'weed', amount: -1 },
+        { k: 'removeStatus', target: { scope: 'self' }, status: 'Asleep' },
+      ],
+    },
+    effects: [],
+  },
+  {
+    kind: 'stuff', id: 'peacepipe', name: 'The Peace Pipe', subtype: 'Smoke', copies: 3, giftable: true, icon: '☮️', color: SMOKE,
+    text: 'It goes round. +1 Weed for whoever smokes it and +1 Weed for the Characters standing beside them, because it was never going to stop with one person.',
+    limitGain: { weed: 1 },
+    effects: [
+      { k: 'limit', target: { scope: 'adjacentAllies' }, track: 'weed', amount: 1 },
+    ],
+  },
+  {
+    kind: 'stuff', id: 'sacredherbs', name: 'Sacred Herbs', subtype: 'Smoke', copies: 3, giftable: true, icon: '🌿', color: SMOKE,
+    text: 'Organic, ethically sourced, and he will tell you where from. +1 Weed and +1 Defense for the Round.',
+    limitGain: { weed: 1 },
+    effects: [
+      { k: 'statMod', target: { scope: 'self' }, stat: 'defense', amount: 1, duration: 'round' },
+    ],
+  },
+  {
     kind: 'stuff', id: 'toolbelt', name: 'The Tool Belt', subtype: 'Gear', copies: 2, onlyFor: ['chris'], icon: '🧰', color: GEAR,
     text: 'He is not carrying weapons. He simply happens to be carrying a great many things that work extremely well as weapons. Equip. +2 Attack. Hammer Time: 3 damage to a chosen enemy.',
     equipMods: [{ stat: 'attack', amount: 2 }],

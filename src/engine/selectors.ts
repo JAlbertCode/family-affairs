@@ -91,10 +91,21 @@ function limitStatDelta(ch: CharacterInstance): Record<StatName, number> {
   const isBry = id === 'bry'
   const isLarry = id === 'larry'
   const isChris = id === 'chris'
+  const isAdrian = id === 'adrian'
 
   // Alcohol (§21)
   const a = limitTier(ch, 'alcohol')
-  if (isChris) {
+  if (isAdrian) {
+    // He is fine drunk. It just is not where his value is, so the ladder is
+    // shallow and flat rather than a trade: no Defense comes off, and nothing
+    // above Buzzed adds much. Weed is the track that matters for him.
+    if (a >= 1) d.attack += 1
+    // HIGHER CONSCIOUSNESS. The second cross-track interaction in the deck and
+    // the larger of the two: Drunk and at least High together. Chris gets +1/+1
+    // out of the same shape; Adrian is the Character the mechanic was written
+    // for, so his is worth twice that.
+    if (a >= 2 && limitTier(ch, 'weed') >= 1) { d.attack += 2; d.defense += 2 }
+  } else if (isChris) {
     // DRUNKEN ENGINEERING. The only Character in the game with a penalty for
     // being SOBER. Everyone else starts at their best and trades away from it;
     // Chris starts underwater at "Trust Me" and has to be got a drink before he
@@ -141,7 +152,14 @@ function limitStatDelta(ch: CharacterInstance): Record<StatName, number> {
 
   // Weed (§22) - buys Defense, costs the ability to hit anything
   const w = limitTier(ch, 'weed')
-  if (isChris) {
+  if (isAdrian) {
+    // CHILL VIBES into CLAIMS GET QUESTIONABLE. Stoned is where he wants to
+    // live, and tier 2 is the sweet spot: it is the gate on Fake Claims. Going
+    // one further does not soften him, it removes him - see applyLimit.
+    if (w === 1) d.defense += 1
+    if (w === 2) d.defense += 2
+    if (w === 3) d.defense += 2
+  } else if (isChris) {
     // CREATIVE ENGINEERING. Weed does not take anything off him, it just does
     // not give him the Defense everyone else buys with it either. Getting Chris
     // high is neutral on its own and only pays off once he has had a drink.
@@ -188,6 +206,10 @@ function limitStatDelta(ch: CharacterInstance): Record<StatName, number> {
     // Stuffed now buys Defense only - the Attack has to come from his Power
     // Move, his items, or somebody feeding him a Protein Shake.
     if (f >= 2) d.defense += 2
+  } else if (isAdrian) {
+    // He wants substances and vibes, not a food coma. No Defense to collect
+    // here, and Stuffed sends him to sleep the same way Zooted does.
+    if (f >= 2) d.attack -= 1
   } else {
     if (f === 2) d.defense += 1
     if (f === 3) { d.defense += 1; d.attack -= 1 }
@@ -266,6 +288,18 @@ export function effectiveStat(state: GameState, ch: CharacterInstance, stat: Sta
     && adjacentAllies(state, ch.iid).some((c) => getCharacterDef(c.defId).id === 'bry')) v += 1
   if (stat === 'defense' && def.id === 'nani' && activeCharacters(state, ch.owner)
     .some((c) => getCharacterDef(c.defId).id === 'bry')) v += 1
+
+  // ---- Adrian + Chi Chi: Good Vibes ----
+  // The family's dedicated stoner duo. Worth double when they have actually
+  // committed to it, which is the only aura in the game gated on a Limit tier.
+  if (def.id === 'adrian' || def.id === 'chichi') {
+    const partner = def.id === 'adrian' ? 'chichi' : 'adrian'
+    const other = activeCharacters(state, ch.owner)
+      .find((c) => getCharacterDef(c.defId).id === partner)
+    if (other && stat === 'defense') {
+      v += (limitTier(ch, 'weed') >= 2 && limitTier(other, 'weed') >= 2) ? 2 : 1
+    }
+  }
 
   // ---- Larry: Under Investigation, and Los Jefes ----
   // Same shape as Titi Bibi's: it reads off board position, so where you put
@@ -447,6 +481,14 @@ export function explainStat(state: GameState, ch: CharacterInstance, stat: StatN
     const kf = limitTier(ch, 'food')
     if (kf === 1 && stat === 'attack') parts.push({ label: '🍔 Fed', amount: 1, kind: 'limit' })
     if (kf >= 2 && stat === 'defense') parts.push({ label: '🍔 Absolute Unit', amount: 2, kind: 'limit' })
+  } else if (who === 'adrian') {
+    if (a >= 1 && stat === 'attack') parts.push({ label: '🍺 Feeling Good', amount: 1, kind: 'limit' })
+    const aw = limitTier(ch, 'weed')
+    if (aw === 1 && stat === 'defense') parts.push({ label: '🌿 Chill Vibes', amount: 1, kind: 'limit' })
+    if (aw >= 2 && stat === 'defense') parts.push({ label: '🌿 Claims Get Questionable', amount: 2, kind: 'limit' })
+    if (a >= 2 && aw >= 1) parts.push({ label: '🍺🌿 Higher Consciousness', amount: 2, kind: 'limit' })
+    const af = limitTier(ch, 'food')
+    if (af >= 2 && stat === 'attack') parts.push({ label: '🍔 Too Full', amount: -1, kind: 'limit' })
   } else if (who === 'chris') {
     if (a === 0) parts.push({ label: '🔨 Trust Me', amount: -1, kind: 'limit' })
     if (a === 2) parts.push({ label: '🔨 Locked In', amount: 1, kind: 'limit' })
@@ -490,7 +532,7 @@ export function explainStat(state: GameState, ch: CharacterInstance, stat: StatN
   if (who !== 'kevin' && who !== 'carlitos') {
     // Bry's Weed row is written in her own branch, but her Food curve is the
     // standard one, so only the Weed half is skipped here.
-    if (who !== 'bry' && who !== 'larry' && who !== 'chris') {
+    if (who !== 'bry' && who !== 'larry' && who !== 'chris' && who !== 'adrian') {
       const w = limitTier(ch, 'weed')
       if (w === 1 && stat === 'defense') parts.push({ label: '🌿 High', amount: 1, kind: 'limit' })
       if (w >= 2) {
@@ -498,7 +540,7 @@ export function explainStat(state: GameState, ch: CharacterInstance, stat: StatN
         if (stat === 'attack') parts.push({ label: w === 3 ? '🌿 Zooted' : '🌿 Stoned', amount: w === 3 ? -2 : -1, kind: 'limit' })
       }
     }
-    const f = limitTier(ch, 'food')
+    const f = who === 'adrian' ? 0 : limitTier(ch, 'food')
     if (f === 2 && stat === 'defense') parts.push({ label: '🍔 Full', amount: 1, kind: 'limit' })
     if (f === 3) {
       if (stat === 'defense') parts.push({ label: '🍔 Stuffed', amount: 1, kind: 'limit' })
@@ -529,6 +571,16 @@ export function explainStat(state: GameState, ch: CharacterInstance, stat: StatN
       if (sd.id === 'bigsexychain' && stat === 'attack') parts.push({ label: `Beside ${sd.name}`, amount: 1, kind: 'aura' })
       if (sd.id === 'momvan' && stat === 'defense') parts.push({ label: `Beside ${sd.name}`, amount: 1, kind: 'aura' })
       if (sd.id === 'homegym' && stat === 'attack') parts.push({ label: `🏋️ ${sd.name}`, amount: 2, kind: 'aura' })
+    }
+  }
+
+  if (who === 'adrian' || who === 'chichi') {
+    const partner = who === 'adrian' ? 'chichi' : 'adrian'
+    const other = activeCharacters(state, ch.owner)
+      .find((c) => getCharacterDef(c.defId).id === partner)
+    if (other && stat === 'defense') {
+      const both = limitTier(ch, 'weed') >= 2 && limitTier(other, 'weed') >= 2
+      parts.push({ label: '🌿 Good Vibes', amount: both ? 2 : 1, kind: 'aura' })
     }
   }
 

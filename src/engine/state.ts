@@ -1248,6 +1248,10 @@ function achievementMet(state: GameState, ch: CharacterInstance, key: string): b
         c.iid !== ch.iid && (limitTier(c, 'alcohol') >= 2 || limitTier(c, 'weed') >= 2))
       return messy.length >= 3
     }
+    case 'oneLove': {
+      const chi = mine.find((c) => getCharacterDef(c.defId).id === 'chichi')
+      return !!chi && limitTier(ch, 'weed') >= 2 && limitTier(chi, 'weed') >= 2
+    }
     case 'crossFaded':
       return limitTier(ch, 'alcohol') >= 2 && limitTier(ch, 'weed') >= 1 && ch.zone === 'active'
     case 'caseClosed': {
