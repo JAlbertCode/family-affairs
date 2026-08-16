@@ -7,7 +7,7 @@ import { defaultCloutToWin } from '../engine/state'
 import { deckSummary } from '../engine/cards/deck'
 
 export function Lobby({
-  view, onHost, onJoin, onRecover, onStart, onLocal, onLeave, busy,
+  view, onHost, onJoin, onRecover, onStart, onLocal, onLeave, onBuild, busy,
 }: {
   view: RoomView
   onHost: (name: string) => void
@@ -16,6 +16,7 @@ export function Lobby({
   onStart: (cloutToWin: number, useKitchenTable: boolean) => void
   onLocal: (names: string[], cloutToWin: number, useKitchenTable: boolean) => void
   onLeave: () => void
+  onBuild: () => void
   busy: boolean
 }) {
   const [localCount, setLocalCount] = useState(4)
@@ -230,6 +231,9 @@ export function Lobby({
           </button>
           <button className="btn ghost" data-testid="local-mode" onClick={() => setScreen('local')}>
             Play on this device
+          </button>
+          <button className="btn ghost" data-testid="build-mode" onClick={onBuild}>
+            Make your own cards
           </button>
           <div className="lobby-tag">
             <strong style={{ color: 'var(--gold)' }}>Just want to see how it plays?</strong> Pick

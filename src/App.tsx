@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Room, loadSession, clearSession, type RoomView, type SavedSession } from './net/room'
 import type { Intent } from './engine/types'
 import { Lobby } from './ui/Lobby'
+import { Builder } from './ui/builder/Builder'
 import { Table } from './ui/Table'
 import './ui/styles.css'
 
@@ -11,6 +12,9 @@ export default function App() {
   const [busy, setBusy] = useState(false)
   const [resuming, setResuming] = useState(() => !!loadSession())
   const tried = useRef(false)
+  const [building, setBuilding] = useState(() => {
+    try { return new URLSearchParams(location.search).has('build') } catch { return false }
+  })
 
   /**
    * The code only comes out of the URL when somebody deliberately leaves.
@@ -131,6 +135,20 @@ export default function App() {
   }, [view.code, view.hotseat])
 
 
+  // The builder is its own screen rather than a modal: it is a workbench, not
+  // a dialog, and people will sit in it for an hour. ?build keeps it a real URL
+  // that can be bookmarked and shared without adding a router.
+  if (building) {
+    return <Builder onExit={() => {
+      setBuilding(false)
+      try {
+        const url = new URL(location.href)
+        url.searchParams.delete('build')
+        history.replaceState(null, '', url)
+      } catch { /* nothing depends on it */ }
+    }} />
+  }
+
   if (view.state && view.you) {
     return (
       <Table
@@ -190,6 +208,14 @@ export default function App() {
         onStart={(cloutToWin, useKitchenTable) => send({ k: 'startGame', cloutToWin, useKitchenTable })}
         onLocal={(names, cloutToWin, useKitchenTable) => room.startLocal(names, { cloutToWin, useKitchenTable })}
         onLeave={onLeave}
+        onBuild={() => {
+          try {
+            const url = new URL(location.href)
+            url.searchParams.set('build', '1')
+            history.replaceState(null, '', url)
+          } catch { /* nothing depends on it */ }
+          setBuilding(true)
+        }}
       />
     </div>
   )
