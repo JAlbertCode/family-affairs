@@ -9,6 +9,7 @@ import {
 import { needsTarget } from '../engine/effects'
 import { HAND_LIMIT, ACTIONS_PER_TURN, CARDS_PER_TURN } from '../engine/state'
 import { CardFace, cardLabel, EffectChips, stuffChips, affairChips } from './CardFace'
+import { Coach, coachDone, markCoached, resetCoach } from './Coach'
 import { BoardToken, EmptyToken, LimitMeters } from './BoardToken'
 import { CharacterPortrait } from './CharacterCard'
 import { Minigame } from './Minigame'
@@ -55,6 +56,7 @@ export function Table({
   const [hideFamily, setHideFamily] = useState(false)
   const [hideOpponents, setHideOpponents] = useState(false)
   const [howOpen, setHowOpen] = useState(false)
+  const [coaching, setCoaching] = useState(() => !coachDone())
   const [turnFlash, setTurnFlash] = useState(false)
   const [autoPass, setAutoPass] = useState(false)
   // The hand is ~190px of a phone screen and sits on top of your own family,
@@ -694,6 +696,10 @@ export function Table({
 
       {minigame && <Minigame state={state} you={you} send={send} />}
 
+      {coaching && !battle && !minigame && state.phase !== 'draw' && (
+        <Coach onDone={() => { markCoached(); setCoaching(false) }} />
+      )}
+
       {howOpen && (
         <div className="sheet-bg affair-bg" onClick={() => setHowOpen(false)}>
           <div className="howcard" onClick={(e) => e.stopPropagation()}>
@@ -727,6 +733,12 @@ export function Table({
               card, attack, then play another card. Order is up to you.
             </p>
             <button className="btn" onClick={() => setHowOpen(false)}>Got it</button>
+            <button
+              className="btn ghost"
+              onClick={() => { resetCoach(); setCoaching(true); setHowOpen(false) }}
+            >
+              Show me on the screen
+            </button>
           </div>
         </div>
       )}

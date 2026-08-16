@@ -606,6 +606,37 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
   .affair-ring, .affair-sweep { display: none; }
 }
 
+/* --------------------------------------------------------- COACH -------- */
+/* The dark is four panels rather than one box-shadow, because a shadow that
+   big is a repaint on every frame the board moves, and this thing follows the
+   board. Four fixed divs around a hole is free. */
+
+.coach { position: fixed; inset: 0; z-index: 80; }
+.coach-hole {
+  position: fixed; border-radius: 14px; pointer-events: none;
+  border: 2px solid var(--gold);
+  box-shadow: 0 0 0 100vmax rgba(6,3,7,.82), 0 0 24px rgba(255,194,51,.45);
+  animation: coachPulse 1.8s ease-in-out infinite;
+}
+@keyframes coachPulse { 50% { box-shadow: 0 0 0 100vmax rgba(6,3,7,.82), 0 0 34px rgba(255,194,51,.7); } }
+
+.coach-card {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  width: min(92vw, 380px); padding: 15px 16px 14px;
+  border-radius: 18px; background: linear-gradient(170deg, var(--panel), #1b0e1e);
+  border: 2px solid var(--gold); box-shadow: 0 18px 44px rgba(0,0,0,.65);
+  animation: affairLine .28s ease both;
+}
+.coach-count {
+  display: block; font-size: .58rem; letter-spacing: .2em; text-transform: uppercase;
+  color: var(--gold); font-weight: 900; margin-bottom: 4px;
+}
+.coach-card b { display: block; font-size: 1.02rem; font-weight: 900; margin-bottom: 5px; }
+.coach-card p { margin: 0 0 12px; font-size: .8rem; line-height: 1.5; color: #efdcea; }
+.coach-actions { display: flex; gap: 8px; }
+.coach-actions .btn { min-height: 44px; flex: 1; }
+.coach-actions .btn.narrow { flex: 0 0 32%; }
+
 /* ----------------------------------------------------- TURN STRIP ------- */
 /* Phase 2 and Phase 3 share one screen deliberately, and the price of that is
    two live allowances with nothing saying they are separate. Jay's report was
