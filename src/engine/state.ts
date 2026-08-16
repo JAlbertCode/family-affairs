@@ -1242,6 +1242,12 @@ function achievementMet(state: GameState, ch: CharacterInstance, key: string): b
       return mine.length === 3 && mine.every((c) => c.limits.weed >= 2)
     case 'cleanPlateClub':
       return ((ch.scratch.foodsThisRound as string[]) ?? []).length >= 3
+    case 'nahImGood': {
+      if (ch.limits.alcohol > 0 || ch.limits.weed > 0) return false
+      const messy = allActiveEveryone(state).filter((c) =>
+        c.iid !== ch.iid && (limitTier(c, 'alcohol') >= 2 || limitTier(c, 'weed') >= 2))
+      return messy.length >= 3
+    }
     case 'absoluteUnit':
       return limitTier(ch, 'food') >= 2 && ch.hp >= 12 && ch.zone === 'active'
     case 'thatsAWrap': {

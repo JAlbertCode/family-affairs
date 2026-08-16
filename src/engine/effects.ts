@@ -271,8 +271,35 @@ export function removeStatus(state: GameState, target: CharacterInstance, name: 
   target.statuses = target.statuses.filter((s) => s.name !== name)
 }
 
-export function applyLimit(state: GameState, target: CharacterInstance, track: LimitTrack, amount: number, ctx: EffectCtx) {
+export function applyLimit(
+  state: GameState, target: CharacterInstance, track: LimitTrack, amount: number, ctx: EffectCtx,
+  /** internal: a redirected drink cannot be redirected again */
+  redirected = false,
+) {
   const def = getCharacterDef(target.defId)
+
+  // Carlitos - Sober Influence. He does not drink and he does not smoke, and
+  // refusing is only half of it: the drink still exists, so it goes to whoever
+  // is standing next to him. Immunity on its own is a shrug; handing it to
+  // Dorian is a decision somebody else now has to live with.
+  if (def.id === 'carlitos' && (track === 'alcohol' || track === 'weed') && amount > 0) {
+    // One hop only. Two Carlitos side by side handed the same drink back and
+    // forth until the stack blew - two of 120 simulated games died on it, and
+    // in a real game that is a crash mid-turn. He still will not drink it; it
+    // just stops being passed on.
+    const neighbours = redirected ? [] : adjacentAllies(state, target.iid)
+      .filter((c) => c.hp > 0 && getCharacterDef(c.defId).id !== 'carlitos')
+    if (neighbours.length) {
+      const r = pick(neighbours, state.seed)
+      state.seed = r.seed
+      const victim = r.item!
+      log(state, `"Nah, I'm good." Carlitos hands it to ${getCharacterDef(victim.defId).name}.`, 'status')
+      applyLimit(state, victim, track, amount, ctx, true)
+    } else {
+      log(state, `"Nah, I'm good." Carlitos passes, and there is nobody to hand it to.`, 'status')
+    }
+    return
+  }
 
   // Elias - Empty Stomach. Drinking on nothing hits twice as hard, which is
   // why somebody handing him tequila before dinner is a real decision.

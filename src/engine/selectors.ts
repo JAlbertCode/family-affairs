@@ -87,6 +87,7 @@ function limitStatDelta(ch: CharacterInstance): Record<StatName, number> {
   const id = getCharacterDef(ch.defId).id
   const isElias = id === 'elias'
   const isKevin = id === 'kevin'
+  const isCarlitos = id === 'carlitos'
 
   // Alcohol (§21)
   const a = limitTier(ch, 'alcohol')
@@ -122,7 +123,12 @@ function limitStatDelta(ch: CharacterInstance): Record<StatName, number> {
 
   // Food (§23)
   const f = limitTier(ch, 'food')
-  if (isKevin) {
+  if (isCarlitos) {
+    // I Ate Too Much. He cannot be got at with a drink or a joint, so the plate
+    // is the only way in - and it is a real one.
+    if (f === 2) d.attack -= 1
+    if (f >= 3) { d.attack -= 2; d.defense -= 1 }
+  } else if (isKevin) {
     // ALWAYS FED. Every other Character is trying not to get Stuffed. Kevin is
     // trying to stay there - this is the one curve in the game that rewards
     // running the meter all the way up, and it is his entire gameplay loop.
@@ -349,7 +355,11 @@ export function explainStat(state: GameState, ch: CharacterInstance, stat: StatN
 
   const a = limitTier(ch, 'alcohol')
   const who = getCharacterDef(ch.defId).id
-  if (who === 'kevin') {
+  if (who === 'carlitos') {
+    const cf = limitTier(ch, 'food')
+    if (cf === 2 && stat === 'attack') parts.push({ label: '🍔 I Ate Too Much', amount: -1, kind: 'limit' })
+    if (cf >= 3) parts.push({ label: '🍔 I Ate Too Much', amount: stat === 'attack' ? -2 : -1, kind: 'limit' })
+  } else if (who === 'kevin') {
     if (a >= 1 && stat === 'defense') {
       parts.push({ label: "🍺 I Don't Even Drink", amount: a === 1 ? -1 : -2, kind: 'limit' })
     }
@@ -374,7 +384,7 @@ export function explainStat(state: GameState, ch: CharacterInstance, stat: StatN
   }
   // Kevin's Weed and Food rows are written above, in his own branch; running
   // the standard ones as well would report every tier twice.
-  if (who !== 'kevin') {
+  if (who !== 'kevin' && who !== 'carlitos') {
     const w = limitTier(ch, 'weed')
     if (w === 1 && stat === 'defense') parts.push({ label: '🌿 High', amount: 1, kind: 'limit' })
     if (w >= 2) {
@@ -450,6 +460,7 @@ export function auraSummary(state: GameState, ch: CharacterInstance): string[] {
   if (def.id === 'titibibi') out.push('Enemies opposite -1 Attack')
   if (def.id === 'amanda') out.push('Takes a hit for a neighbour')
   if (def.id === 'elias') out.push('Better alone, worse beside a stoner')
+  if (def.id === 'carlitos') out.push('Hands his drinks to a neighbour')
   for (const s of attachedStuff(state, ch)) {
     const sd = getStuffDef(s.defId)
     if (sd.id === 'bigsexychain') out.push('Neighbours get +1 Attack')

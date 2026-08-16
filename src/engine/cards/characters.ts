@@ -792,6 +792,60 @@ export const CHARACTERS: CharacterDef[] = [
       key: 'absoluteUnit',
     },
   },
+
+  // ------------------------------------------------------------- CARLITOS --
+  // The sober one, which in this family is the strangest thing about him. He
+  // cannot be got drunk or stoned, and refusing is only half of it - the drink
+  // goes to whoever is standing next to him. See applyLimit.
+  {
+    kind: 'character',
+    id: 'carlitos',
+    name: 'Papito Carlitos',
+    title: 'The Sober Hustler',
+    archetype: 'Trickster',
+    stats: { hp: 13, attack: 4, defense: 4 },
+    tags: ['Uncle', 'Trickster', 'Troublemaker', 'Athlete', 'Adult'],
+    tolerance: T(2, 2, 3), // moot for the first two: nothing gets past Sober Influence
+    color: '#c0392b',
+    art: 'carlitos.webp',
+    startsWith: ['poolstick'],
+    passive: {
+      name: 'Sober Influence',
+      text: 'Carlitos does not drink and does not smoke. Alcohol and Weed aimed at him are handed to a Character standing next to him instead. Nothing is wasted; it is just no longer his problem.',
+      hooks: ['soberInfluence'],
+    },
+    ability: {
+      name: 'Trick Shot',
+      text: 'One off the cushion. 3 damage to a chosen enemy, and the ball carries on into the Characters beside them for 1 more. He needs to line the next one up: cooldown 2 Rounds.',
+      actionCost: 1,
+      cooldown: 2,
+      effects: [
+        { k: 'damage', target: { scope: 'chosenEnemyActive' }, amount: 3 },
+        { k: 'damage', target: { scope: 'adjacentAllies' }, amount: 1 },
+      ],
+    },
+    powerMove: {
+      name: "Carlitos' Mocktail",
+      text: 'No alcohol in it whatsoever, and it still goes up. Burn one item off a chosen enemy and deal them 2 damage. Cooldown 2 Rounds.',
+      actionCost: 1,
+      cooldown: 2,
+      effects: [
+        { k: 'destroyStuff', from: { scope: 'chosenEnemyActive' } },
+        { k: 'damage', target: { scope: 'chosenEnemyActive' }, amount: 2 },
+      ],
+    },
+    flaw: {
+      name: 'I Ate Too Much',
+      text: 'The plate is the only way to get to him. At Food 2 he loses 1 Attack; at Food 3 he loses 2 Attack and 1 Defense and has no interest in the pool table.',
+      hooks: ['ateTooMuch'],
+    },
+    achievement: {
+      name: "Nah, I'm Good",
+      text: 'End your Turn with Carlitos completely sober while three other Characters on the table are Drunk or Stoned. +1 Clout.',
+      clout: 1,
+      key: 'nahImGood',
+    },
+  },
 ]
 
 export const CHARACTERS_BY_ID: Record<string, CharacterDef> = Object.fromEntries(

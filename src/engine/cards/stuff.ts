@@ -1019,6 +1019,84 @@ export const STUFF: StuffDef[] = [
     },
     effects: [],
   },
+  // ------------------------------------------------------------- THE FIT --
+  // Carlitos' coordinated-outfit family. Individually modest, which is the
+  // point: the payoff is meant to come from wearing a matching set once real
+  // clothing slots exist. Until then each one stands on its own.
+  {
+    kind: 'stuff', id: 'poloshirt', name: 'The Polo Shirt', subtype: 'Gear', copies: 3, icon: '👕', color: GEAR,
+    text: 'Collar up, obviously. Equip. +1 Attack, +1 Defense. Part of the fit.',
+    equipMods: [{ stat: 'attack', amount: 1 }, { stat: 'defense', amount: 1 }],
+    effects: [],
+  },
+  {
+    kind: 'stuff', id: 'puffervest', name: 'The Puffer Vest', subtype: 'Gear', copies: 2, icon: '🧥', color: GEAR,
+    text: 'Equip. +3 Defense. It is padded, it is warm, and nothing is getting through it. Part of the fit.',
+    equipMods: [{ stat: 'defense', amount: 3 }],
+    effects: [],
+  },
+  {
+    kind: 'stuff', id: 'polocap', name: 'The Polo Cap', subtype: 'Gear', copies: 3, icon: '🧢', color: GEAR,
+    text: 'Headgear. +1 Attack, and nobody can read your face: shake off Confused. Part of the fit.',
+    equipMods: [{ stat: 'attack', amount: 1 }],
+    activated: {
+      name: 'Brim Down',
+      text: 'Shake off Confused and gain +1 Defense for the Round. They cannot see what you are thinking.',
+      actionCost: 1,
+      cooldown: 2,
+      effects: [
+        { k: 'removeStatus', target: { scope: 'self' }, status: 'Confused' },
+        { k: 'statMod', target: { scope: 'self' }, stat: 'defense', amount: 1, duration: 'round' },
+      ],
+    },
+    effects: [],
+  },
+  {
+    kind: 'stuff', id: 'quarterzip', name: 'The Quarter Zip', subtype: 'Gear', copies: 2, icon: '🩱', color: GEAR,
+    text: 'Equip. +2 Defense. Smart enough for the good chair, comfortable enough to fall asleep in. Part of the fit.',
+    equipMods: [{ stat: 'defense', amount: 2 }],
+    effects: [],
+  },
+  {
+    kind: 'stuff', id: 'bearsweater', name: 'The Bear Sweater', subtype: 'Gear', copies: 2, icon: '🧸', color: GEAR,
+    text: 'Equip. +2 Attack, +1 Defense. Everyone has an opinion about it and everyone is wrong. Part of the fit.',
+    equipMods: [{ stat: 'attack', amount: 2 }, { stat: 'defense', amount: 1 }],
+    effects: [],
+  },
+  {
+    kind: 'stuff', id: 'loafers', name: 'The Loafers', subtype: 'Gear', copies: 2, icon: '👞', color: GEAR,
+    text: 'Footgear. +1 Attack, +2 Defense. No socks. It is a whole thing. Part of the fit.',
+    equipMods: [{ stat: 'attack', amount: 1 }, { stat: 'defense', amount: 2 }],
+    effects: [],
+  },
+  {
+    kind: 'stuff', id: 'rugbyshirt', name: 'The Rugby Shirt', subtype: 'Gear', copies: 2, icon: '🏉', color: GEAR,
+    text: 'Equip. +3 Attack, -1 Defense. Built for grabbing and being grabbed. Part of the fit.',
+    equipMods: [{ stat: 'attack', amount: 3 }, { stat: 'defense', amount: -1 }],
+    effects: [],
+  },
+  {
+    kind: 'stuff', id: 'roast', name: 'Roast Session', subtype: 'Consumable', copies: 3, icon: '😂', color: UTIL,
+    text: 'Pick somebody and cook them in front of everyone. -2 Attack and -1 Defense for the Round. Be careful who you choose.',
+    effects: [
+      { k: 'statMod', target: { scope: 'chosenAnyActive' }, stat: 'attack', amount: -2, duration: 'round' },
+      { k: 'statMod', target: { scope: 'chosenAnyActive' }, stat: 'defense', amount: -1, duration: 'round' },
+    ],
+  },
+  {
+    kind: 'stuff', id: 'fakepickleback', name: 'The Fake Pickleback', subtype: 'Drink', copies: 3, giftable: true, icon: '🥒', color: DRINK,
+    text: 'Nobody knows which one they are getting until it is down. Roll d6: on 1-3 it was pickle juice and clears 1 Alcohol, on 4-6 it was the shot and gives 2.',
+    limitGain: {},
+    effects: [
+      {
+        k: 'roll',
+        branches: [
+          { on: [1, 2, 3], label: 'Pickle juice', effects: [{ k: 'limit', target: { scope: 'self' }, track: 'alcohol', amount: -1 }] },
+          { on: [4, 5, 6], label: 'Surprise shot', effects: [{ k: 'limit', target: { scope: 'self' }, track: 'alcohol', amount: 2 }] },
+        ],
+      },
+    ],
+  },
   {
     kind: 'stuff', id: 'airmax', name: 'Nike Air Max', subtype: 'Gear', copies: 3, icon: '👟', color: GEAR,
     text: 'Footgear. +2 Attack and +1 Defense. You move different in a fresh pair and everybody can tell.',
