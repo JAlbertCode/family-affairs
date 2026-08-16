@@ -143,6 +143,16 @@ export function createGame(
   // Deal 5, guaranteeing at least one Character (§6)
   for (const p of players) dealOpeningHand(state, p.id)
 
+  // Everybody starts with somebody on the board (§6 guarantees a Character in
+  // hand; this puts one down). An empty board on Turn 1 is the worst first
+  // impression the game makes: your whole hand is Food and Gear, every card is
+  // greyed out with "Nobody to play it on yet", and the only legal move is to
+  // end your Turn. It reads as a broken game rather than as a rule.
+  //
+  // Centre slot, because it is adjacent to both of the others and every
+  // adjacency bonus in the game then has somewhere to point.
+  for (const p of players) openingCharacter(state, p.id)
+
   const firstOrder = shuffle(state.players, state.seed)
   state.turnOrder = firstOrder.arr
   state.seed = firstOrder.seed
@@ -175,6 +185,24 @@ function dealOpeningHand(state: GameState, pid: PlayerId) {
   }
   // ownership stamp
   for (const i of ps.hand) claim(state, i, pid)
+}
+
+/** Put one Character from the opening hand straight onto the board. */
+function openingCharacter(state: GameState, pid: PlayerId) {
+  const ps = state.playerState[pid]
+  const iid = ps.hand.find((i) => !!state.characters[i])
+  if (!iid) return
+  const ch = state.characters[iid]
+  const def = getCharacterDef(ch.defId)
+  ch.owner = pid
+  ch.hp = def.stats.hp
+  ch.maxHp = def.stats.hp
+  ps.field[1] = iid
+  ch.zone = 'active'
+  ch.slot = 1
+  ps.hand = ps.hand.filter((x) => x !== iid)
+  grantStartingStuff(state, ch)
+  log(state, `${ps.name} arrives with ${def.name}.`, 'play')
 }
 
 function claim(state: GameState, iid: InstanceId, pid: PlayerId) {
