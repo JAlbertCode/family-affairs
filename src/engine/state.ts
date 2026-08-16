@@ -240,9 +240,9 @@ function badLuckThreshold(state: GameState, ch: CharacterInstance): number {
   let t = 0
   const s = ch.statuses.find((x) => x.name === 'Bad Luck')
   if (s) t = Math.max(t, s.threshold ?? 1)
-  // Chi Chi - Bad Influence (§28). She is worse for the people she is winding
-  // up than for the people she loves: rivals across from her go sideways on a
-  // natural 1-2, her own family only on a natural 1. It still catches them.
+  // Chi Chi - Bad Influence (§28). He is worse for the people he is winding
+  // up than for the people he loves: rivals across from him go sideways on a
+  // natural 1-2, his own family only on a natural 1. It still catches them.
   for (const a of adjacentAllies(state, ch.iid)) {
     if (getCharacterDef(a.defId).id === 'chichi') t = Math.max(t, 1)
   }
@@ -397,6 +397,32 @@ function handle(state: GameState, pid: PlayerId, intent: Intent): string | undef
     // ----------------------------------------------------------- CONSUME ----
     // Free (no Family Action) but once per Character per Turn, so feeding stays
     // fast at the table while attached Stuff remains a real, raidable board state.
+    case 'discardCard': {
+      if (!isCurrentPlayer(state, pid)) return 'Not your turn.'
+      if (!ps.hand.includes(intent.iid)) return 'That card is not in your hand.'
+      ps.hand = ps.hand.filter((x) => x !== intent.iid)
+      state.familyDiscard.push(intent.iid)
+      const gone = state.characters[intent.iid]
+        ? getCharacterDef(state.characters[intent.iid].defId).name
+        : state.stuff[intent.iid] ? getStuffDef(state.stuff[intent.iid].defId).name : 'a card'
+      log(state, `${ps.name} bins ${gone}.`, 'play')
+      return
+    }
+
+    case 'unequip': {
+      if (!isCurrentPlayer(state, pid)) return 'Not your turn.'
+      const ch = state.characters[intent.char]
+      if (!ch || ch.owner !== pid) return 'Not your Character.'
+      if (!ch.attached.includes(intent.iid)) return 'That is not on this Character.'
+      const inst = state.stuff[intent.iid]
+      if (!inst) return 'Unknown item.'
+      ch.attached = ch.attached.filter((x) => x !== intent.iid)
+      inst.attachedTo = null
+      state.familyDiscard.push(intent.iid)
+      log(state, `${getCharacterDef(ch.defId).name} gets rid of ${getStuffDef(inst.defId).name}.`, 'play')
+      return
+    }
+
     case 'consume': {
       if (!isCurrentPlayer(state, pid)) return 'Not your turn.'
       const ch = state.characters[intent.char]

@@ -4,7 +4,7 @@ import { getCharacterDef, getStuffDef, getAffairDef } from '../engine/cards/deck
 import {
   activeCharacters, auraSummary, canAct, canAttack, countAttached, currentPlayer,
   effectiveStat, explainStat, familySize, hasStatus, itemCap, limitTier, limitTierName,
-  openSlots, totalItemCap,
+  openSlots, totalItemCap, STATUS_RULES,
 } from '../engine/selectors'
 import { needsTarget } from '../engine/effects'
 import { HAND_LIMIT } from '../engine/state'
@@ -653,6 +653,12 @@ export function Table({
             <button className="btn" disabled={!p.ok} onClick={() => playCard(handCard)}>
               {p.ok ? `Play ${cardLabel(state, handCard)}` : (p.why ?? 'Cannot play')}
             </button>
+            {isMyTurn && (
+              <button className="btn ghost narrow" title="Bin it, free"
+                onClick={() => { send({ k: 'discardCard', iid: handCard }); setHandCard(null) }}>
+                Bin it
+              </button>
+            )}
             <button className="btn ghost narrow" onClick={() => setHandCard(null)}>Close</button>
           </>} />
         )
@@ -689,6 +695,12 @@ export function Table({
               <button className="btn" disabled={blockedEat}
                 onClick={() => { close(); setSelected(null); send({ k: 'consume', char: itemCard.char, iid: itemCard.iid }) }}>
                 {blockedEat ? 'Not right now' : `${getCharacterDef(holder.defId).name} takes it`}
+              </button>
+            )}
+            {['Gear', 'Ride', 'Pet'].includes(sd.subtype) && isMyTurn && holder.owner === you && (
+              <button className="btn ghost narrow"
+                onClick={() => { close(); send({ k: 'unequip', char: itemCard.char, iid: itemCard.iid }) }}>
+                Take it off
               </button>
             )}
             <button className="btn ghost narrow" onClick={close}>Close</button>
@@ -779,6 +791,16 @@ function CharacterNumbers({ state, ch }: { state: GameState; ch: any }) {
   const auras = auraSummary(state, ch)
   return (
     <>
+      {ch.statuses.length > 0 && (
+        <div className="statusbox">
+          <span className="field-label">What is wrong with them</span>
+          {ch.statuses.map((st: any) => (
+            <p key={st.name}>
+              <strong>{st.name}</strong> {STATUS_RULES[st.name] ?? ''}
+            </p>
+          ))}
+        </div>
+      )}
       <div className="bd-pair">
         <StatBreakdown state={state} ch={ch} stat="attack" />
         <StatBreakdown state={state} ch={ch} stat="defense" />

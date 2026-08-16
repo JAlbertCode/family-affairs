@@ -1079,3 +1079,12 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
   padding: 10px 11px 11px; margin-bottom: 14px;
 }
 .roompanel .roomcode { margin: 2px 0 0; }
+
+/* A status name is not a rule. "Confused" meant nothing to anyone until it
+   said what happens when you try to act. */
+.statusbox {
+  background: #3a1520; border: 1px solid #7d2b3c; border-radius: 11px;
+  padding: 9px 10px 4px; margin-bottom: 12px;
+}
+.statusbox p { margin: 0 0 7px; font-size: .68rem; line-height: 1.45; color: #ffd7de; }
+.statusbox strong { color: #ffabb9; display: block; font-size: .74rem; }

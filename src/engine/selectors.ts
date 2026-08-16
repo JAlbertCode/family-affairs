@@ -426,6 +426,21 @@ export function explainStat(state: GameState, ch: CharacterInstance, stat: StatN
 }
 
 /** What this character does FOR (or TO) the characters beside it. */
+/**
+ * What a status actually does, in the words a player needs at the moment they
+ * see it. "Confused" on a token told you nothing; the rule lived only in a
+ * comment in types.ts.
+ */
+export const STATUS_RULES: Record<string, string> = {
+  Confused: 'Before they act, roll a d6. On a 1 or 2 whatever they were doing falls apart and the action is spent anyway.',
+  Asleep: 'Cannot act at all. No attacks, no abilities, no items.',
+  Busy: 'Cannot attack, cannot use an activated item, and cannot step in to defend somebody else.',
+  Away: 'Off the field. Cannot be targeted and counts as nobody\'s neighbour.',
+  Charmed: 'Cannot attack whoever charmed them. Everyone else is fair game.',
+  'Fired Up': '+2 Attack while it lasts.',
+  'Bad Luck': 'A natural 1 on any roll sets off a Bad Luck roll, and those range from mildly bad to being hit by a car.',
+}
+
 export function auraSummary(state: GameState, ch: CharacterInstance): string[] {
   const def = getCharacterDef(ch.defId)
   const out: string[] = []

@@ -472,6 +472,10 @@ export type Intent =
   | { k: 'resolveChoice'; choiceId: string; values: string[] }
   | { k: 'endTurn'; recover?: LimitTrack }
   | { k: 'discardDown'; iids: InstanceId[] }
+  /** Bin a card from hand. Free, because holding a dead card is not a decision. */
+  | { k: 'discardCard'; iid: InstanceId }
+  /** Take a Gear or Ride off one of your own Characters and bin it. */
+  | { k: 'unequip'; char: InstanceId; iid: InstanceId }
 
 export interface IntentEnvelope {
   player: PlayerId

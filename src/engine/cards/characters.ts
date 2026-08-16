@@ -21,7 +21,7 @@ export const CHARACTERS: CharacterDef[] = [
     title: 'The Trickster',
     archetype: 'Trickster',
     stats: { hp: 15, attack: 5, defense: 3 },
-    tags: ['Sister', 'Stoner', 'Troublemaker', 'Trickster'],
+    tags: ['Brother', 'Stoner', 'Troublemaker', 'Trickster'],
     tolerance: T(3, 4, 3), // Professional (§52)
     color: '#7c5cbf',
     art: 'chichi.webp',
@@ -32,7 +32,7 @@ export const CHARACTERS: CharacterDef[] = [
     },
     ability: {
       name: 'Contact High',
-      text: 'Chi Chi takes one to the dome: +1 Weed. She and the Characters beside her gain +2 Attack this Turn. Everybody is having a great time.',
+      text: 'Chi Chi takes one to the dome: +1 Weed. He and the Characters beside him gain +2 Attack this Turn. Everybody is having a great time.',
       actionCost: 1,
       effects: [
         { k: 'limit', target: { scope: 'self' }, track: 'weed', amount: 1 },
@@ -56,7 +56,7 @@ export const CHARACTERS: CharacterDef[] = [
     },
     flaw: {
       name: 'Bad Influence',
-      text: 'Characters across the table from Chi Chi trigger Bad Luck on a natural 1 or 2. Her own family beside her still goes sideways on a natural 1.',
+      text: 'Characters across the table from Chi Chi trigger Bad Luck on a natural 1 or 2. His own family beside him still goes sideways on a natural 1.',
       hooks: ['adjacentBadLuck'],
     },
     achievement: {

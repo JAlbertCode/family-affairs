@@ -149,6 +149,15 @@ export const AFFAIRS: AffairDef[] = [
     ],
   },
   {
+    kind: 'affair', id: 'judgementday', name: 'Judgement Day', duration: 'round', color: C,
+    text: 'Everybody answers for something. Every Active Character takes 2 damage and loses 1 Attack for the Round. The Elders are unmoved, gain +2 Defense, and have plenty to say about it.',
+    effects: [
+      { k: 'damage', target: { scope: 'allActiveEveryone', withoutTag: 'Elder' }, amount: 2 },
+      { k: 'statMod', target: { scope: 'allActiveEveryone', withoutTag: 'Elder' }, stat: 'attack', amount: -1, duration: 'round' },
+      { k: 'statMod', target: { scope: 'allActiveEveryone', withTag: 'Elder' }, stat: 'defense', amount: 2, duration: 'round' },
+    ],
+  },
+  {
     kind: 'affair', id: 'ranoutofbooze', name: 'Ran Out Of Booze', duration: 'round', color: C,
     text: 'Somebody has to make a run. Every Active Character sobers up 1 Alcohol, and whoever was furthest gone is Busy all Round sitting in the car.',
     effects: [

@@ -1010,6 +1010,35 @@ export const STUFF: StuffDef[] = [
     effects: [],
   },
   {
+    kind: 'stuff', id: 'airmax', name: 'Nike Air Max', subtype: 'Gear', copies: 3, icon: '👟', color: GEAR,
+    text: 'Footgear. +2 Attack and +1 Defense. You move different in a fresh pair and everybody can tell.',
+    equipMods: [{ stat: 'attack', amount: 2 }, { stat: 'defense', amount: 1 }],
+    effects: [],
+  },
+  {
+    kind: 'stuff', id: 'weedchain', name: 'The Weed Chain', subtype: 'Gear', copies: 2, icon: '📿', color: GEAR,
+    text: 'Equip. +3 Defense. Heavy enough to stop something and loud enough that nobody tries.',
+    equipMods: [{ stat: 'defense', amount: 3 }],
+    effects: [],
+  },
+  {
+    kind: 'stuff', id: 'elvisphone', name: "Elvis's Broken Phone", subtype: 'Gear', copies: 2, giftable: true, icon: '📱', color: GEAR,
+    text: 'The screen went years ago and he still has not replaced it. Equip. Nobody can reach the holder: they shake off Confused and Charmed, and they cannot be Charmed again this Round.',
+    equipMods: [],
+    activated: {
+      name: 'Cannot Reach Him',
+      text: 'Shake off Confused and Charmed, and gain +1 Defense for the Round. The phone rang; nobody heard it.',
+      actionCost: 1,
+      cooldown: 2,
+      effects: [
+        { k: 'removeStatus', target: { scope: 'self' }, status: 'Confused' },
+        { k: 'removeStatus', target: { scope: 'self' }, status: 'Charmed' },
+        { k: 'statMod', target: { scope: 'self' }, stat: 'defense', amount: 1, duration: 'round' },
+      ],
+    },
+    effects: [],
+  },
+  {
     kind: 'stuff', id: 'souppot', name: "Liv's Soup Pot", subtype: 'Gear', copies: 2, icon: '🍲', color: GEAR,
     text: 'Equip. Nobody is sure what is in it. Whoever eats it comes out swinging with the wrong half of themselves: Attack and Defense trade places for the Round, and they are Confused about it.',
     equipMods: [],
