@@ -19,7 +19,7 @@ import {
 } from './effects'
 
 export const HAND_LIMIT = 7          // §41
-export const ACTIONS_PER_TURN = 2    // §8 Phase 3
+export const ACTIONS_PER_TURN = 3    // §8 Phase 3
 export const CARDS_PER_TURN = 2      // §8 Phase 2
 export const STARTING_HAND = 5       // §6
 

@@ -836,6 +836,16 @@ export const STUFF: StuffDef[] = [
     effects: [{ k: 'statMod', target: { scope: 'self' }, stat: 'defense', amount: 1, duration: 'round' }],
   },
   {
+    kind: 'stuff', id: 'firecrackerblunt', name: 'The Firecracker Blunt', subtype: 'Smoke', copies: 2, icon: '🧨', color: SMOKE,
+    text: 'Somebody rolled a firecracker into it and handed it over like nothing was wrong. +1 Weed. It goes off in the middle of the other side: 5 damage to a chosen enemy and 2 to the Characters beside them. The person holding it takes 2 as well, obviously.',
+    limitGain: { weed: 1 },
+    effects: [
+      { k: 'damage', target: { scope: 'chosenEnemyActive' }, amount: 5 },
+      { k: 'damage', target: { scope: 'adjacentAllies' }, amount: 2 },
+      { k: 'damage', target: { scope: 'self' }, amount: 2 },
+    ],
+  },
+  {
     kind: 'stuff', id: 'madsnails', name: 'Mad Snails Disease', subtype: 'Smoke', copies: 2, icon: '🐌', color: SMOKE,
     text: 'Nobody says the word. You just look at their eyes and you know. +2 Weed, and they cannot keep a straight face: Confused for the Round.',
     limitGain: { weed: 2 },

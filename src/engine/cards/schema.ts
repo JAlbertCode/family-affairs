@@ -322,8 +322,23 @@ export function validateStuff(d: StuffDef): Issue[] {
     }
   }
 
-  for (const e of flatten(d.effects ?? [])) {
-    if (e.k === 'damage' && e.amount > RULES.effect.damage) err('effects', `Deals ${e.amount}. Max is ${RULES.effect.damage} for Stuff.`)
+  // A card that hurts the person using it has paid for the extra, exactly like
+  // an ability that pays with a cooldown. Without this a Stuff card could never
+  // go above the base cap no matter what it cost you, which is the wrong shape
+  // for a blunt with a firecracker in it.
+  const all = flatten(d.effects ?? [])
+  const selfHarm = all.some((e) =>
+    (e.k === 'damage' && (e as any).target?.scope === 'self')
+    || (e.k === 'status' && (e as any).target?.scope === 'self' && BAD_STATUSES.has((e as any).status))
+    || (e.k === 'statMod' && (e as any).target?.scope === 'self' && (e as any).amount < 0))
+  const gamble = all.some((e) => e.k === 'roll')
+  const stuffDamageCap = (selfHarm || gamble) ? RULES.effect.damageWithCost : RULES.effect.damage
+
+  for (const e of all) {
+    if (e.k === 'damage' && e.amount > stuffDamageCap) {
+      err('effects', `Deals ${e.amount}. Max is ${stuffDamageCap}${
+        stuffDamageCap === RULES.effect.damage ? ' unless the card also costs the user something' : ''}.`)
+    }
     if (e.k === 'heal' && e.amount > RULES.effect.heal) err('effects', `Heals ${e.amount}. Max is ${RULES.effect.heal}.`)
     if (e.k === 'clout') err('effects', 'Cards may not award Clout directly.')
     if (e.k === 'statMod' && Math.abs(e.amount) > RULES.effect.statMod) err('effects', `Shifts a stat by ${e.amount}. Max is ±${RULES.effect.statMod}.`)

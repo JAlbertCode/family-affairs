@@ -7,7 +7,7 @@ import {
   openSlots, totalItemCap, STATUS_RULES,
 } from '../engine/selectors'
 import { needsTarget } from '../engine/effects'
-import { HAND_LIMIT } from '../engine/state'
+import { HAND_LIMIT, ACTIONS_PER_TURN, CARDS_PER_TURN } from '../engine/state'
 import { CardFace, cardLabel, EffectChips, stuffChips } from './CardFace'
 import { BoardToken, EmptyToken, LimitMeters } from './BoardToken'
 import { CharacterPortrait } from './CharacterCard'
@@ -195,7 +195,7 @@ export function Table({
     }
     if (!isMyTurn) return { ok: false, why: "Not your turn" }
     if (state.phase === 'draw') return { ok: false, why: 'Draw first' }
-    if (me.cardsPlayedThisTurn >= 2) return { ok: false, why: 'No card plays left' }
+    if (me.cardsPlayedThisTurn >= CARDS_PER_TURN) return { ok: false, why: 'No card plays left' }
     if (state.characters[iid]) {
       return familySize(state, you) < 5 ? { ok: true } : { ok: false, why: 'Family is full' }
     }
@@ -446,8 +446,8 @@ export function Table({
             {/* Both halves of the budget, spent and left, without arithmetic:
                 a filled pip is still yours, a hollow one is gone. */}
             <span className="fam-budget">
-              <Budget label="cards" left={2 - me.cardsPlayedThisTurn} total={2} live={isMyTurn} />
-              <Budget label="actions" left={me.actionsLeft} total={2} live={isMyTurn} />
+              <Budget label="cards" left={CARDS_PER_TURN - me.cardsPlayedThisTurn} total={CARDS_PER_TURN} live={isMyTurn} />
+              <Budget label="actions" left={me.actionsLeft} total={ACTIONS_PER_TURN} live={isMyTurn} />
             </span>
           </div>
 
