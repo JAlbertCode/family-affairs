@@ -52,6 +52,8 @@ export function Table({
   const [affairOpen, setAffairOpen] = useState(false)
   const [affairReveal, setAffairReveal] = useState(false)
   const seenAffair = useRef<string | null>(null)
+  const [hideFamily, setHideFamily] = useState(false)
+  const [hideOpponents, setHideOpponents] = useState(false)
   const [turnFlash, setTurnFlash] = useState(false)
   const [autoPass, setAutoPass] = useState(false)
   // The hand is ~190px of a phone screen and sits on top of your own family,
@@ -433,7 +435,16 @@ export function Table({
 
       {/* ------------------------------------------ OPPONENTS (top) ------ */}
       <div className="board">
-        <div className="oppzone">
+        <div className="zone-bar">
+          <button
+            className={`zone-toggle${hideOpponents ? ' off' : ''}`}
+            onClick={() => setHideOpponents((v) => !v)}
+          >
+            {hideOpponents ? `Show everyone else (${opponents.length})` : 'Hide everyone else'}
+          </button>
+        </div>
+
+        <div className={`oppzone${hideOpponents ? ' hidden' : ''}`}>
           {opponents.map((pid) => {
             const ps = state.playerState[pid]
             return (
@@ -461,7 +472,14 @@ export function Table({
         {/* ------------------------------------- YOUR SIDE (bottom) ------ */}
         <div className="myzone">
           <div className="fam-head">
-            <span className="fam-label">{isMyTurn ? `${me.name} - your family` : `${me.name}'s family`}</span>
+            <button
+              className="fam-label as-toggle"
+              onClick={() => setHideFamily((v) => !v)}
+              title={hideFamily ? 'Show your family' : 'Hide your family'}
+            >
+              <span className="caret">{hideFamily ? '▸' : '▾'}</span>
+              {isMyTurn ? `${me.name} - your family` : `${me.name}'s family`}
+            </button>
             {/* Both halves of the budget, spent and left, without arithmetic:
                 a filled pip is still yours, a hollow one is gone. */}
             <span className="fam-budget">
@@ -470,7 +488,14 @@ export function Table({
             </span>
           </div>
 
-          <div className="slots myslots">
+          {hideFamily && (
+            <div className="fam-hidden">
+              Don't be ashamed of your family. You don't have to hide them.
+              <button className="linkish" onClick={() => setHideFamily(false)}>Bring them back</button>
+            </div>
+          )}
+
+          <div className={`slots myslots${hideFamily ? ' hidden' : ''}`}>
             {me.field.map((iid, i) => {
               if (!iid) {
                 const placing = targeting?.kind === 'placeChar'

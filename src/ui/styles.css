@@ -971,6 +971,36 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
 .comeback { border-color: var(--gold); box-shadow: 0 0 0 1px #ffc23333, 0 8px 26px rgba(0,0,0,.45); }
 .comeback .roomcode { margin-top: 4px; }
 
+/* ------------------------------------------------ COLLAPSING ZONES ------ */
+/* Six families on a phone is more board than fits. Either half can be folded
+   away, and the fold is a real hide rather than a scroll: the point is to get
+   the space back for whichever half you are actually looking at. */
+
+.zone-bar { display: flex; justify-content: flex-end; padding: 0 2px 4px; }
+.zone-toggle {
+  font-size: .66rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--muted); background: var(--panel); border: 1px solid var(--line);
+  border-radius: 999px; padding: 5px 11px; min-height: 28px;
+}
+.zone-toggle.off { color: var(--gold); border-color: #6a4a1e; }
+
+.oppzone.hidden, .slots.myslots.hidden { display: none; }
+
+.fam-label.as-toggle {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 6px 4px 0; margin-left: -2px; min-height: 32px;
+}
+.fam-label.as-toggle .caret { color: var(--muted); font-size: .7rem; }
+
+/* The gag is Jay's. It is also the only thing in that space, so it has to
+   carry the row on its own. */
+.fam-hidden {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 14px 12px; text-align: center;
+  border: 1px dashed var(--line); border-radius: 12px;
+  color: var(--muted); font-size: .8rem; line-height: 1.45;
+}
+
 .namelist { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
 .name-input {
   width: 100%; min-height: 44px; border-radius: 10px; padding: 8px 11px;
