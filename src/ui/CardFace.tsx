@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { GameState, InstanceId, PlayerId, Effect, StuffDef } from '../engine/types'
+import type { GameState, InstanceId, PlayerId, Effect, StuffDef, AffairDef } from '../engine/types'
 import { getCharacterDef, getStuffDef } from '../engine/cards/deck'
 
 const BASE = import.meta.env.BASE_URL
@@ -221,6 +221,81 @@ export function stuffChips(def: StuffDef): EffectChip[] {
   walk(def.effects ?? [], out, false)
   if (def.activated) walk(def.activated.effects, out, false)
 
+  const seen = new Set<string>()
+  return out.filter((c) => (seen.has(c.label) ? false : (seen.add(c.label), true))).slice(0, 8)
+}
+
+/**
+ * The same treatment for a Family Affair.
+ *
+ * Every other card in the game states its effects as chips derived from its
+ * own data; the Affair was the one thing still asking you to read a paragraph
+ * and work out who it applied to. Affairs are written against Tags, so the tag
+ * is the part that matters: "Adults 🍺+1" is the whole card.
+ *
+ * Tone is read off the effect rather than off who is holding it, because an
+ * Affair has no holder. It lands on every board at once, including yours.
+ */
+const PLURAL: Record<string, string> = {
+  Mom: 'Moms', Dad: 'Dads', Brother: 'Brothers', Sister: 'Sisters', Kid: 'Kids',
+  Twin: 'Twins', Cousin: 'Cousins', Grandma: 'Grandmas', Grandpa: 'Grandpas',
+  Aunt: 'Aunts', Uncle: 'Uncles', Grandkid: 'Grandkids', Elder: 'Elders',
+  Adult: 'Adults', Stoner: 'Stoners', Foodie: 'Foodies', Cook: 'Cooks',
+  Baker: 'Bakers', Musician: 'Musicians', Athlete: 'Athletes',
+  Troublemaker: 'Troublemakers', Caretaker: 'Caretakers', Collector: 'Collectors',
+  Trickster: 'Tricksters', Psychic: 'Psychics', Lightweight: 'Lightweights',
+  Heavyweight: 'Heavyweights', 'Party Animal': 'Party Animals',
+  'Animal Lover': 'Animal Lovers', 'Wheel Gang': 'Wheel Gang', Tech: 'Techies',
+}
+
+const BAD_FOR_YOU = new Set(['Away', 'Asleep', 'Busy', 'Confused', 'Charmed', 'Bad Luck'])
+
+export function affairChips(def: AffairDef): EffectChip[] {
+  const out: EffectChip[] = []
+  const who = (e: any): string => {
+    const tag = e?.target?.withTag
+    if (!tag) return ''
+    return `${PLURAL[tag] ?? tag} `
+  }
+  const walkAffair = (effects: Effect[]) => {
+    for (const e of effects) {
+      switch (e.k) {
+        case 'statMod':
+          out.push({
+            label: `${who(e)}${STAT_GLYPH[e.stat] ?? e.stat}${sign(e.amount)}`,
+            tone: e.amount > 0 ? 'good' : 'bad',
+          })
+          break
+        case 'limit':
+          out.push({ label: `${who(e)}${TRACK_GLYPH[e.track] ?? e.track}${sign(e.amount)}`, tone: 'note' })
+          break
+        case 'damage': out.push({ label: `${who(e)}take ${e.amount}`, tone: 'bad' }); break
+        case 'heal': out.push({ label: `${who(e)}♥+${e.amount}`, tone: 'good' }); break
+        case 'status':
+          out.push({ label: `${who(e)}${e.status}`, tone: BAD_FOR_YOU.has(e.status) ? 'bad' : 'good' })
+          break
+        case 'removeStatus': out.push({ label: `${who(e)}clears ${e.status}`, tone: 'good' }); break
+        case 'draw': out.push({ label: `everyone draws ${e.n}`, tone: 'good' }); break
+        case 'discard': out.push({ label: `everyone discards ${e.n}`, tone: 'bad' }); break
+        case 'swapStats': out.push({ label: `${who(e)}⚔ ⇄ 🛡`, tone: 'note' }); break
+        case 'destroyStuff': out.push({ label: 'an item is lost', tone: 'bad' }); break
+        case 'stealStuff': out.push({ label: 'an item changes hands', tone: 'note' }); break
+        case 'forceConsume': out.push({ label: `${who(e)}must eat`, tone: 'note' }); break
+        case 'badLuck': out.push({ label: `${who(e)}bad luck`, tone: 'bad' }); break
+        case 'roll':
+          out.push({ label: 'roll d6', tone: 'note' })
+          for (const b of e.branches) walkAffair(b.effects)
+          break
+        case 'ifTag':
+        case 'ifCharacterActive':
+          walkAffair(e.then)
+          if (e.else) walkAffair(e.else)
+          break
+        default: break
+      }
+    }
+  }
+  walkAffair(def.effects ?? [])
   const seen = new Set<string>()
   return out.filter((c) => (seen.has(c.label) ? false : (seen.add(c.label), true))).slice(0, 8)
 }

@@ -8,7 +8,7 @@ import {
 } from '../engine/selectors'
 import { needsTarget } from '../engine/effects'
 import { HAND_LIMIT, ACTIONS_PER_TURN, CARDS_PER_TURN } from '../engine/state'
-import { CardFace, cardLabel, EffectChips, stuffChips } from './CardFace'
+import { CardFace, cardLabel, EffectChips, stuffChips, affairChips } from './CardFace'
 import { BoardToken, EmptyToken, LimitMeters } from './BoardToken'
 import { CharacterPortrait } from './CharacterCard'
 import { Minigame } from './Minigame'
@@ -427,7 +427,7 @@ export function Table({
           <span className="a-badge">FAMILY<br />AFFAIR</span>
           <span className="a-body">
             <span className="n">{affair.name}</span>
-            <span className="d">{affair.text}</span>
+            <EffectChips chips={affairChips(affair)} className="a-chips" />
           </span>
           <span className="a-live">ACTIVE<br />NOW</span>
         </button>
@@ -688,6 +688,7 @@ export function Table({
             {affairReveal && <span className="affair-sweep" aria-hidden />}
             <span className="ac-kicker">Family Affair</span>
             <h2>{affair.name}</h2>
+            <EffectChips chips={affairChips(affair)} className="ac-chips" />
             <p>{affair.text}</p>
             <span className="ac-foot">This is live for the whole Round and it hits everybody at the table.</span>
             <button className="btn" onClick={() => { setAffairOpen(false); setAffairReveal(false) }}>Got it</button>

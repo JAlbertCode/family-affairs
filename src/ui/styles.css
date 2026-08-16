@@ -579,7 +579,12 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
   to   { transform: translateX(115%); }
 }
 
-.affair-bg.revealing .ac-kicker {
+.affair-bg.revealing .ac-chips { justify-content: center; margin: 2px 0 12px; }
+.a-chips { margin-top: 3px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.a-chips::-webkit-scrollbar { display: none; }
+.a-chips .fx-chip { flex: none; }
+
+.ac-kicker {
   display: inline-block;
   animation: affairKicker .55s .46s cubic-bezier(.2,1.4,.3,1) both;
 }
