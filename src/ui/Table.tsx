@@ -50,6 +50,8 @@ export function Table({
   const [itemCard, setItemCard] = useState<{ iid: InstanceId; char: InstanceId } | null>(null)
   const [showLog, setShowLog] = useState(false)
   const [affairOpen, setAffairOpen] = useState(false)
+  const [affairReveal, setAffairReveal] = useState(false)
+  const seenAffair = useRef<string | null>(null)
   const [turnFlash, setTurnFlash] = useState(false)
   const [autoPass, setAutoPass] = useState(false)
   // The hand is ~190px of a phone screen and sits on top of your own family,
@@ -156,6 +158,23 @@ export function Table({
   }, [state.turnIndex, state.round, isMyTurn])
 
   const affair = state.currentAffair ? getAffairDef(state.currentAffair) : null
+
+  /**
+   * Present a new Affair instead of hoping somebody notices the banner.
+   *
+   * The card and its animation already existed; nothing ever opened them. An
+   * Affair would swap the strip at the top of the screen and that was the whole
+   * announcement, which is why nobody was sure Affairs were doing anything.
+   * Now the Round's Affair takes the middle of the screen once, when it lands,
+   * and afterwards it lives in the banner where it can be reread.
+   */
+  useEffect(() => {
+    const id = state.currentAffair
+    if (!id || seenAffair.current === id) return
+    seenAffair.current = id
+    setAffairReveal(true)
+    setAffairOpen(true)
+  }, [state.currentAffair])
   const opponents = state.players.filter((p) => p !== you)
 
   // ---------------------------------------------------------------- helpers
@@ -635,13 +654,18 @@ export function Table({
       {minigame && <Minigame state={state} you={you} send={send} />}
 
       {affairOpen && affair && (
-        <div className="sheet-bg affair-bg" onClick={() => setAffairOpen(false)}>
+        <div
+          className={`sheet-bg affair-bg${affairReveal ? ' revealing' : ''}`}
+          onClick={() => { setAffairOpen(false); setAffairReveal(false) }}
+        >
+          {affairReveal && <span className="affair-ring" aria-hidden />}
           <div className="affair-card" onClick={(e) => e.stopPropagation()}>
+            {affairReveal && <span className="affair-sweep" aria-hidden />}
             <span className="ac-kicker">Family Affair</span>
             <h2>{affair.name}</h2>
             <p>{affair.text}</p>
             <span className="ac-foot">This is live for the whole Round and it hits everybody at the table.</span>
-            <button className="btn" onClick={() => setAffairOpen(false)}>Got it</button>
+            <button className="btn" onClick={() => { setAffairOpen(false); setAffairReveal(false) }}>Got it</button>
           </div>
         </div>
       )}

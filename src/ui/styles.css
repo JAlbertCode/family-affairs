@@ -515,12 +515,96 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
 @keyframes livePulse { 50% { background: #ffc2331f; box-shadow: 0 0 12px #ffc23355 } }
 
 .affair-card {
+  position: relative; overflow: hidden;
   width: min(90vw, 380px); border-radius: 20px; padding: 22px 20px;
   background: linear-gradient(160deg, #7d1655, #38122f);
   border: 3px solid var(--pink); box-shadow: 0 20px 50px rgba(0,0,0,.6), 0 0 60px rgba(255,79,156,.25);
   text-align: center; animation: affairPop .4s cubic-bezier(.2,1.3,.35,1);
 }
 @keyframes affairPop { from { transform: scale(.85) rotate(-2deg); opacity: 0 } }
+
+/* ------------------------------------------------ AFFAIR REVEAL ---------- */
+/* Two ways in. Tapping the banner to reread the Affair is the quiet one and
+   keeps the modest pop above. A brand new Affair landing is an event: it hits
+   every board at the table at once and it is the one thing in a Round nobody
+   chose, so it gets the middle of the screen and it gets to be loud. */
+
+.affair-bg.revealing { animation: affairScrim .5s ease both; }
+@keyframes affairScrim {
+  from { background: rgba(6,3,7,0); backdrop-filter: blur(0px); }
+  to   { background: rgba(6,3,7,.86); backdrop-filter: blur(6px); }
+}
+
+.affair-bg.revealing .affair-card {
+  animation:
+    affairSlam .52s cubic-bezier(.16,1.5,.3,1) both,
+    affairSettle .5s .52s cubic-bezier(.36,.07,.19,.97) both;
+}
+/* Overshoot in, from far away and slightly turned, so it reads as arriving
+   rather than fading up. */
+@keyframes affairSlam {
+  from { transform: scale(1.9) rotate(6deg); opacity: 0; filter: blur(10px); }
+  60%  { opacity: 1; filter: blur(0); }
+  to   { transform: scale(1) rotate(0deg); opacity: 1; filter: blur(0); }
+}
+/* The landing. Small, fast, and it stops - a card hitting a table, not a wobble. */
+@keyframes affairSettle {
+  0%, 100% { transform: translateX(0) rotate(0deg); }
+  15% { transform: translateX(-7px) rotate(-1.2deg); }
+  32% { transform: translateX(6px) rotate(1deg); }
+  50% { transform: translateX(-4px) rotate(-.6deg); }
+  70% { transform: translateX(2px) rotate(.3deg); }
+}
+
+/* The impact ring, fired from the point the card lands. */
+.affair-ring {
+  position: absolute; top: 50%; left: 50%; width: 220px; height: 220px;
+  margin: -110px 0 0 -110px; border-radius: 50%; pointer-events: none;
+  border: 3px solid var(--pink);
+  animation: affairRing .8s .34s cubic-bezier(.2,.8,.3,1) both;
+}
+@keyframes affairRing {
+  from { transform: scale(.2); opacity: .9; border-width: 12px; }
+  to   { transform: scale(3.4); opacity: 0; border-width: 1px; }
+}
+
+/* One gold pass across the face, once, after it settles. */
+.affair-sweep {
+  position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(105deg, transparent 38%, rgba(255,194,51,.5) 50%, transparent 62%);
+  animation: affairSweep .85s .62s ease-out both;
+}
+@keyframes affairSweep {
+  from { transform: translateX(-115%); }
+  to   { transform: translateX(115%); }
+}
+
+.affair-bg.revealing .ac-kicker {
+  display: inline-block;
+  animation: affairKicker .55s .46s cubic-bezier(.2,1.4,.3,1) both;
+}
+@keyframes affairKicker {
+  from { letter-spacing: 1.1em; opacity: 0; transform: scale(1.25); }
+  to   { letter-spacing: .24em; opacity: 1; transform: scale(1); }
+}
+.affair-bg.revealing .affair-card h2 { animation: affairLine .4s .58s ease both; }
+.affair-bg.revealing .affair-card p  { animation: affairLine .4s .68s ease both; }
+.affair-bg.revealing .ac-foot        { animation: affairLine .4s .76s ease both; }
+.affair-bg.revealing .affair-card .btn { animation: affairLine .4s .84s ease both; }
+@keyframes affairLine { from { opacity: 0; transform: translateY(9px); } }
+
+/* Motion this size is the kind people turn off. Honour that: the reveal still
+   happens and still takes the middle of the screen, it just does not move. */
+@media (prefers-reduced-motion: reduce) {
+  .affair-bg.revealing,
+  .affair-bg.revealing .affair-card,
+  .affair-bg.revealing .ac-kicker,
+  .affair-bg.revealing .affair-card h2,
+  .affair-bg.revealing .affair-card p,
+  .affair-bg.revealing .ac-foot,
+  .affair-bg.revealing .affair-card .btn { animation: fade .2s ease both; }
+  .affair-ring, .affair-sweep { display: none; }
+}
 .ac-kicker { font-size: .6rem; letter-spacing: .24em; text-transform: uppercase; color: var(--gold); font-weight: 900; }
 .affair-card h2 { margin: 6px 0 10px; font-size: 1.5rem; font-weight: 900; line-height: 1.1; }
 .affair-card p { margin: 0 0 14px; font-size: .9rem; line-height: 1.5; color: #f4dcee; }
@@ -877,7 +961,7 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
 
 /* The Family Affair is the loudest thing that happens; it should not be
    pinned to the bottom edge where the hand strip already lives. */
-.sheet-bg.affair-bg { align-items: center; }
+.sheet-bg.affair-bg { align-items: center; justify-content: center; padding: 16px; }
 
 /* Running out of actions is the reason a Turn ends. Say it, do not imply it. */
 .fam-budget i.spent {
