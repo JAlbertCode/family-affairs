@@ -81,6 +81,7 @@ export function explainPeerError(err: unknown): string {
  */
 const SESSION_KEY = 'fa.session'
 const CLIENT_ID_KEY = 'fa.clientId'
+const ROLE_KEY = 'fa.lastRole'
 
 /** Stable per-browser id. Identity that survives a reload, unlike a socket. */
 export function clientId(): string {
@@ -112,7 +113,7 @@ export interface SavedSession {
 
 export function loadSession(): SavedSession | null {
   try {
-    const raw = localStorage.getItem(SESSION_KEY)
+    const raw = localStorage.getItem(SESSION_KEY) ?? sessionStorage.getItem(SESSION_KEY)
     if (!raw) return null
     const s = JSON.parse(raw) as SavedSession
     if (s?.v !== 1 || !s.code || !s.name) return null
@@ -123,12 +124,42 @@ export function loadSession(): SavedSession | null {
 
 export function clearSession() {
   try { localStorage.removeItem(SESSION_KEY) } catch { /* private mode */ }
+  try { sessionStorage.removeItem(SESSION_KEY) } catch { /* private mode */ }
+  try { localStorage.removeItem(ROLE_KEY) } catch { /* private mode */ }
 }
 
 function saveSession(s: Omit<SavedSession, 'v' | 'at'>) {
+  const raw = JSON.stringify({ ...s, v: 1, at: Date.now() })
+  // Both stores, because they fail differently. localStorage is the one that
+  // survives the tab being discarded and reopened, but it is also the one iOS
+  // refuses in private browsing and evicts under storage pressure.
+  // sessionStorage survives neither of those but does survive a plain reload,
+  // and a game state is a few hundred KB, which is enough to hit a quota that
+  // a room code never would.
+  try { localStorage.setItem(SESSION_KEY, raw) } catch { /* quota or private mode */ }
+  try { sessionStorage.setItem(SESSION_KEY, raw) } catch { /* nothing left to try */ }
+  // Last resort, and the important one: the code on its own is tiny and never
+  // hits a quota. If everything above failed, the URL still carries it and this
+  // tells the next load that this browser was the host rather than a guest.
+  try { localStorage.setItem(ROLE_KEY, `${s.role}:${s.code}:${s.name}`) } catch { /* give up */ }
+}
+
+/**
+ * What this browser was, for a room code it can still see in the URL.
+ *
+ * The full session is a whole GameState. This is thirty bytes, so it survives
+ * things the session does not, and it answers the only question that matters
+ * when somebody comes back to a room they can no longer prove they were in:
+ * do you reopen this, or do you knock on it.
+ */
+export function lastRole(code: string): { role: 'host' | 'client'; name: string } | null {
   try {
-    localStorage.setItem(SESSION_KEY, JSON.stringify({ ...s, v: 1, at: Date.now() }))
-  } catch { /* quota or private mode - losing the session is not fatal */ }
+    const raw = localStorage.getItem(ROLE_KEY)
+    if (!raw) return null
+    const [role, c, ...rest] = raw.split(':')
+    if (c !== code || (role !== 'host' && role !== 'client')) return null
+    return { role, name: rest.join(':') }
+  } catch { return null }
 }
 
 export class Room {
@@ -311,6 +342,48 @@ export class Room {
       }
     }
     throw lastErr instanceof Error ? lastErr : new Error('Could not rejoin.')
+  }
+
+  /**
+   * Get back into a room when all you have is its code.
+   *
+   * This is the path for the reload that lost everything. Jay's report was
+   * exact: press Share, post the link, come back, and the game has a brand new
+   * room code. That only happens when the saved session is gone, because with
+   * a session the resume path never lets you reach a Host button - so the fix
+   * cannot be more resume, it has to be a way in that needs nothing but the
+   * code, and the code is in the URL.
+   *
+   * It tries to take the code back as host first. If the broker says the id is
+   * in use then somebody is already hosting that room - the other tab, or a
+   * genuine host whose link you followed - so it joins instead. One button,
+   * and it is right either way without asking the player which they were.
+   */
+  async recover(code: string, displayName: string): Promise<'host' | 'client'> {
+    this.role = 'host'
+    this.status = 'connecting'
+    this.error = null
+    this.emit()
+    try {
+      await this.openPeer(peerIdForRoom(code))
+    } catch (e: any) {
+      const taken = e?.type === 'unavailable-id' || /already|taken|in use/i.test(String(e?.message ?? ''))
+      if (!taken) { this.status = 'error'; this.error = e?.message ?? 'Could not reach the room.'; this.emit(); throw e }
+      await this.join(code, displayName)
+      return 'client'
+    }
+    this.code = code
+    this.you = 'p0'
+    this.names.set('p0', displayName || 'Host')
+    this.order = ['p0']
+    // No game comes back this way. Anyone who was mid-game is holding their own
+    // redacted copy and cannot rebuild the authoritative one, so this reopens
+    // the lobby rather than pretending to restore a table.
+    this.game = null
+    this.status = 'connected'
+    this.attachHostHandlers()
+    this.emit()
+    return 'host'
   }
 
   async host(displayName: string): Promise<string> {

@@ -968,6 +968,9 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
   background: #4a1420; border-color: #a8384a; color: #ffc9d1; opacity: 1;
 }
 
+.comeback { border-color: var(--gold); box-shadow: 0 0 0 1px #ffc23333, 0 8px 26px rgba(0,0,0,.45); }
+.comeback .roomcode { margin-top: 4px; }
+
 .namelist { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
 .name-input {
   width: 100%; min-height: 44px; border-radius: 10px; padding: 8px 11px;

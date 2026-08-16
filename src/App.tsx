@@ -12,6 +12,23 @@ export default function App() {
   const [resuming, setResuming] = useState(() => !!loadSession())
   const tried = useRef(false)
 
+  /**
+   * The code only comes out of the URL when somebody deliberately leaves.
+   *
+   * It used to come out whenever there was no live room, which meant a reload
+   * that failed to resume deleted the last copy of the code in the same tick
+   * it became the only copy. Storage had already been lost; the URL was the
+   * fallback; the fallback wiped itself. That is the whole share bug: come
+   * back, nothing knows the room, the only button on screen makes a new one.
+   */
+  const dropRoomFromUrl = useCallback(() => {
+    try {
+      const url = new URL(location.href)
+      url.searchParams.delete('room')
+      history.replaceState(null, '', url)
+    } catch { /* nothing important depends on this */ }
+  }, [])
+
   useEffect(() => room.subscribe(setView), [room])
 
   /**
@@ -78,7 +95,15 @@ export default function App() {
     setBusy(false)
   }, [room])
 
-  const onLeave = useCallback(() => { room.leave(); setResuming(false) }, [room])
+  const onRecover = useCallback(async (code: string, name: string) => {
+    setBusy(true)
+    try { await room.recover(code, name) } catch { /* surfaced through view.error */ }
+    setBusy(false)
+  }, [room])
+
+  const onLeave = useCallback(() => {
+    room.leave(); setResuming(false); dropRoomFromUrl()
+  }, [room, dropRoomFromUrl])
 
   const send = useCallback((intent: Intent) => {
     if (view.you) room.submit(view.you, intent)
@@ -98,13 +123,13 @@ export default function App() {
    */
   useEffect(() => {
     try {
+      if (!view.code || view.hotseat) return
       const url = new URL(location.href)
-      const want = view.code && !view.hotseat ? view.code : null
-      if (want) url.searchParams.set('room', want)
-      else url.searchParams.delete('room')
+      url.searchParams.set('room', view.code)
       if (url.toString() !== location.href) history.replaceState(null, '', url)
     } catch { /* nothing important depends on this */ }
   }, [view.code, view.hotseat])
+
 
   if (view.state && view.you) {
     return (
@@ -136,7 +161,7 @@ export default function App() {
                 </p>
               </div>
               <button className="btn gold" onClick={() => retry(s)}>Try again</button>
-              <button className="btn ghost" onClick={() => { clearSession(); setResumeFailed(null) }}>
+              <button className="btn ghost" onClick={() => { clearSession(); dropRoomFromUrl(); setResumeFailed(null) }}>
                 Give up and start fresh
               </button>
             </>
@@ -161,6 +186,7 @@ export default function App() {
         busy={busy}
         onHost={onHost}
         onJoin={onJoin}
+        onRecover={onRecover}
         onStart={(cloutToWin, useKitchenTable) => send({ k: 'startGame', cloutToWin, useKitchenTable })}
         onLocal={(names, cloutToWin, useKitchenTable) => room.startLocal(names, { cloutToWin, useKitchenTable })}
         onLeave={onLeave}

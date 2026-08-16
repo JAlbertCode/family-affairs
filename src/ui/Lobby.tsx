@@ -2,16 +2,17 @@ import { useState } from 'react'
 import { normalizeRoomCode } from '../net/protocol'
 import { hasTurn } from '../net/config'
 import { checkConnection, type CheckResult } from '../net/checkConnection'
-import type { RoomView } from '../net/room'
+import { lastRole, type RoomView } from '../net/room'
 import { defaultCloutToWin } from '../engine/state'
 import { deckSummary } from '../engine/cards/deck'
 
 export function Lobby({
-  view, onHost, onJoin, onStart, onLocal, onLeave, busy,
+  view, onHost, onJoin, onRecover, onStart, onLocal, onLeave, busy,
 }: {
   view: RoomView
   onHost: (name: string) => void
   onJoin: (code: string, name: string) => void
+  onRecover: (code: string, name: string) => void
   onStart: (cloutToWin: number, useKitchenTable: boolean) => void
   onLocal: (names: string[], cloutToWin: number, useKitchenTable: boolean) => void
   onLeave: () => void
@@ -43,7 +44,7 @@ export function Lobby({
     try { return normalizeRoomCode(new URLSearchParams(location.search).get('room') ?? '') } catch { return '' }
   })
   const [screen, setScreen] = useState<'home' | 'join' | 'local'>(() => {
-    try { return new URLSearchParams(location.search).get('room') ? 'join' : 'home' } catch { return 'home' }
+    return 'home'
   })
   const [kitchen, setKitchen] = useState(false)
   const [cloutOverride, setCloutOverride] = useState<number | null>(null)
@@ -162,6 +163,22 @@ export function Lobby({
 
   // ---------------------------------------------------------------- entry --
   const deck = deckSummary(4)
+
+  /**
+   * A room code in the URL with no live room means somebody is coming back to
+   * a game they were already in. That is either a guest following a shared
+   * link, or the host whose tab was discarded and whose saved session went
+   * with it - and from here those look identical, so do not make the player
+   * pick. `onRecover` takes the code back as host if it is free and joins it if
+   * it is not, which is the correct answer in both cases.
+   *
+   * Without this the host lands on a plain Host / Join screen and the only
+   * thing to press makes a brand new room. That is Jay's bug exactly: share
+   * the link, come back, new code.
+   */
+  const urlRoom = code
+  const wasHost = urlRoom ? lastRole(urlRoom)?.role === 'host' : false
+
   return (
     <div className="lobby">
       <div className="hero">
@@ -183,6 +200,25 @@ export function Lobby({
           maxLength={16} onChange={(e) => remember(e.target.value)}
         />
       </div>
+
+      {urlRoom && (
+        <div className="card-panel comeback">
+          <span className="field-label">{wasHost ? 'Your room' : 'You were invited to'}</span>
+          <div className="roomcode">{urlRoom}</div>
+          <button
+            className="btn gold" style={{ marginTop: 12 }}
+            disabled={!name.trim() || busy}
+            onClick={() => onRecover(urlRoom, name.trim())}
+          >
+            {busy ? 'Getting you in…' : wasHost ? 'Reopen my room' : `Get into ${urlRoom}`}
+          </button>
+          <p className="lobby-tag" style={{ fontSize: '.74rem', margin: '10px 0 0' }}>
+            {wasHost
+              ? 'You were hosting this one. This takes the code back if it is free, and joins it if somebody else already has it.'
+              : 'This takes you straight in. Everything below starts a different game.'}
+          </p>
+        </div>
+      )}
 
       {screen === 'home' ? (
         <>
