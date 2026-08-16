@@ -486,13 +486,14 @@ export function Table({
               title={hideFamily ? 'Show your family' : 'Hide your family'}
             >
               <span className="caret">{hideFamily ? '▸' : '▾'}</span>
-              {isMyTurn ? `${me.name} - your family` : `${me.name}'s family`}
+              Your family
             </button>
             {/* Both halves of the budget, spent and left, without arithmetic:
                 a filled pip is still yours, a hollow one is gone. */}
             <span className="fam-budget">
-              <Budget label="to play" left={CARDS_PER_TURN - me.cardsPlayedThisTurn} total={CARDS_PER_TURN} live={isMyTurn} />
-              <Budget label="to use" left={me.actionsLeft} total={ACTIONS_PER_TURN} live={isMyTurn} />
+              <Budget label="cards" left={cardsLeft} total={CARDS_PER_TURN} live={isMyTurn} />
+              <Budget label="actions" left={me.actionsLeft} total={ACTIONS_PER_TURN} live={isMyTurn} />
+              <button className="budget-help" onClick={() => setHowOpen(true)} aria-label="How a Turn works">?</button>
             </span>
           </div>
 
@@ -657,39 +658,31 @@ export function Table({
           <button className="btn ghost" onClick={() => setTargeting(null)}>Cancel</button>
         ) : isMyTurn ? (
           <>
-          {!autoPass && (
-            <button className="turnstrip" onClick={() => setHowOpen(true)}>
-              <span className={`ts-step${state.phase === 'draw' ? ' now' : ' done'}`}>
-                <b>1</b> Draw
-              </span>
-              <span className={`ts-step${cardsLeft > 0 ? ' now' : ' done'}`}>
-                <b>2</b> Play <i>{cardsLeft}/{CARDS_PER_TURN} cards</i>
-              </span>
-              <span className={`ts-step${me.actionsLeft > 0 ? ' now' : ' done'}`}>
-                <b>3</b> Act <i>{me.actionsLeft}/{ACTIONS_PER_TURN} actions</i>
-              </span>
-              <span className="ts-help">?</span>
-            </button>
-          )}
           {!autoPass && <div className="turnhint">{turnHint}</div>}
-          {canOpenAttack && (
-            <button className="btn attack-cta" data-testid="attack-cta"
+          <div className="barrow">
+            {canOpenAttack && (
+              <button className="btn attack-cta" data-testid="attack-cta"
+                onClick={() => {
+                  setSelected(null)
+                  // One legal attacker means there is nothing to choose - go
+                  // straight to picking who they hit.
+                  if (attackers.length === 1) setTargeting({ kind: 'attack', char: attackers[0].iid })
+                  else setPickAttacker(true)
+                }}>
+                ⚔ Attack
+              </button>
+            )}
+            <button
+              className={`btn ${autoPass ? 'gold passing' : ''} ${canOpenAttack ? 'end-narrow' : ''}`}
+              data-testid="end-turn"
               onClick={() => {
-                setSelected(null)
-                // One legal attacker means there is nothing to choose - go
-                // straight to picking who they hit.
-                if (attackers.length === 1) setTargeting({ kind: 'attack', char: attackers[0].iid })
-                else setPickAttacker(true)
-              }}>
-              ⚔ Attack
-            </button>
-          )}
-          <button className={`btn ${autoPass ? 'gold passing' : ''}`} data-testid="end-turn" onClick={() => {
-            if (me.hand.length > HAND_LIMIT) {
-              send({ k: 'discardDown', iids: me.hand.slice(0, me.hand.length - HAND_LIMIT) })
-            }
-            send({ k: 'endTurn' })
-          }}>{autoPass ? 'Nothing you can do - passing…' : 'End turn'}</button>
+                if (me.hand.length > HAND_LIMIT) {
+                  send({ k: 'discardDown', iids: me.hand.slice(0, me.hand.length - HAND_LIMIT) })
+                }
+                send({ k: 'endTurn' })
+              }}
+            >{autoPass ? 'Nothing you can do - passing…' : 'End turn'}</button>
+          </div>
           </>
         ) : (
           <div className="waiting">Waiting for {state.playerState[currentPlayer(state)].name}…</div>
@@ -710,8 +703,8 @@ export function Table({
             <span className="ac-kicker">How a Turn works</span>
             <ol className="howlist">
               <li>
-                <b>Draw one card.</b>
-                <span>Happens automatically at the start of your Turn.</span>
+                <b>A card is drawn for you.</b>
+                <span>Automatic, at the start of your Turn. Nothing to press.</span>
               </li>
               <li>
                 <b>Play up to {CARDS_PER_TURN} cards from your hand.</b>
@@ -958,7 +951,7 @@ function Budget({ label, left, total, live }: { label: string; left: number; tot
           <s key={n} className={n < left ? 'left' : 'used'} />
         ))}
       </b>
-      {left} of {total} {label}
+      {left} {label}
     </i>
   )
 }

@@ -187,7 +187,16 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
 /* The opponents must never be squeezed to nothing - on a 667px screen this
    column had collapsed to 12px, which is the whole board you are playing
    against. */
-.oppzone { flex: 1 1 auto; overflow-y: auto; padding: 8px 10px 4px; min-height: 56px; }
+/* Six families never fit on a phone, so this scrolls, and the honest fix is not
+   to pretend otherwise but to stop the cut looking like a rendering fault. A
+   mask fades the bottom edge out instead of slicing a Character in half, which
+   reads as "there is more below" rather than as a bug. */
+.oppzone {
+  position: relative; flex: 1 1 auto; overflow-y: auto;
+  padding: 8px 10px 4px; min-height: 116px;
+  -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 26px), transparent 100%);
+  mask-image: linear-gradient(180deg, #000 calc(100% - 26px), transparent 100%);
+}
 
 .myzone {
   flex: none; padding: 8px 10px 10px;
@@ -195,14 +204,28 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
   border-top: 2px solid var(--line);
   box-shadow: 0 -8px 22px rgba(0,0,0,.4);
 }
-.fam-head { display: flex; align-items: center; margin-bottom: 6px; }
-.fam-label { font-size: .64rem; letter-spacing: .14em; text-transform: uppercase; font-weight: 900; color: var(--muted); }
-.fam-budget { margin-left: auto; display: flex; gap: 6px; }
-.fam-budget i {
-  font-style: normal; font-size: .62rem; font-weight: 800; padding: 3px 9px; border-radius: 999px;
-  background: #150a14; color: #6d5875;
+.fam-head { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; min-height: 26px; }
+.fam-label {
+  font-size: .62rem; letter-spacing: .16em; text-transform: uppercase; font-weight: 900;
+  color: var(--muted); white-space: nowrap;
 }
-.fam-budget i.on { background: linear-gradient(180deg, #ff6fae, #e03583); color: #fff; }
+.fam-budget { margin-left: auto; display: flex; align-items: center; gap: 5px; }
+
+/* These are status, not actions. They were styled as solid pink pills, which
+   made the loudest thing on the board a pair of counters - louder than the
+   Characters, louder than the cards you can actually play. Quiet chips that
+   light their pips instead. */
+.fam-budget i {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-style: normal; font-size: .62rem; font-weight: 800; letter-spacing: .02em;
+  padding: 4px 9px; border-radius: 999px;
+  background: #170c17; border: 1px solid var(--line); color: #8b7492;
+}
+.fam-budget i.on { color: var(--text); border-color: #6d3357; }
+.fam-budget i b { display: inline-flex; gap: 3px; }
+.fam-budget i s { width: 5px; height: 5px; border-radius: 50%; background: #3a2340; text-decoration: none; }
+.fam-budget i.on s.left { background: var(--pink); box-shadow: 0 0 6px rgba(255,79,156,.6); }
+.fam-budget i s.used { background: #3a2340; }
 .fam-sub { font-size: .58rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 900; align-self: center; }
 .benchrow { display: flex; gap: 7px; margin-top: 7px; align-items: center; }
 .benchrow > .tok { flex: 0 0 26%; width: auto; }
@@ -637,33 +660,14 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
 .coach-actions .btn { min-height: 44px; flex: 1; }
 .coach-actions .btn.narrow { flex: 0 0 32%; }
 
-/* ----------------------------------------------------- TURN STRIP ------- */
-/* Phase 2 and Phase 3 share one screen deliberately, and the price of that is
-   two live allowances with nothing saying they are separate. Jay's report was
-   "two cards then attack phase, but then I see 3 actions". The strip names the
-   whole Turn at once so the two counters read as two allowances rather than as
-   one counter contradicting itself. */
-
-.turnstrip {
-  display: flex; align-items: stretch; gap: 5px; width: 100%;
-  padding: 0; margin-bottom: 7px;
-}
-.ts-step {
-  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 1px;
-  padding: 5px 4px; border-radius: 9px; min-width: 0;
-  background: #1b0d1c; border: 1px solid var(--line);
-  font-size: .62rem; font-weight: 800; letter-spacing: .04em;
-  color: var(--muted); text-transform: uppercase;
-}
-.ts-step b { font-size: .58rem; opacity: .55; }
-.ts-step i { font-style: normal; font-size: .58rem; letter-spacing: 0; text-transform: none; opacity: .8; }
-.ts-step.now { color: var(--gold); border-color: #6a4a1e; background: #241408; }
-.ts-step.now b { opacity: 1; }
-.ts-step.done { opacity: .45; }
-.ts-help {
-  flex: none; display: flex; align-items: center; justify-content: center;
-  width: 28px; border-radius: 9px; background: #1b0d1c; border: 1px solid var(--line);
-  color: var(--muted); font-weight: 900; font-size: .8rem;
+/* The rules are one tap from the numbers that raise the question, rather than
+   a strip restating them. The two meters already say "2 of 2 to play" and
+   "3 of 3 to use"; a third row of the same numbers was noise, and Draw does
+   not belong in a list of things you do at all - it happens on its own. */
+.budget-help {
+  flex: none; width: 24px; height: 24px; border-radius: 50%;
+  background: #170c17; border: 1px solid var(--line);
+  color: #8b7492; font-weight: 900; font-size: .72rem; line-height: 1;
 }
 
 .howcard {
@@ -855,6 +859,12 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
   display: flex; flex-direction: column; gap: 8px;
 }
 .btn.narrow { flex: 0 0 34%; }
+/* Attack and End turn are never both the answer, so they do not both need a
+   full-width row. Side by side gives the hand about 60px back on a 667px
+   screen, which is most of a card. */
+.barrow { display: flex; gap: 8px; }
+.barrow .btn { flex: 1; }
+.barrow .btn.end-narrow { flex: 0 0 38%; }
 .actionbar .btn { min-height: 52px; }
 .waiting { text-align: center; color: var(--muted); font-size: .86rem; padding: 14px 0; font-weight: 700; }
 
@@ -1054,9 +1064,7 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
 .sheet-bg.affair-bg { align-items: center; justify-content: center; padding: 16px; }
 
 /* Running out of actions is the reason a Turn ends. Say it, do not imply it. */
-.fam-budget i.spent {
-  background: #4a1420; border-color: #a8384a; color: #ffc9d1; opacity: 1;
-}
+.fam-budget i.spent { border-color: #6b2131; color: #c98a97; }
 
 .comeback { border-color: var(--gold); box-shadow: 0 0 0 1px #ffc23333, 0 8px 26px rgba(0,0,0,.45); }
 .comeback .roomcode { margin-top: 4px; }
@@ -1213,6 +1221,19 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
 }
 @media (max-height: 640px) {
   .face-art { flex: 0 1 26%; }
+}
+
+/* Short screens: shrink the opponent row rather than slicing it. The zone
+   scrolls, so at full token height the first thing a 667px phone showed of the
+   opposition was the top two-thirds of one Character - a board cut off
+   mid-picture reads as a rendering bug, not as "scroll for more". */
+@media (max-height: 760px) {
+  .tok-sm .tok-art { max-height: 58px; }
+  .opp { padding: 6px; margin-bottom: 6px; }
+  .opp-head { margin-bottom: 4px; }
+}
+@media (max-height: 640px) {
+  .tok-sm .tok-art { max-height: 46px; }
 }
 
 /* While choosing a target, everything that is not a legal target gets out of

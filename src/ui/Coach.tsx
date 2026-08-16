@@ -51,10 +51,10 @@ const STEPS: Step[] = [
     prefer: 'above',
   },
   {
-    sel: '.turnstrip',
-    title: 'A Turn is three things',
-    body: 'Draw one card, play up to two more, then take up to three actions with your Characters. Cards and actions are separate allowances, so playing a card never costs you an action.',
-    prefer: 'above',
+    sel: '.fam-budget',
+    title: 'Two allowances, not one',
+    body: 'Play up to two cards from your hand, and take up to three actions with your Characters. They are separate: playing a card never costs you an action. Your card is drawn for you at the start of the Turn.',
+    prefer: 'below',
   },
   {
     sel: '.attack-cta, [data-testid="end-turn"]',
