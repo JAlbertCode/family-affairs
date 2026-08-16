@@ -790,6 +790,19 @@ export const STUFF: StuffDef[] = [
     effects: [],
   },
   {
+    kind: 'stuff', id: 'boricua', name: 'The Boricua Outfit', subtype: 'Gear', copies: 2, onlyFor: ['larry'], icon: '🇵🇷', color: GEAR,
+    text: 'Guayabera, straw hat, flag on everything. He is six foot four and the whitest man at the party, and somehow it works. Equip. +1 Defense. Blend In: go Away until your next Turn, untargetable and out of the conversation.',
+    equipMods: [{ stat: 'defense', amount: 1 }],
+    activated: {
+      name: 'Blend In',
+      text: 'Larry disappears into the party. He is Away until his next Turn: nobody can target him and he is adjacent to nobody. Cooldown 2 Rounds.',
+      actionCost: 1,
+      cooldown: 2,
+      effects: [{ k: 'status', target: { scope: 'self' }, status: 'Away', duration: 1 }],
+    },
+    effects: [],
+  },
+  {
     kind: 'stuff', id: 'teremana', name: 'Teremana', subtype: 'Drink', copies: 3, giftable: true, icon: '🥃', color: DRINK,
     text: 'Gain 1 Alcohol and +1 Attack for the Round. The same bottle reads differently depending on who picks it up: Bry gets +2 Attack on top, Nani has one and gets +2 Defense, and Elias pours a second and goes a tier deeper.',
     limitGain: { alcohol: 1 },

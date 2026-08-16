@@ -901,6 +901,59 @@ export const CHARACTERS: CharacterDef[] = [
       key: 'peakBry',
     },
   },
+
+  // ---------------------------------------------------------------- LARRY --
+  {
+    kind: 'character',
+    id: 'larry',
+    name: 'Larry',
+    title: 'The Fed',
+    archetype: 'Support',
+    stats: { hp: 14, attack: 3, defense: 5 },
+    tags: ['Dad', 'Adult', 'Collector', 'Athlete'],
+    // Alcohol 3 is ordinary; the family gets him there fast enough without
+    // help. Weed 2 is the whole counter-play: two and he is on the couch.
+    tolerance: T(3, 2, 3),
+    color: '#2f6f4e',
+    art: 'larry.webp',
+    startsWith: ['boricua'],
+    passive: {
+      name: 'Under Investigation',
+      text: 'Nobody swings freely at the man taking notes. Enemy Characters directly across from Larry lose 1 Attack. Los Jefes: while Nani is also Active they lose 1 Defense as well, because now it is organised.',
+      hooks: ['underInvestigation', 'losJefes'],
+    },
+    ability: {
+      name: 'Busted',
+      text: 'He has had the file open since he walked in. A chosen enemy becomes Busy until their next Turn: no attacking, no abilities, no stepping in for anybody. Cooldown 2 Rounds.',
+      actionCost: 1,
+      cooldown: 2,
+      effects: [
+        { k: 'status', target: { scope: 'chosenEnemyActive' }, status: 'Busy', duration: 1 },
+      ],
+    },
+    powerMove: {
+      name: 'Federal Raid',
+      text: 'He stops pretending this is a normal family gathering. Confiscate one Item from a chosen enemy, detain them (Busy until their next Turn), and deal 2. Cooldown 2 Rounds.',
+      actionCost: 1,
+      cooldown: 2,
+      effects: [
+        { k: 'stealStuff', from: { scope: 'chosenEnemyActive' } },
+        { k: 'status', target: { scope: 'chosenEnemyActive' }, status: 'Busy', duration: 1 },
+        { k: 'damage', target: { scope: 'chosenEnemyActive' }, amount: 2 },
+      ],
+    },
+    flaw: {
+      name: 'Catatonic',
+      text: 'Weed tolerance 2, and the only curve in the game that takes both stats: -1 Attack at High, then -2 Attack and -2 Defense. Reaching Zooted puts him Asleep outright. Pass Larry a joint and the entire investigation stops.',
+      hooks: ['catatonic'],
+    },
+    achievement: {
+      name: 'Case Closed',
+      text: 'End your Turn with two enemy Characters detained at once. +1 Clout.',
+      clout: 1,
+      key: 'caseClosed',
+    },
+  },
 ]
 
 export const CHARACTERS_BY_ID: Record<string, CharacterDef> = Object.fromEntries(

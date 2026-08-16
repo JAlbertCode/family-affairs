@@ -89,10 +89,19 @@ function limitStatDelta(ch: CharacterInstance): Record<StatName, number> {
   const isKevin = id === 'kevin'
   const isCarlitos = id === 'carlitos'
   const isBry = id === 'bry'
+  const isLarry = id === 'larry'
 
   // Alcohol (§21)
   const a = limitTier(ch, 'alcohol')
-  if (isBry) {
+  if (isLarry) {
+    // I'M NOT A COP RIGHT NOW. His curve runs the same direction as everyone
+    // else's and further in both directions: he stops being careful. The
+    // control kit is built on Defense, so this is the family accidentally
+    // dismantling their own best piece by being pleased to see him.
+    if (a === 1) d.attack += 1
+    if (a === 2) { d.attack += 2; d.defense -= 1 }
+    if (a === 3) { d.attack += 3; d.defense -= 2 }
+  } else if (isBry) {
     // BUILT FOR THIS. She holds it better than anybody, and the ladder is why
     // her tolerance of 4 matters: everyone else is Wasted at 3 and eating the
     // Defense penalty, Bry is still climbing.
@@ -118,7 +127,12 @@ function limitStatDelta(ch: CharacterInstance): Record<StatName, number> {
 
   // Weed (§22) - buys Defense, costs the ability to hit anything
   const w = limitTier(ch, 'weed')
-  if (isBry) {
+  if (isLarry) {
+    // COMPLETELY CATASTROPHIC. The only weed curve in the game that takes both
+    // stats. Zooted also puts him to sleep outright - see applyLimit.
+    if (w === 1) d.attack -= 1
+    if (w >= 2) { d.attack -= 2; d.defense -= 2 }
+  } else if (isBry) {
     // TOO DISTRACTED. The counterweight to the alcohol ladder. She does not get
     // physically worse, she just cannot focus, so she is the one Character who
     // pays the Attack and never collects the Defense everyone else gets back.
@@ -229,6 +243,18 @@ export function effectiveStat(state: GameState, ch: CharacterInstance, stat: Sta
     && adjacentAllies(state, ch.iid).some((c) => getCharacterDef(c.defId).id === 'bry')) v += 1
   if (stat === 'defense' && def.id === 'nani' && activeCharacters(state, ch.owner)
     .some((c) => getCharacterDef(c.defId).id === 'bry')) v += 1
+
+  // ---- Larry: Under Investigation, and Los Jefes ----
+  // Same shape as Titi Bibi's: it reads off board position, so where you put
+  // him is the decision. Nobody swings freely at somebody taking notes.
+  for (const enemy of acrossFrom(state, ch.iid)) {
+    if (getCharacterDef(enemy.defId).id !== 'larry') continue
+    if (stat === 'attack') v -= 1
+    // Los Jefes. Nani runs the operation, Larry enforces it, and the people
+    // across the table stop being able to hold a line.
+    if (stat === 'defense' && activeCharacters(state, enemy.owner)
+      .some((c) => getCharacterDef(c.defId).id === 'nani')) v -= 1
+  }
 
   // ---- Titi Bibi: enemies across from her suffer -1 Attack (No Violence) ----
   if (stat === 'attack') {
@@ -398,6 +424,16 @@ export function explainStat(state: GameState, ch: CharacterInstance, stat: StatN
     const kf = limitTier(ch, 'food')
     if (kf === 1 && stat === 'attack') parts.push({ label: '🍔 Fed', amount: 1, kind: 'limit' })
     if (kf >= 2 && stat === 'defense') parts.push({ label: '🍔 Absolute Unit', amount: 2, kind: 'limit' })
+  } else if (who === 'larry') {
+    if (a >= 1 && stat === 'attack') {
+      parts.push({ label: "🍺 I'm Not A Cop Right Now", amount: a, kind: 'limit' })
+    }
+    if (a >= 2 && stat === 'defense') {
+      parts.push({ label: "🍺 I'm Not A Cop Right Now", amount: a === 2 ? -1 : -2, kind: 'limit' })
+    }
+    const lw = limitTier(ch, 'weed')
+    if (lw >= 1 && stat === 'attack') parts.push({ label: '🌿 Catatonic', amount: lw === 1 ? -1 : -2, kind: 'limit' })
+    if (lw >= 2 && stat === 'defense') parts.push({ label: '🌿 Catatonic', amount: -2, kind: 'limit' })
   } else if (who === 'bry') {
     if (a >= 1 && stat === 'attack') {
       parts.push({ label: '🥃 Built For This', amount: a === 1 ? 1 : 2, kind: 'limit' })
@@ -424,7 +460,7 @@ export function explainStat(state: GameState, ch: CharacterInstance, stat: StatN
   if (who !== 'kevin' && who !== 'carlitos') {
     // Bry's Weed row is written in her own branch, but her Food curve is the
     // standard one, so only the Weed half is skipped here.
-    if (who !== 'bry') {
+    if (who !== 'bry' && who !== 'larry') {
       const w = limitTier(ch, 'weed')
       if (w === 1 && stat === 'defense') parts.push({ label: '🌿 High', amount: 1, kind: 'limit' })
       if (w >= 2) {
@@ -488,6 +524,14 @@ export function explainStat(state: GameState, ch: CharacterInstance, stat: StatN
       if (getCharacterDef(enemy.defId).id === 'titibibi') {
         parts.push({ label: 'Facing Titi Bibi', amount: -1, kind: 'aura' })
       }
+    }
+  }
+  for (const enemy of acrossFrom(state, ch.iid)) {
+    if (getCharacterDef(enemy.defId).id !== 'larry') continue
+    if (stat === 'attack') parts.push({ label: '🔎 Under Investigation', amount: -1, kind: 'aura' })
+    if (stat === 'defense' && activeCharacters(state, enemy.owner)
+      .some((c) => getCharacterDef(c.defId).id === 'nani')) {
+      parts.push({ label: '👔 Los Jefes', amount: -1, kind: 'aura' })
     }
   }
 

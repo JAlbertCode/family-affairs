@@ -323,6 +323,16 @@ export function applyLimit(
     log(state, 'Dorian enters Food Coma.', 'status')
   }
 
+  // Larry - Catatonic. Every other Character trades something when they smoke.
+  // Larry does not trade, he stops. Reaching his (very low) tolerance puts him
+  // on the couch, which is the clean counter to an otherwise oppressive
+  // control kit: you do not have to out-play the investigation, you have to
+  // pass him a joint.
+  if (track === 'weed' && def.id === 'larry' && before < 3 && after >= 3) {
+    applyStatus(state, target, 'Asleep', 1, ctx)
+    log(state, 'Larry goes Catatonic. He is present, and that is all.', 'status')
+  }
+
   // Elias - What Were We Making? Crossing into Stoned sends him to the fridge
   // whether or not that was the plan. Eating a Food only moves the Food track,
   // so this cannot re-enter itself.
