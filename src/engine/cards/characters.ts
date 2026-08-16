@@ -1061,6 +1061,56 @@ export const CHARACTERS: CharacterDef[] = [
       key: 'oneLove',
     },
   },
+
+  // ----------------------------------------------------------------- HOZA --
+  {
+    kind: 'character',
+    id: 'hoza',
+    name: 'Hoza',
+    title: 'The Ride Or Die Writer',
+    archetype: 'Support',
+    stats: { hp: 15, attack: 3, defense: 5 },
+    tags: ['Cousin', 'Adult', 'Collector', 'Tech'],
+    tolerance: T(3, 3, 3),
+    color: '#2f6fb5',
+    art: 'hoza.webp',
+    startsWith: ['redbull'],
+    passive: {
+      name: 'Ride Or Die',
+      text: 'He is always around and you can count on him. The Characters standing next to Hoza get +2 Defense, permanently, without anybody having to ask. Clutch Player: while any of your family is under half health, Hoza gets +1 Attack.',
+      hooks: ['rideOrDie', 'clutchPlayer'],
+    },
+    ability: {
+      name: 'Read Between The Lines',
+      text: 'He reads ahead. Draw 2, and everybody beside him takes a point of Defense for the Round while he explains what is about to happen. Cooldown 2 Rounds.',
+      actionCost: 1,
+      cooldown: 2,
+      effects: [
+        { k: 'draw', player: 'controller', n: 2 },
+        { k: 'statMod', target: { scope: 'adjacentAllies' }, stat: 'defense', amount: 1, duration: 'round' },
+      ],
+    },
+    powerMove: {
+      name: 'Plot Twist',
+      text: 'That is not how this goes. Once per game, bin the Round\u2019s Family Affair and turn over a different one. It hits the whole table, including you, so read the room first.',
+      actionCost: 1,
+      oncePerGame: true,
+      effects: [
+        { k: 'redrawAffair' },
+      ],
+    },
+    flaw: {
+      name: 'Crash',
+      text: 'The Red Bull is the whole engine and it is also the whole risk. One is +1 Attack, two adds +1 Defense, three is WIRED at +2 Attack. The fourth is a Crash: he drops Asleep and every can is gone. One wears off each Round, so staying Wired is upkeep.',
+      hooks: ['redbull', 'crash'],
+    },
+    achievement: {
+      name: 'Wired',
+      text: 'End your Turn with Hoza three Red Bulls deep and still standing. +1 Clout.',
+      clout: 1,
+      key: 'wired',
+    },
+  },
 ]
 
 export const CHARACTERS_BY_ID: Record<string, CharacterDef> = Object.fromEntries(

@@ -105,6 +105,10 @@ export function effectCost(e: Effect): number {
       if (onSelf(e.target) && e.amount > 0) return -e.amount * 0.5
       return Math.abs(e.amount) * 1.0 * spread(e.target)
     }
+    // Priced against the Affair it replaces: Affairs land on ~12 Characters,
+    // so trading a bad one for a random one is worth about as much as a big
+    // area effect, and it is only ever affordable with oncePerGame.
+    case 'redrawAffair': return 5
     case 'draw': return e.n * 1.5
     case 'discard': return e.n * 1.5
     case 'clout': return e.n * 8            // Clout is the win condition; very expensive

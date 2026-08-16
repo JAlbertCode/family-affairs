@@ -790,6 +790,31 @@ export const STUFF: StuffDef[] = [
     effects: [],
   },
   {
+    kind: 'stuff', id: 'thenotebook', name: 'The Notebook', subtype: 'Gear', copies: 2, onlyFor: ['hoza'], icon: '📓', color: GEAR,
+    text: 'Half a manuscript, and about nine pages of it are notes on this family. Equip. +1 Defense. Run It Back: draw a card and shake off Confused, because he has already worked out what happened.',
+    equipMods: [{ stat: 'defense', amount: 1 }],
+    activated: {
+      name: 'Run It Back',
+      text: 'Draw 1 and clear Confused. Cooldown 2 Rounds.',
+      actionCost: 1,
+      cooldown: 2,
+      effects: [
+        { k: 'draw', player: 'controller', n: 1 },
+        { k: 'removeStatus', target: { scope: 'self' }, status: 'Confused' },
+      ],
+    },
+    effects: [],
+  },
+  {
+    kind: 'stuff', id: 'sugarfree', name: 'The Sugar Free One', subtype: 'Drink', copies: 2, giftable: true, icon: '🐂', color: DRINK,
+    text: 'The silver can. No Alcohol. +1 Attack for the Round and shake off Busy. For Hoza it counts as a Red Bull like any other, which is the problem.',
+    limitGain: {},
+    effects: [
+      { k: 'statMod', target: { scope: 'self' }, stat: 'attack', amount: 1, duration: 'round' },
+      { k: 'removeStatus', target: { scope: 'self' }, status: 'Busy' },
+    ],
+  },
+  {
     kind: 'stuff', id: 'birkenstocks', name: 'The Birkenstocks', subtype: 'Gear', copies: 3, icon: '🩴', color: GEAR,
     text: 'Footgear. +2 Defense. Worn with socks, and he will explain why if you let him.',
     equipMods: [{ stat: 'defense', amount: 2 }],

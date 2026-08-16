@@ -515,7 +515,10 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
   display: flex; align-items: stretch; gap: 9px; width: 100%; text-align: left;
   padding: 8px 10px; flex: none;
   background: linear-gradient(100deg, #8c1355, #47143a 75%);
-  border: none; border-top: 2px solid var(--pink); border-bottom: 2px solid var(--pink);
+  /* No top rule. The banner already has its own colour, its own glow and a
+     badge on the left saying what it is; a line above it was separating it
+     from a header it is already visibly separate from. */
+  border: none; border-bottom: 2px solid var(--pink);
   box-shadow: 0 0 20px rgba(255,79,156,.25) inset;
 }
 .affair .a-badge {

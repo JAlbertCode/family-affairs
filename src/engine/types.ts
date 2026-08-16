@@ -137,6 +137,10 @@ export type Effect =
   | { k: 'ifTag'; tag: Tag; present: boolean; then: Effect[]; else?: Effect[] }
   | { k: 'ifCharacterActive'; defId: DefId; then: Effect[]; else?: Effect[] }
   | { k: 'startMinigame'; kind: 'tictactoe' | 'rps'; stake: { kind: 'damage'; amount: number } | { kind: 'draw'; n: number } | { kind: 'status'; status: StatusName } }
+  /** Bin the Round's Family Affair and turn over a new one. The only effect
+   *  in the game that touches the Affair deck, and it exists for exactly one
+   *  card - a Character whose whole identity is rewriting how a scene goes. */
+  | { k: 'redrawAffair' }
   | { k: 'note'; text: string }
 
 export interface RollBranch {

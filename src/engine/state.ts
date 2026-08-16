@@ -1207,6 +1207,13 @@ function startNewRound(state: GameState) {
       applyStatMod(state, ch, 'attack', -1, 'round')
       log(state, 'Titi The Bum was ignored all Round. -1 Attack.', 'status')
     }
+    // Hoza - the Red Bull wears off. One a Round, so Wired is something you
+    // maintain rather than a switch you flip once and forget.
+    if (getCharacterDef(ch.defId).id === 'hoza') {
+      const rb = (ch.scratch.redbull as number) ?? 0
+      if (rb > 0) ch.scratch.redbull = rb - 1
+    }
+
     // Kevin - Never Skip Leg Day. His entire kit scales off Food, so running
     // on empty is the one state that actually slows him down.
     if (getCharacterDef(ch.defId).id === 'kevin' && ch.limits.food === 0) {
@@ -1276,6 +1283,8 @@ function achievementMet(state: GameState, ch: CharacterInstance, key: string): b
         c.iid !== ch.iid && (limitTier(c, 'alcohol') >= 2 || limitTier(c, 'weed') >= 2))
       return messy.length >= 3
     }
+    case 'wired':
+      return ((ch.scratch.redbull as number) ?? 0) >= 3 && ch.zone === 'active'
     case 'oneLove': {
       const chi = mine.find((c) => getCharacterDef(c.defId).id === 'chichi')
       return !!chi && limitTier(ch, 'weed') >= 2 && limitTier(chi, 'weed') >= 2

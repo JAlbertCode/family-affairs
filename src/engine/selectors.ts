@@ -289,6 +289,25 @@ export function effectiveStat(state: GameState, ch: CharacterInstance, stat: Sta
   if (stat === 'defense' && def.id === 'nani' && activeCharacters(state, ch.owner)
     .some((c) => getCharacterDef(c.defId).id === 'bry')) v += 1
 
+  // ---- Hoza: Red Bull, Clutch Player, Ride or Die ----
+  if (def.id === 'hoza') {
+    const rb = (ch.scratch.redbull as number) ?? 0
+    if (rb >= 1 && stat === 'attack') v += 1
+    if (rb >= 2 && stat === 'defense') v += 1
+    if (rb >= 3 && stat === 'attack') v += 1
+    // CLUTCH PLAYER. He is at his best when somebody actually needs him, so
+    // this reads off the rest of the family rather than off him: an ally under
+    // half health, or a slot that just emptied, and he sharpens up.
+    const family = activeCharacters(state, ch.owner)
+    const hurt = family.some((c) => c.iid !== ch.iid && c.hp > 0 && c.hp * 2 <= c.maxHp)
+    if (hurt && stat === 'attack') v += 1
+  }
+  // RIDE OR DIE. The engine has no reactions, so "jumps in when somebody needs
+  // backup" is a standing aura rather than an interrupt: stand next to Hoza and
+  // you are harder to hurt, all the time, without him having to be asked.
+  if (stat === 'defense' && adjacentAllies(state, ch.iid)
+    .some((c) => getCharacterDef(c.defId).id === 'hoza')) v += 2
+
   // ---- Adrian + Chi Chi: Good Vibes ----
   // The family's dedicated stoner duo. Worth double when they have actually
   // committed to it, which is the only aura in the game gated on a Limit tier.
@@ -572,6 +591,22 @@ export function explainStat(state: GameState, ch: CharacterInstance, stat: StatN
       if (sd.id === 'momvan' && stat === 'defense') parts.push({ label: `Beside ${sd.name}`, amount: 1, kind: 'aura' })
       if (sd.id === 'homegym' && stat === 'attack') parts.push({ label: `🏋️ ${sd.name}`, amount: 2, kind: 'aura' })
     }
+  }
+
+  if (who === 'hoza') {
+    const rb = (ch.scratch.redbull as number) ?? 0
+    if (rb >= 1 && stat === 'attack') {
+      parts.push({ label: rb >= 3 ? '🐂 Wired' : '🐂 Red Bull', amount: rb >= 3 ? 2 : 1, kind: 'limit' })
+    }
+    if (rb >= 2 && stat === 'defense') parts.push({ label: '🐂 Red Bull', amount: 1, kind: 'limit' })
+    const family = activeCharacters(state, ch.owner)
+    if (stat === 'attack' && family.some((c) => c.iid !== ch.iid && c.hp > 0 && c.hp * 2 <= c.maxHp)) {
+      parts.push({ label: '🤝 Clutch Player', amount: 1, kind: 'aura' })
+    }
+  }
+  if (stat === 'defense' && adjacentAllies(state, ch.iid)
+    .some((c) => getCharacterDef(c.defId).id === 'hoza')) {
+    parts.push({ label: '🤝 Ride Or Die', amount: 2, kind: 'aura' })
   }
 
   if (who === 'adrian' || who === 'chichi') {

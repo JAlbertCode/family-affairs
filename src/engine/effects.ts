@@ -2,7 +2,7 @@ import type {
   GameState, Effect, TargetSpec, CharacterInstance, InstanceId, PlayerId,
   LimitTrack, StatusName, StatName, LogEntry,
 } from './types'
-import { getCharacterDef, getStuffDef } from './cards/deck'
+import { getAffairDef, getCharacterDef, getStuffDef } from './cards/deck'
 import {
   activeCharacters, adjacentAllies, allActiveEveryone, hasTag, hasStatus,
   limitTier, canBeTargeted, effectiveStat,
@@ -237,6 +237,24 @@ export function applyStatus(
     log(state, `Jay's avatar shrugs off ${name}.`, 'status')
     return
   }
+  // Hoza - ONE MORE CHAPTER. Everybody else loses the Turn; he spends a Red
+  // Bull and carries on. It is the counterweight to Crash: the same resource
+  // that puts him to sleep at four is the one that gets him back up at one.
+  if (def.id === 'hoza' && name === 'Asleep') {
+    const rb = (target.scratch.redbull as number) ?? 0
+    if (rb > 0) {
+      target.scratch.redbull = rb - 1
+      log(state, 'One more chapter. Hoza drains a Red Bull and stays up.', 'status')
+      return
+    }
+  }
+  // ALWAYS AROUND. You thought Hoza left. He didn't. Once a game.
+  if (def.id === 'hoza' && name === 'Away' && !target.scratch.stillHere) {
+    target.scratch.stillHere = 1
+    log(state, 'You thought Hoza left. He is still here.', 'status')
+    return
+  }
+
   const existing = target.statuses.find((s) => s.name === name)
   if (existing) {
     existing.duration = Math.max(existing.duration, duration)
@@ -505,6 +523,26 @@ export function consumeCard(state: GameState, ch: CharacterInstance, iid: Instan
     applyStatus(state, ch, 'Confused', 1, innerCtx)
     log(state, 'Mikey & Moe fight over the Burger.', 'status')
   }
+  // Hoza and the Red Bull. The only Character in the game with a resource he
+  // spends rather than a track that happens to him: every other meter is
+  // something the family does TO you, and this is the one you choose. It goes
+  // up on drinking and down by one each Round, so staying Wired is upkeep
+  // rather than a switch you flip once.
+  if ((def.id === 'redbull' || def.id === 'sugarfree') && chDef.id === 'hoza') {
+    const n = ((ch.scratch.redbull as number) ?? 0) + 1
+    if (n >= 4) {
+      // CRASH. Four is where it stops being a good idea.
+      ch.scratch.redbull = 0
+      applyStatus(state, ch, 'Asleep', 1, innerCtx)
+      log(state, 'Crash. Four Red Bulls and Hoza is face down on the notebook.', 'status')
+    } else {
+      ch.scratch.redbull = n
+      log(state, n >= 3
+        ? 'Hoza is WIRED. Three deep and reading everybody.'
+        : `Hoza cracks another one. ${n} Red Bull${n === 1 ? '' : 's'}.`, 'status')
+    }
+  }
+
   // Teremana. The first Item in the deck that reads differently depending on
   // who picks it up: same bottle, three different nights. This lives here
   // rather than in the card's effects because the DSL targets Characters, and
@@ -691,6 +729,24 @@ function runEffect(state: GameState, e: Effect, ctx: EffectCtx) {
       }
       const gameName = e.kind === 'rps' ? 'rock paper scissors' : 'tic tac toe'
       log(state, `${state.playerState[ctx.controller].name} challenges ${state.playerState[rival].name} to ${gameName}.`, 'play')
+      break
+    }
+    case 'redrawAffair': {
+      // Bin the Round's Affair and turn over the next one. Deliberately not a
+      // choice: he changes how the scene goes, he does not get to write it.
+      const cur = state.currentAffair
+      if (state.affairsDeck.length === 0) {
+        const r = shuffle(state.affairsDiscard, state.seed)
+        state.affairsDeck = r.arr
+        state.seed = r.seed
+        state.affairsDiscard = []
+      }
+      const next = state.affairsDeck.shift()
+      if (!next) { log(state, 'No Affairs left to turn over.', 'affair'); break }
+      if (cur) state.affairsDiscard.push(cur)
+      state.currentAffair = next
+      log(state, `PLOT TWIST. That is not how this goes. ${getAffairDef(next).name}.`, 'affair')
+      runEffects(state, getAffairDef(next).effects, { controller: ctx.controller })
       break
     }
     case 'note':
