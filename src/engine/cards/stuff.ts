@@ -1076,6 +1076,12 @@ export const STUFF: StuffDef[] = [
     effects: [],
   },
   {
+    kind: 'stuff', id: 'compressionshirt', name: 'The Compression Shirt', subtype: 'Gear', copies: 2, icon: '💪', color: GEAR,
+    text: 'The muscles are sewn in. Equip. +4 Attack, -2 Defense. Everyone believes it right up until somebody hits you.',
+    equipMods: [{ stat: 'attack', amount: 4 }, { stat: 'defense', amount: -2 }],
+    effects: [],
+  },
+  {
     kind: 'stuff', id: 'roast', name: 'Roast Session', subtype: 'Consumable', copies: 3, icon: '😂', color: UTIL,
     text: 'Pick somebody and cook them in front of everyone. -2 Attack and -1 Defense for the Round. Be careful who you choose.',
     effects: [

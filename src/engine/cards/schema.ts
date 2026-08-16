@@ -350,9 +350,25 @@ export function validateStuff(d: StuffDef): Issue[] {
     err('activated', 'Only Gear, Rides and Pets can carry an activated ability.')
   }
 
-  const total = (d.equipMods ?? []).reduce((n2, m) => n2 + Math.abs(m.amount), 0)
-  if (['Gear', 'Ride', 'Pet'].includes(d.subtype) && total > 4) {
-    err('equipMods', `Total stat swing ${total} is too high for one item. Keep it at 4 or less.`)
+  // Gear is priced on what it gives you, not on how far it moves the numbers.
+  // Counting a penalty as if it were power made every drawback item strictly
+  // worse than a plain one - the Rugby Shirt at +3/-1 was the hardest anything
+  // could push before the old rule fired, so "big upside, real cost" was not a
+  // shape a card could take at all.
+  //
+  // Penalties count half. A drawback is worth something, but less than its face
+  // value, because the player picks who wears it: -2 Defense on a Character who
+  // sits at the back and never gets swung at is close to free.
+  if (['Gear', 'Ride', 'Pet'].includes(d.subtype)) {
+    const mods = d.equipMods ?? []
+    const worst = mods.reduce((n2, m) => Math.max(n2, Math.abs(m.amount)), 0)
+    if (worst > 4) {
+      err('equipMods', `Moves one stat by ${worst}. No single stat may move more than 4.`)
+    }
+    const net = mods.reduce((n2, m) => n2 + (m.amount > 0 ? m.amount : m.amount / 2), 0)
+    if (net > 4) {
+      err('equipMods', `Net benefit ${net} is too high for one item. Keep it at 4 or less, counting penalties at half.`)
+    }
   }
   if (d.limitGain) {
     for (const [k, v] of Object.entries(d.limitGain)) {
