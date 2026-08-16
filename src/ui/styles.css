@@ -53,6 +53,24 @@ button:disabled { cursor: not-allowed; }
 /* ---------------------------------------------------------------- lobby -- */
 
 .lobby { padding: 26px 18px calc(26px + var(--safe-b)); display: flex; flex-direction: column; gap: 18px; overflow-y: auto; }
+
+/* The family, as a banded hero rather than the full 2:3 portrait: at full
+   width the art is 560px tall on a phone and pushes the name field and the
+   host button below the fold, which is the one thing the first screen has to
+   get right. Cropped to a band and faded into the background it reads as a
+   landing image instead of an obstacle. object-position sits above centre
+   because that is where the faces are. */
+.hero {
+  position: relative; height: 172px; margin-bottom: -6px;
+  border-radius: var(--radius); overflow: hidden; border: 1px solid var(--line);
+  box-shadow: 0 8px 26px rgba(0,0,0,.45);
+}
+.hero img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 26%; display: block; }
+.hero::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(180deg, rgba(16,6,14,0) 45%, rgba(16,6,14,.9) 100%);
+}
+@media (max-height: 700px) { .hero { height: 120px; } }
 .lobby-tag { color: var(--muted); font-size: .92rem; line-height: 1.55; }
 
 .card-panel {

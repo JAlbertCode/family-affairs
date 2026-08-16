@@ -164,6 +164,9 @@ export function Lobby({
   const deck = deckSummary(4)
   return (
     <div className="lobby">
+      <div className="hero">
+        <img src={`${import.meta.env.BASE_URL}art/family.webp`} alt="" />
+      </div>
       <div className="brand">
         <span className="b1">FAMILY<br />AFFAIRS</span>
         <span className="b2">BAKE IT · TAKE IT · FEED IT</span>
