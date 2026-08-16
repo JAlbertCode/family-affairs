@@ -1248,6 +1248,11 @@ function achievementMet(state: GameState, ch: CharacterInstance, key: string): b
         c.iid !== ch.iid && (limitTier(c, 'alcohol') >= 2 || limitTier(c, 'weed') >= 2))
       return messy.length >= 3
     }
+    case 'peakBry':
+      // Tier 3 on a tolerance of 4 means four drinks in and still gaining. The
+      // hp floor is there so it cannot be scored by a Bry who is about to fall
+      // over for unrelated reasons.
+      return limitTier(ch, 'alcohol') >= 3 && ch.zone === 'active' && ch.hp >= 7
     case 'absoluteUnit':
       return limitTier(ch, 'food') >= 2 && ch.hp >= 12 && ch.zone === 'active'
     case 'thatsAWrap': {

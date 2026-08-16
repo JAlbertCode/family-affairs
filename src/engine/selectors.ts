@@ -88,10 +88,18 @@ function limitStatDelta(ch: CharacterInstance): Record<StatName, number> {
   const isElias = id === 'elias'
   const isKevin = id === 'kevin'
   const isCarlitos = id === 'carlitos'
+  const isBry = id === 'bry'
 
   // Alcohol (§21)
   const a = limitTier(ch, 'alcohol')
-  if (isKevin) {
+  if (isBry) {
+    // BUILT FOR THIS. She holds it better than anybody, and the ladder is why
+    // her tolerance of 4 matters: everyone else is Wasted at 3 and eating the
+    // Defense penalty, Bry is still climbing.
+    if (a === 1) d.attack += 1
+    if (a === 2) d.attack += 2
+    if (a === 3) { d.attack += 2; d.defense += 1 }
+  } else if (isKevin) {
     // I Don't Even Drink. Everyone else buys swing with a drink; Kevin's whole
     // build is Defense and alcohol takes it apart.
     if (a === 1) d.defense -= 1
@@ -110,7 +118,14 @@ function limitStatDelta(ch: CharacterInstance): Record<StatName, number> {
 
   // Weed (§22) - buys Defense, costs the ability to hit anything
   const w = limitTier(ch, 'weed')
-  if (isKevin) {
+  if (isBry) {
+    // TOO DISTRACTED. The counterweight to the alcohol ladder. She does not get
+    // physically worse, she just cannot focus, so she is the one Character who
+    // pays the Attack and never collects the Defense everyone else gets back.
+    // Tolerance 2 means she skips straight from High to Zooted on the second
+    // one, so there is no middle step to write.
+    if (w >= 2) d.attack -= 2
+  } else if (isKevin) {
     // Why Am I Here. He does not smoke, and it takes the fight out of him
     // without giving back the Defense everyone else gets.
     if (w === 1) d.attack -= 1
@@ -201,6 +216,19 @@ export function effectiveStat(state: GameState, ch: CharacterInstance, stat: Sta
     // Every Stoned neighbour is one more person wandering through the shot.
     for (const n of neighbours) if (limitTier(n, 'weed') >= 2) v -= 1
   }
+
+  // ---- Bry: I'm Watching Them, and Besties ----
+  if (def.id === 'bry') {
+    // She is not a better babysitter for having a Kid next to her. She is just
+    // louder, and it turns out that is what she needed.
+    if (stat === 'attack' && adjacentAllies(state, ch.iid).some((c) => hasTag(c, 'Kid'))) v += 2
+    if (stat === 'attack' && activeCharacters(state, ch.owner)
+      .some((c) => getCharacterDef(c.defId).id === 'nani')) v += 1
+  }
+  if (stat === 'defense' && hasTag(ch, 'Kid')
+    && adjacentAllies(state, ch.iid).some((c) => getCharacterDef(c.defId).id === 'bry')) v += 1
+  if (stat === 'defense' && def.id === 'nani' && activeCharacters(state, ch.owner)
+    .some((c) => getCharacterDef(c.defId).id === 'bry')) v += 1
 
   // ---- Titi Bibi: enemies across from her suffer -1 Attack (No Violence) ----
   if (stat === 'attack') {
@@ -370,6 +398,15 @@ export function explainStat(state: GameState, ch: CharacterInstance, stat: StatN
     const kf = limitTier(ch, 'food')
     if (kf === 1 && stat === 'attack') parts.push({ label: '🍔 Fed', amount: 1, kind: 'limit' })
     if (kf >= 2 && stat === 'defense') parts.push({ label: '🍔 Absolute Unit', amount: 2, kind: 'limit' })
+  } else if (who === 'bry') {
+    if (a >= 1 && stat === 'attack') {
+      parts.push({ label: '🥃 Built For This', amount: a === 1 ? 1 : 2, kind: 'limit' })
+    }
+    if (a >= 3 && stat === 'defense') parts.push({ label: '🥃 Peak Bry', amount: 1, kind: 'limit' })
+    const bw = limitTier(ch, 'weed')
+    if (bw >= 2 && stat === 'attack') {
+      parts.push({ label: '🌿 Too Distracted', amount: -2, kind: 'limit' })
+    }
   } else if (who === 'elias') {
     if (a >= 1 && stat === 'attack') {
       parts.push({ label: '🎬 Drunken Flow', amount: a === 1 ? 1 : a === 2 ? 2 : 3, kind: 'limit' })
@@ -385,11 +422,15 @@ export function explainStat(state: GameState, ch: CharacterInstance, stat: StatN
   // Kevin's Weed and Food rows are written above, in his own branch; running
   // the standard ones as well would report every tier twice.
   if (who !== 'kevin' && who !== 'carlitos') {
-    const w = limitTier(ch, 'weed')
-    if (w === 1 && stat === 'defense') parts.push({ label: '🌿 High', amount: 1, kind: 'limit' })
-    if (w >= 2) {
-      if (stat === 'defense') parts.push({ label: w === 3 ? '🌿 Zooted' : '🌿 Stoned', amount: 2, kind: 'limit' })
-      if (stat === 'attack') parts.push({ label: w === 3 ? '🌿 Zooted' : '🌿 Stoned', amount: w === 3 ? -2 : -1, kind: 'limit' })
+    // Bry's Weed row is written in her own branch, but her Food curve is the
+    // standard one, so only the Weed half is skipped here.
+    if (who !== 'bry') {
+      const w = limitTier(ch, 'weed')
+      if (w === 1 && stat === 'defense') parts.push({ label: '🌿 High', amount: 1, kind: 'limit' })
+      if (w >= 2) {
+        if (stat === 'defense') parts.push({ label: w === 3 ? '🌿 Zooted' : '🌿 Stoned', amount: 2, kind: 'limit' })
+        if (stat === 'attack') parts.push({ label: w === 3 ? '🌿 Zooted' : '🌿 Stoned', amount: w === 3 ? -2 : -1, kind: 'limit' })
+      }
     }
     const f = limitTier(ch, 'food')
     if (f === 2 && stat === 'defense') parts.push({ label: '🍔 Full', amount: 1, kind: 'limit' })
@@ -422,6 +463,24 @@ export function explainStat(state: GameState, ch: CharacterInstance, stat: StatN
       if (sd.id === 'bigsexychain' && stat === 'attack') parts.push({ label: `Beside ${sd.name}`, amount: 1, kind: 'aura' })
       if (sd.id === 'momvan' && stat === 'defense') parts.push({ label: `Beside ${sd.name}`, amount: 1, kind: 'aura' })
     }
+  }
+
+  if (who === 'bry') {
+    if (stat === 'attack' && adjacentAllies(state, ch.iid).some((c) => hasTag(c, 'Kid'))) {
+      parts.push({ label: "👶 I'm Watching Them", amount: 2, kind: 'aura' })
+    }
+    if (stat === 'attack' && activeCharacters(state, ch.owner)
+      .some((c) => getCharacterDef(c.defId).id === 'nani')) {
+      parts.push({ label: '🍹 Besties', amount: 1, kind: 'aura' })
+    }
+  }
+  if (stat === 'defense' && hasTag(ch, 'Kid')
+    && adjacentAllies(state, ch.iid).some((c) => getCharacterDef(c.defId).id === 'bry')) {
+    parts.push({ label: '👶 Bry is watching', amount: 1, kind: 'aura' })
+  }
+  if (stat === 'defense' && who === 'nani' && activeCharacters(state, ch.owner)
+    .some((c) => getCharacterDef(c.defId).id === 'bry')) {
+    parts.push({ label: '🍹 Besties', amount: 1, kind: 'aura' })
   }
 
   if (stat === 'attack') {

@@ -484,6 +484,22 @@ export function consumeCard(state: GameState, ch: CharacterInstance, iid: Instan
     applyStatus(state, ch, 'Confused', 1, innerCtx)
     log(state, 'Mikey & Moe fight over the Burger.', 'status')
   }
+  // Teremana. The first Item in the deck that reads differently depending on
+  // who picks it up: same bottle, three different nights. This lives here
+  // rather than in the card's effects because the DSL targets Characters, and
+  // what varies is the *drinker*, which only the consume step knows.
+  if (def.id === 'teremana') {
+    if (chDef.id === 'bry') {
+      applyStatMod(state, ch, 'attack', 2, 'round')
+      log(state, 'Bry opens the Teremana. This is her bottle and everyone knows it.', 'status')
+    } else if (chDef.id === 'nani') {
+      applyStatMod(state, ch, 'defense', 2, 'round')
+      log(state, 'Nani has one drink, sets the bottle down, and carries on running the evening.', 'status')
+    } else if (chDef.id === 'elias') {
+      applyLimit(state, ch, 'alcohol', 1, innerCtx)
+      log(state, 'Elias pours a second one. Drunken Flow is the whole reason he came.', 'status')
+    }
+  }
   // Dorian achievement bookkeeping
   if (chDef.id === 'dorian' && def.subtype === 'Food') {
     const eaten = (ch.scratch.foodsThisRound as string[]) ?? []

@@ -790,6 +790,14 @@ export const STUFF: StuffDef[] = [
     effects: [],
   },
   {
+    kind: 'stuff', id: 'teremana', name: 'Teremana', subtype: 'Drink', copies: 3, giftable: true, icon: '🥃', color: DRINK,
+    text: 'Gain 1 Alcohol and +1 Attack for the Round. The same bottle reads differently depending on who picks it up: Bry gets +2 Attack on top, Nani has one and gets +2 Defense, and Elias pours a second and goes a tier deeper.',
+    limitGain: { alcohol: 1 },
+    effects: [
+      { k: 'statMod', target: { scope: 'self' }, stat: 'attack', amount: 1, duration: 'round' },
+    ],
+  },
+  {
     kind: 'stuff', id: 'mate', name: 'Mate', subtype: 'Drink', copies: 3, giftable: true, icon: '🧉', color: DRINK,
     text: 'The gourd goes round and you do not refuse it. No Alcohol. Clear 1 Alcohol, shake off Asleep, and +1 Defense for the Round from sitting still long enough to finish it.',
     limitGain: {},

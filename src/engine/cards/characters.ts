@@ -846,6 +846,61 @@ export const CHARACTERS: CharacterDef[] = [
       key: 'nahImGood',
     },
   },
+
+  // ------------------------------------------------------------------ BRY --
+  {
+    kind: 'character',
+    id: 'bry',
+    name: 'Bry',
+    title: 'The Party Captain',
+    archetype: 'Support',
+    stats: { hp: 14, attack: 4, defense: 4 },
+    tags: ['Sister', 'Adult', 'Athlete', 'Party Animal', 'Caretaker'],
+    // Tolerance 4 on alcohol is the highest in the deck and it is the point:
+    // everyone else is Wasted at 3 and eating the penalty while she is still on
+    // the way up. Weed 1 is the lowest, and that is the point too.
+    tolerance: T(4, 2, 3),
+    color: '#e84393',
+    art: 'bry.webp',
+    startsWith: ['nerfgun'],
+    passive: {
+      name: "I'm Watching Them",
+      text: 'While a Kid is standing next to Bry she gets +2 Attack and the Kid gets +1 Defense. Nothing about this should work and it keeps working. Besties: while Nani is also Active, Bry gets +1 Attack and Nani gets +1 Defense.',
+      hooks: ['watchingThem', 'besties'],
+    },
+    ability: {
+      name: 'Deadeye Bry',
+      text: 'She is unreasonably good with a Nerf gun. 3 damage to a chosen enemy, straight through Defense, because it is a foam dart and Defense was never the problem. Cooldown 2 Rounds.',
+      actionCost: 1,
+      cooldown: 2,
+      effects: [
+        { k: 'damage', target: { scope: 'chosenEnemyActive' }, amount: 3, ignoreDefense: true },
+      ],
+    },
+    powerMove: {
+      name: 'Physical Therapy',
+      text: 'She actually does this for a living. Heal a chosen ally 4, give them +2 Defense for the Round, and get them off the bench: clears Busy and Asleep. Cooldown 2 Rounds.',
+      actionCost: 1,
+      cooldown: 2,
+      effects: [
+        { k: 'heal', target: { scope: 'chosenAllyActive' }, amount: 4 },
+        { k: 'statMod', target: { scope: 'chosenAllyActive' }, stat: 'defense', amount: 2, duration: 'round' },
+        { k: 'removeStatus', target: { scope: 'chosenAllyActive' }, status: 'Busy' },
+        { k: 'removeStatus', target: { scope: 'chosenAllyActive' }, status: 'Asleep' },
+      ],
+    },
+    flaw: {
+      name: 'Too Distracted',
+      text: 'She can drink anybody here under the table and cannot smoke at all. Two puffs and she is Zooted, and it costs her 2 Attack while giving back none of the Defense everyone else collects. Chi Chi is her worst matchup in the family.',
+      hooks: ['tooDistracted'],
+    },
+    achievement: {
+      name: 'Peak Bry',
+      text: 'End your Turn with Bry at her top Alcohol tier and still standing at full swing. +1 Clout.',
+      clout: 1,
+      key: 'peakBry',
+    },
+  },
 ]
 
 export const CHARACTERS_BY_ID: Record<string, CharacterDef> = Object.fromEntries(
