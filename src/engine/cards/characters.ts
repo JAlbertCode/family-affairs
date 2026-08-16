@@ -954,6 +954,60 @@ export const CHARACTERS: CharacterDef[] = [
       key: 'caseClosed',
     },
   },
+
+  // ---------------------------------------------------------------- CHRIS --
+  {
+    kind: 'character',
+    id: 'chris',
+    name: 'Chris',
+    title: 'The Handyman',
+    archetype: 'Bruiser',
+    stats: { hp: 16, attack: 4, defense: 4 },
+    tags: ['Cousin', 'Adult', 'Party Animal', 'Heavyweight'],
+    // Alcohol 4 because the whole build runs on it and he collects everyone
+    // else's as well. Nothing else about him is unusual.
+    tolerance: T(4, 3, 3),
+    color: '#e08a2e',
+    art: 'chris.webp',
+    startsWith: ['toolbelt'],
+    passive: {
+      name: 'Drunken Engineering',
+      text: 'The only Character with a penalty for being sober. At Sober he is -1 Attack and -1 Defense and should not be allowed near anything. Drunk is +1/+1, Wasted is +2/+1. Cross-Faded, meaning Drunk and at least High at once, adds another +1/+1 on top.',
+      hooks: ['drunkenEngineering', 'crossFaded'],
+    },
+    ability: {
+      name: 'Round For The Family',
+      text: 'He is at the bar and he is not asking. Every one of your Active Characters takes a drink, and Chris takes a second one because he was already there. Cooldown 2 Rounds.',
+      actionCost: 1,
+      cooldown: 2,
+      effects: [
+        { k: 'limit', target: { scope: 'allMyActive' }, track: 'alcohol', amount: 1 },
+        { k: 'limit', target: { scope: 'self' }, track: 'alcohol', amount: 1 },
+      ],
+    },
+    powerMove: {
+      name: 'Come Check This Out',
+      text: 'He built a shed remarkably fast and he would love a second opinion on it. A chosen enemy goes in, the door shuts: Busy and Confused until their next Turn, and 1 damage on the way in. Cooldown 2 Rounds.',
+      actionCost: 1,
+      cooldown: 2,
+      effects: [
+        { k: 'status', target: { scope: 'chosenEnemyActive' }, status: 'Busy', duration: 1 },
+        { k: 'status', target: { scope: 'chosenEnemyActive' }, status: 'Confused', duration: 1 },
+        { k: 'damage', target: { scope: 'chosenEnemyActive' }, amount: 1 },
+      ],
+    },
+    flaw: {
+      name: 'Trust Me',
+      text: 'If Chris seems too sober to build it, do not let him build it. A completely sober Chris is worse than no Chris, and the family has to get a drink into him before he is worth the slot.',
+      hooks: ['trustMe'],
+    },
+    achievement: {
+      name: 'Cross-Faded',
+      text: 'End your Turn with Chris Drunk and High at the same time. +1 Clout.',
+      clout: 1,
+      key: 'crossFaded',
+    },
+  },
 ]
 
 export const CHARACTERS_BY_ID: Record<string, CharacterDef> = Object.fromEntries(

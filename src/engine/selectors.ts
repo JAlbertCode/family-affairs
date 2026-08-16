@@ -90,10 +90,24 @@ function limitStatDelta(ch: CharacterInstance): Record<StatName, number> {
   const isCarlitos = id === 'carlitos'
   const isBry = id === 'bry'
   const isLarry = id === 'larry'
+  const isChris = id === 'chris'
 
   // Alcohol (§21)
   const a = limitTier(ch, 'alcohol')
-  if (isLarry) {
+  if (isChris) {
+    // DRUNKEN ENGINEERING. The only Character in the game with a penalty for
+    // being SOBER. Everyone else starts at their best and trades away from it;
+    // Chris starts underwater at "Trust Me" and has to be got a drink before he
+    // is worth anything. Then it climbs, and stops climbing at Wasted, so there
+    // is a sweet spot rather than "more is always better".
+    if (a === 0) { d.attack -= 1; d.defense -= 1 }
+    if (a === 2) { d.attack += 1; d.defense += 1 }
+    if (a === 3) { d.attack += 2; d.defense += 1 }
+    // CROSS-FADED. The only cross-track interaction in the game: Drunk AND at
+    // least High at the same time. It is why Chris is the one Character who
+    // actively wants Chi Chi standing next to him.
+    if (a >= 2 && limitTier(ch, 'weed') >= 1) { d.attack += 1; d.defense += 1 }
+  } else if (isLarry) {
     // I'M NOT A COP RIGHT NOW. His curve runs the same direction as everyone
     // else's and further in both directions: he stops being careful. The
     // control kit is built on Defense, so this is the family accidentally
@@ -127,7 +141,12 @@ function limitStatDelta(ch: CharacterInstance): Record<StatName, number> {
 
   // Weed (§22) - buys Defense, costs the ability to hit anything
   const w = limitTier(ch, 'weed')
-  if (isLarry) {
+  if (isChris) {
+    // CREATIVE ENGINEERING. Weed does not take anything off him, it just does
+    // not give him the Defense everyone else buys with it either. Getting Chris
+    // high is neutral on its own and only pays off once he has had a drink.
+    if (w >= 3) d.attack -= 1
+  } else if (isLarry) {
     // COMPLETELY CATASTROPHIC. The only weed curve in the game that takes both
     // stats. Zooted also puts him to sleep outright - see applyLimit.
     if (w === 1) d.attack -= 1
@@ -219,6 +238,10 @@ export function effectiveStat(state: GameState, ch: CharacterInstance, stat: Sta
       const sd = getStuffDef(s.defId)
       if (sd.id === 'bigsexychain' && stat === 'attack') v += 1
       if (sd.id === 'momvan' && stat === 'defense') v += 1
+      // Chris's first Construct. It sits on a Character the way Gear does, but
+      // what it does is project outwards, which is the whole difference between
+      // an Item and a Construct.
+      if (sd.id === 'homegym' && stat === 'attack') v += 2
     }
   }
 
@@ -424,6 +447,13 @@ export function explainStat(state: GameState, ch: CharacterInstance, stat: StatN
     const kf = limitTier(ch, 'food')
     if (kf === 1 && stat === 'attack') parts.push({ label: '🍔 Fed', amount: 1, kind: 'limit' })
     if (kf >= 2 && stat === 'defense') parts.push({ label: '🍔 Absolute Unit', amount: 2, kind: 'limit' })
+  } else if (who === 'chris') {
+    if (a === 0) parts.push({ label: '🔨 Trust Me', amount: -1, kind: 'limit' })
+    if (a === 2) parts.push({ label: '🔨 Locked In', amount: 1, kind: 'limit' })
+    if (a === 3) parts.push({ label: '🔨 Master Craftsman', amount: stat === 'attack' ? 2 : 1, kind: 'limit' })
+    const cw = limitTier(ch, 'weed')
+    if (a >= 2 && cw >= 1) parts.push({ label: '🍺🌿 Cross-Faded', amount: 1, kind: 'limit' })
+    if (cw >= 3 && stat === 'attack') parts.push({ label: '🌿 Distracted', amount: -1, kind: 'limit' })
   } else if (who === 'larry') {
     if (a >= 1 && stat === 'attack') {
       parts.push({ label: "🍺 I'm Not A Cop Right Now", amount: a, kind: 'limit' })
@@ -460,7 +490,7 @@ export function explainStat(state: GameState, ch: CharacterInstance, stat: StatN
   if (who !== 'kevin' && who !== 'carlitos') {
     // Bry's Weed row is written in her own branch, but her Food curve is the
     // standard one, so only the Weed half is skipped here.
-    if (who !== 'bry' && who !== 'larry') {
+    if (who !== 'bry' && who !== 'larry' && who !== 'chris') {
       const w = limitTier(ch, 'weed')
       if (w === 1 && stat === 'defense') parts.push({ label: '🌿 High', amount: 1, kind: 'limit' })
       if (w >= 2) {
@@ -498,6 +528,7 @@ export function explainStat(state: GameState, ch: CharacterInstance, stat: StatN
       const sd = getStuffDef(s.defId)
       if (sd.id === 'bigsexychain' && stat === 'attack') parts.push({ label: `Beside ${sd.name}`, amount: 1, kind: 'aura' })
       if (sd.id === 'momvan' && stat === 'defense') parts.push({ label: `Beside ${sd.name}`, amount: 1, kind: 'aura' })
+      if (sd.id === 'homegym' && stat === 'attack') parts.push({ label: `🏋️ ${sd.name}`, amount: 2, kind: 'aura' })
     }
   }
 

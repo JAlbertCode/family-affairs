@@ -1248,6 +1248,8 @@ function achievementMet(state: GameState, ch: CharacterInstance, key: string): b
         c.iid !== ch.iid && (limitTier(c, 'alcohol') >= 2 || limitTier(c, 'weed') >= 2))
       return messy.length >= 3
     }
+    case 'crossFaded':
+      return limitTier(ch, 'alcohol') >= 2 && limitTier(ch, 'weed') >= 1 && ch.zone === 'active'
     case 'caseClosed': {
       const enemies = state.players.filter((p) => p !== ch.owner).flatMap((p) => activeCharacters(state, p))
       return enemies.filter((c) => c.statuses.some((st) => st.name === 'Busy')).length >= 2
