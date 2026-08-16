@@ -579,12 +579,7 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
   to   { transform: translateX(115%); }
 }
 
-.affair-bg.revealing .ac-chips { justify-content: center; margin: 2px 0 12px; }
-.a-chips { margin-top: 3px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
-.a-chips::-webkit-scrollbar { display: none; }
-.a-chips .fx-chip { flex: none; }
-
-.ac-kicker {
+.affair-bg.revealing .ac-kicker {
   display: inline-block;
   animation: affairKicker .55s .46s cubic-bezier(.2,1.4,.3,1) both;
 }
@@ -610,6 +605,65 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
   .affair-bg.revealing .affair-card .btn { animation: fade .2s ease both; }
   .affair-ring, .affair-sweep { display: none; }
 }
+
+/* ----------------------------------------------------- TURN STRIP ------- */
+/* Phase 2 and Phase 3 share one screen deliberately, and the price of that is
+   two live allowances with nothing saying they are separate. Jay's report was
+   "two cards then attack phase, but then I see 3 actions". The strip names the
+   whole Turn at once so the two counters read as two allowances rather than as
+   one counter contradicting itself. */
+
+.turnstrip {
+  display: flex; align-items: stretch; gap: 5px; width: 100%;
+  padding: 0; margin-bottom: 7px;
+}
+.ts-step {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 1px;
+  padding: 5px 4px; border-radius: 9px; min-width: 0;
+  background: #1b0d1c; border: 1px solid var(--line);
+  font-size: .62rem; font-weight: 800; letter-spacing: .04em;
+  color: var(--muted); text-transform: uppercase;
+}
+.ts-step b { font-size: .58rem; opacity: .55; }
+.ts-step i { font-style: normal; font-size: .58rem; letter-spacing: 0; text-transform: none; opacity: .8; }
+.ts-step.now { color: var(--gold); border-color: #6a4a1e; background: #241408; }
+.ts-step.now b { opacity: 1; }
+.ts-step.done { opacity: .45; }
+.ts-help {
+  flex: none; display: flex; align-items: center; justify-content: center;
+  width: 28px; border-radius: 9px; background: #1b0d1c; border: 1px solid var(--line);
+  color: var(--muted); font-weight: 900; font-size: .8rem;
+}
+
+.howcard {
+  width: min(92vw, 400px); border-radius: 20px; padding: 20px 18px;
+  background: linear-gradient(170deg, var(--panel), #1b0e1e);
+  border: 2px solid var(--line); box-shadow: 0 20px 50px rgba(0,0,0,.6);
+  text-align: center; max-height: 86dvh; overflow-y: auto;
+}
+.howlist { list-style: none; margin: 12px 0 0; padding: 0; text-align: left; counter-reset: how; }
+.howlist li {
+  position: relative; padding: 0 0 12px 30px; counter-increment: how;
+}
+.howlist li::before {
+  content: counter(how); position: absolute; left: 0; top: 0;
+  width: 21px; height: 21px; border-radius: 50%;
+  background: var(--pink); color: #2a0716; font-weight: 900; font-size: .7rem;
+  display: flex; align-items: center; justify-content: center;
+}
+.howlist b { display: block; font-size: .86rem; margin-bottom: 2px; }
+.howlist span { display: block; font-size: .76rem; line-height: 1.45; color: var(--muted); }
+.howlist em { color: var(--gold); font-style: normal; font-weight: 800; }
+.howfoot {
+  font-size: .76rem; line-height: 1.45; color: #f4dcee; text-align: left;
+  margin: 4px 0 16px; padding-top: 12px; border-top: 1px solid var(--line);
+}
+
+.ac-chips { justify-content: center; margin: 2px 0 12px; }
+.a-chips { margin-top: 3px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.a-chips::-webkit-scrollbar { display: none; }
+.a-chips .fx-chip { flex: none; }
+
 .ac-kicker { font-size: .6rem; letter-spacing: .24em; text-transform: uppercase; color: var(--gold); font-weight: 900; }
 .affair-card h2 { margin: 6px 0 10px; font-size: 1.5rem; font-weight: 900; line-height: 1.1; }
 .affair-card p { margin: 0 0 14px; font-size: .9rem; line-height: 1.5; color: #f4dcee; }

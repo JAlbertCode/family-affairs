@@ -54,6 +54,7 @@ export function Table({
   const seenAffair = useRef<string | null>(null)
   const [hideFamily, setHideFamily] = useState(false)
   const [hideOpponents, setHideOpponents] = useState(false)
+  const [howOpen, setHowOpen] = useState(false)
   const [turnFlash, setTurnFlash] = useState(false)
   const [autoPass, setAutoPass] = useState(false)
   // The hand is ~190px of a phone screen and sits on top of your own family,
@@ -337,6 +338,7 @@ export function Table({
     .flatMap((p) => activeCharacters(state, p)).filter((c) => c.hp > 0).length
   const canOpenAttack = isMyTurn && state.phase === 'main' && !battle && !minigame
     && me.actionsLeft > 0 && attackers.length > 0 && enemyCount > 0
+  const cardsLeft = CARDS_PER_TURN - me.cardsPlayedThisTurn
   const overHand = me.hand.length > HAND_LIMIT
   const turnHint = overHand
     ? `${me.hand.length} cards - over the limit of ${HAND_LIMIT}. Ending your turn discards down to ${HAND_LIMIT}.`
@@ -483,8 +485,8 @@ export function Table({
             {/* Both halves of the budget, spent and left, without arithmetic:
                 a filled pip is still yours, a hollow one is gone. */}
             <span className="fam-budget">
-              <Budget label="cards" left={CARDS_PER_TURN - me.cardsPlayedThisTurn} total={CARDS_PER_TURN} live={isMyTurn} />
-              <Budget label="actions" left={me.actionsLeft} total={ACTIONS_PER_TURN} live={isMyTurn} />
+              <Budget label="to play" left={CARDS_PER_TURN - me.cardsPlayedThisTurn} total={CARDS_PER_TURN} live={isMyTurn} />
+              <Budget label="to use" left={me.actionsLeft} total={ACTIONS_PER_TURN} live={isMyTurn} />
             </span>
           </div>
 
@@ -649,6 +651,20 @@ export function Table({
           <button className="btn ghost" onClick={() => setTargeting(null)}>Cancel</button>
         ) : isMyTurn ? (
           <>
+          {!autoPass && (
+            <button className="turnstrip" onClick={() => setHowOpen(true)}>
+              <span className={`ts-step${state.phase === 'draw' ? ' now' : ' done'}`}>
+                <b>1</b> Draw
+              </span>
+              <span className={`ts-step${cardsLeft > 0 ? ' now' : ' done'}`}>
+                <b>2</b> Play <i>{cardsLeft}/{CARDS_PER_TURN} cards</i>
+              </span>
+              <span className={`ts-step${me.actionsLeft > 0 ? ' now' : ' done'}`}>
+                <b>3</b> Act <i>{me.actionsLeft}/{ACTIONS_PER_TURN} actions</i>
+              </span>
+              <span className="ts-help">?</span>
+            </button>
+          )}
           {!autoPass && <div className="turnhint">{turnHint}</div>}
           {canOpenAttack && (
             <button className="btn attack-cta" data-testid="attack-cta"
@@ -677,6 +693,43 @@ export function Table({
       {turnFlash && <div className="turnflash"><span>YOUR TURN</span></div>}
 
       {minigame && <Minigame state={state} you={you} send={send} />}
+
+      {howOpen && (
+        <div className="sheet-bg affair-bg" onClick={() => setHowOpen(false)}>
+          <div className="howcard" onClick={(e) => e.stopPropagation()}>
+            <span className="ac-kicker">How a Turn works</span>
+            <ol className="howlist">
+              <li>
+                <b>Draw one card.</b>
+                <span>Happens automatically at the start of your Turn.</span>
+              </li>
+              <li>
+                <b>Play up to {CARDS_PER_TURN} cards from your hand.</b>
+                <span>
+                  Recruiting a Character, handing somebody a drink, equipping gear.
+                  Playing a card is <em>free</em>: it does not cost an action.
+                </span>
+              </li>
+              <li>
+                <b>Take up to {ACTIONS_PER_TURN} actions with your Characters.</b>
+                <span>
+                  Attack, use an ability, use a Power Move, use an item somebody is holding.
+                  Each one costs an action, and each Character acts once per Turn.
+                </span>
+              </li>
+              <li>
+                <b>End your Turn.</b>
+                <span>You do not have to spend everything. Anything unused is gone.</span>
+              </li>
+            </ol>
+            <p className="howfoot">
+              Steps 2 and 3 share one screen and two separate allowances, so you can play a
+              card, attack, then play another card. Order is up to you.
+            </p>
+            <button className="btn" onClick={() => setHowOpen(false)}>Got it</button>
+          </div>
+        </div>
+      )}
 
       {affairOpen && affair && (
         <div
