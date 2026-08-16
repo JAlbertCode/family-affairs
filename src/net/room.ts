@@ -254,7 +254,13 @@ export class Room {
     this.error = null
     this.emit()
 
-    await this.openPeer(peerIdForRoom(s.code))
+    // The broker still has the previous peer registered under this room code
+    // for a few seconds after the tab goes away, so the first attempt to take
+    // it back reliably fails with `unavailable-id`. That is a wait, not a
+    // failure: reloading after sharing a link is the single most common way
+    // back into this code path, and giving up on attempt one is what made a
+    // share look like it destroyed the room.
+    await this.retakePeer(peerIdForRoom(s.code))
     this.code = s.code
     this.you = 'p0'
     this.names = new Map(s.names ?? [['p0', s.name]])
@@ -268,9 +274,43 @@ export class Room {
     this.emit()
   }
 
-  /** Rejoin a room this browser was a guest in, under the same name. */
+  /**
+   * Reclaim a peer id the broker may still think is in use. Backs off until it
+   * frees up rather than treating the first collision as fatal.
+   */
+  private async retakePeer(id: string, attempts = 8): Promise<Peer> {
+    let lastErr: unknown
+    for (let n = 0; n < attempts; n++) {
+      try {
+        return await this.openPeer(id)
+      } catch (e: any) {
+        lastErr = e
+        const type = e?.type ?? ''
+        const retryable = type === 'unavailable-id' || /already|taken|in use/i.test(String(e?.message ?? ''))
+        if (!retryable && n > 1) break
+        this.error = `Getting the room back… (${n + 1}/${attempts})`
+        this.emit()
+        await new Promise((r) => setTimeout(r, 900 + n * 700))
+      }
+    }
+    throw lastErr instanceof Error ? lastErr : new Error('Could not reopen the room.')
+  }
+
+  /**
+   * Rejoin a room this browser was a guest in. The host may itself be in the
+   * middle of coming back, so this is patient too.
+   */
   async resumeClient(s: SavedSession): Promise<void> {
-    await this.join(s.code, s.name)
+    let lastErr: unknown
+    for (let n = 0; n < 5; n++) {
+      try { await this.join(s.code, s.name); return } catch (e) {
+        lastErr = e
+        this.error = `Looking for room ${s.code}… (${n + 1}/5)`
+        this.emit()
+        await new Promise((r) => setTimeout(r, 1000 + n * 800))
+      }
+    }
+    throw lastErr instanceof Error ? lastErr : new Error('Could not rejoin.')
   }
 
   async host(displayName: string): Promise<string> {

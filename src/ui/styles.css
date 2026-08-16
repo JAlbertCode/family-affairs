@@ -1066,3 +1066,16 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
 }
 .fam-budget .budget s.left { background: currentColor; }
 .fam-budget .budget s.used { opacity: .45; }
+
+/* The room code has to be findable once the game has started. It lives in the
+   address bar, in the top bar, and in the menu with Share and Leave beside it. */
+.roomchip {
+  font-size: .68rem; font-weight: 900; letter-spacing: .12em;
+  padding: 4px 9px; border-radius: 8px; color: var(--gold);
+  background: #241a10; border: 1px solid #6b4d15;
+}
+.roompanel {
+  background: #150a16; border: 1px solid var(--line); border-radius: 12px;
+  padding: 10px 11px 11px; margin-bottom: 14px;
+}
+.roompanel .roomcode { margin: 2px 0 0; }

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Room, loadSession, clearSession, type RoomView } from './net/room'
+import { Room, loadSession, clearSession, type RoomView, type SavedSession } from './net/room'
 import type { Intent } from './engine/types'
 import { Lobby } from './ui/Lobby'
 import { Table } from './ui/Table'
@@ -21,6 +21,8 @@ export default function App() {
    * the state it was holding, and a guest re-announces under the same name and
    * gets their seat back.
    */
+  const [resumeFailed, setResumeFailed] = useState<SavedSession | null>(null)
+
   useEffect(() => {
     if (tried.current) return
     tried.current = true
@@ -30,12 +32,25 @@ export default function App() {
       try {
         if (s.role === 'host') await room.resumeHost(s)
         else await room.resumeClient(s)
+        setResumeFailed(null)
       } catch {
-        clearSession()
+        // Keep the session. Throwing it away on the first failure is what made
+        // sharing a link look like it destroyed the room, and the code is the
+        // one thing the player cannot reconstruct on their own.
+        setResumeFailed(s)
       } finally {
         setResuming(false)
       }
     })()
+  }, [room])
+
+  const retry = useCallback(async (s: SavedSession) => {
+    setResuming(true)
+    try {
+      if (s.role === 'host') await room.resumeHost(s)
+      else await room.resumeClient(s)
+      setResumeFailed(null)
+    } catch { setResumeFailed(s) } finally { setResuming(false) }
   }, [room])
 
   // A refresh mid-game is almost never deliberate. Browsers only allow the
@@ -75,19 +90,65 @@ export default function App() {
     if (view.state?.phase === 'gameover') clearSession()
   }, [view.state?.phase])
 
+  /**
+   * Keep the room code in the address bar for as long as the room is live.
+   * Reopening a closed tab, restoring a session, sharing the URL or just
+   * hitting back all recover the code without anyone having to have written it
+   * down. It is also the thing people paste into a group chat.
+   */
+  useEffect(() => {
+    try {
+      const url = new URL(location.href)
+      const want = view.code && !view.hotseat ? view.code : null
+      if (want) url.searchParams.set('room', want)
+      else url.searchParams.delete('room')
+      if (url.toString() !== location.href) history.replaceState(null, '', url)
+    } catch { /* nothing important depends on this */ }
+  }, [view.code, view.hotseat])
+
   if (view.state && view.you) {
-    return <Table state={view.state} you={view.you} error={view.error} send={send} hotseat={view.hotseat} />
+    return (
+      <Table
+        state={view.state} you={view.you} error={view.error} send={send}
+        hotseat={view.hotseat}
+        /* pass-and-play has no room for anyone to join */
+        code={view.hotseat ? '' : view.code}
+        onLeave={view.hotseat ? undefined : onLeave}
+      />
+    )
   }
 
-  if (resuming) {
+  if (resuming || resumeFailed) {
+    const s = resumeFailed
     return (
       <div className="app">
         <div className="lobby">
           <div className="brand"><span className="b1">FAMILY<br />AFFAIRS</span></div>
-          <div className="lobby-tag">Putting you back in the room…</div>
-          <button className="btn ghost" onClick={() => { clearSession(); setResuming(false); location.reload() }}>
-            Start fresh instead
-          </button>
+          {s ? (
+            <>
+              <div className="card-panel">
+                <span className="field-label">Your room</span>
+                <div className="roomcode">{s.code}</div>
+                <p className="lobby-tag" style={{ fontSize: '.78rem', textAlign: 'center', margin: '4px 0 0' }}>
+                  {s.role === 'host'
+                    ? 'Could not reopen it just yet. The code is still yours; try again in a moment.'
+                    : 'Could not reach the host just yet. They may be coming back too.'}
+                </p>
+              </div>
+              <button className="btn gold" onClick={() => retry(s)}>Try again</button>
+              <button className="btn ghost" onClick={() => { clearSession(); setResumeFailed(null) }}>
+                Give up and start fresh
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="lobby-tag">Putting you back in the room…</div>
+              <button className="btn ghost" onClick={() => { clearSession(); setResuming(false) }}>
+                Start fresh instead
+              </button>
+            </>
+          )}
+          {view.error && <div className="lobby-tag" style={{ opacity: .7 }}>{view.error}</div>}
         </div>
       </div>
     )

@@ -24,13 +24,16 @@ type Targeting =
   | null
 
 export function Table({
-  state, you, error, send, hotseat,
+  state, you, error, send, hotseat, code, onLeave,
 }: {
   state: GameState
   you: PlayerId
   error: string | null
   send: (i: Intent) => void
   hotseat?: boolean
+  /** empty in pass-and-play */
+  code?: string
+  onLeave?: () => void
 }) {
   const me = state.playerState[you]
   const isMyTurn = currentPlayer(state) === you
@@ -57,6 +60,20 @@ export function Table({
   // punishes the person telling a story, which is most of why anyone is here;
   // a visible clock gets the table to move without taking anything away.
   const [elapsed, setElapsed] = useState(0)
+  const [roomShared, setRoomShared] = useState<'link' | 'code' | null>(null)
+
+  function copyRoom(text: string, kind: 'link' | 'code') {
+    try { navigator.clipboard?.writeText(text) } catch { /* insecure context */ }
+    setRoomShared(kind)
+    setTimeout(() => setRoomShared(null), 1800)
+  }
+  async function shareRoom(c: string) {
+    const url = `${location.origin}${location.pathname}?room=${c}`
+    try {
+      if (navigator.share) { await navigator.share({ title: 'Family Affairs', text: `Join my game. Room ${c}.`, url }); return }
+    } catch { /* dismissed */ }
+    copyRoom(url, 'link')
+  }
   // While choosing a target, a tap commits. That left no way to check what you
   // are aiming at, which is exactly when you most want to know.
   const [peek, setPeek] = useState(false)
@@ -372,7 +389,12 @@ export function Table({
           </span>
         )}
         <span className="clout-me">{me.clout}<s>/{state.cloutToWin}</s></span>
-        <button className="icon-btn" onClick={() => setShowLog(true)} aria-label="Game log">☰</button>
+        {code && (
+          <button className="roomchip" onClick={() => setShowLog(true)} title="Room code, share and leave">
+            {code}
+          </button>
+        )}
+        <button className="icon-btn" onClick={() => setShowLog(true)} aria-label="Menu, room code and game log">☰</button>
       </header>
 
       {hotseat && (
@@ -685,6 +707,29 @@ export function Table({
       {showLog && (
         <div className="sheet-bg" onClick={() => setShowLog(false)}>
           <div className="sheet" onClick={(e) => e.stopPropagation()}>
+            {code && (
+              <div className="roompanel">
+                <span className="field-label">Room code</span>
+                <div className="roomcode">{code}</div>
+                <p className="lobby-tag" style={{ fontSize: '.72rem', margin: '2px 0 9px', textAlign: 'center' }}>
+                  Anyone who dropped out rejoins with this. It is in the address bar too.
+                </p>
+                <div className="sharerow">
+                  <button className="btn" onClick={() => shareRoom(code)}>
+                    {roomShared === 'link' ? 'Link copied' : 'Share link'}
+                  </button>
+                  <button className="btn ghost" onClick={() => copyRoom(code, 'code')}>
+                    {roomShared === 'code' ? 'Copied' : 'Copy code'}
+                  </button>
+                </div>
+                {onLeave && (
+                  <button className="btn ghost narrow" style={{ marginTop: 8, width: '100%' }}
+                    onClick={() => { if (confirm('Leave this game?')) onLeave() }}>
+                    Leave game
+                  </button>
+                )}
+              </div>
+            )}
             <h3>What happened</h3>
             <div className="log">
               {state.log.slice(-70).reverse().map((l) => (
