@@ -147,7 +147,11 @@ export function Table({
     const newest = log[log.length - 1].t
     if (lastTick.current < 0) { lastTick.current = newest; return }
     if (newest === lastTick.current) return
-    const fresh = log.filter((l) => l.t > lastTick.current && l.kind !== 'system')
+    // Affair lines are excluded: the Affair already gets a full-screen reveal
+    // when it lands and a permanent banner with its own chips afterwards.
+    // Echoing the same paragraph a third time in the flash bar pushed the
+    // lines that are actually news - what your card just did - off the top.
+    const fresh = log.filter((l) => l.t > lastTick.current && l.kind !== 'system' && l.kind !== 'affair')
     lastTick.current = newest
     if (!fresh.length) return
     setFlash(fresh.slice(-3).map((l) => l.text))
