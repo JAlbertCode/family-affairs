@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Room, loadSession, clearSession, sessionExpired, type RoomView, type SavedSession } from './net/room'
+import { Room, loadSession, clearSession, liveElsewhere, type RoomView, type SavedSession } from './net/room'
 import type { Intent } from './engine/types'
 import { Lobby } from './ui/Lobby'
 import { Builder } from './ui/builder/Builder'
@@ -20,20 +20,21 @@ export default function App() {
     try { return (new URLSearchParams(location.search).get('tv') ?? '').toUpperCase() } catch { return '' }
   }, [])
   /**
-   * The room code from the URL, if it still means anything.
+   * The room code from the URL.
    *
-   * Decided once, here, rather than by the Lobby reading `location` on every
-   * render: the effect that strips a stale code runs after the first paint, so
-   * a component reading the URL itself would already have rendered the panel
-   * for a room that timed out. `resuming` above has by then called
-   * `loadSession`, which is what sets the expired flag.
+   * It is taken at face value and it is never second-guessed. This used to be
+   * withheld when this browser's own session had timed out, on the theory that
+   * a stale session meant a stale link - but the two have nothing to do with
+   * each other. A guest who closes the tab for half an hour, or anybody
+   * following a link in a browser that happens to hold an old session, was
+   * being shown a plain menu whose only button opens a brand new room, while
+   * the room in the address bar was still running. The URL is the one copy of
+   * the code that outlives storage. Withholding it threw away the fallback.
    */
   const [inviteCode] = useState(() => {
     try {
       const raw = new URLSearchParams(location.search).get('room') ?? ''
-      const code = raw.trim().toUpperCase().replace(/[^A-Z0-9]/g, '')
-      if (!code) return ''
-      return sessionExpired() ? '' : code
+      return raw.trim().toUpperCase().replace(/[^A-Z0-9]/g, '')
     } catch { return '' }
   })
 
@@ -68,6 +69,7 @@ export default function App() {
    * gets their seat back.
    */
   const [resumeFailed, setResumeFailed] = useState<SavedSession | null>(null)
+  const [duplicate, setDuplicate] = useState<SavedSession | null>(null)
 
   useEffect(() => {
     if (!tvCode || tried.current) return
@@ -90,15 +92,12 @@ export default function App() {
     if (tried.current) return
     tried.current = true
     const s = loadSession()
-    if (!s) {
-      // The room this browser was in has timed out, so the code left in the
-      // address bar points at something that is almost certainly gone. Take it
-      // out, or every future visit opens on a gold panel offering to rejoin
-      // last night's game. Somebody arriving on a shared link has no session to
-      // expire and keeps their way in.
-      if (sessionExpired()) dropRoomFromUrl()
-      return
-    }
+    if (!s) { setResuming(false); return }
+    // Another tab of this browser already has this room open, which is what
+    // opening a shared link on a phone does. Two tabs cannot both be the host,
+    // and the loser spends half a minute failing to prove it before saying so.
+    // Say it immediately instead.
+    if (liveElsewhere(s.code)) { setDuplicate(s); setResuming(false); return }
     ;(async () => {
       try {
         if (s.role === 'host') await room.resumeHost(s)
@@ -117,6 +116,7 @@ export default function App() {
 
   const retry = useCallback(async (s: SavedSession) => {
     setResuming(true)
+    setDuplicate(null)
     try {
       if (s.role === 'host') await room.resumeHost(s)
       else await room.resumeClient(s)
@@ -222,6 +222,31 @@ export default function App() {
         code={view.hotseat ? '' : view.code}
         onLeave={view.hotseat ? undefined : onLeave}
       />
+    )
+  }
+
+  // Deliberately its own screen rather than a warning on the lobby: everything
+  // on the lobby starts something, and starting something is the one action
+  // that would actually cost this player their game.
+  if (duplicate) {
+    return (
+      <div className="app">
+        <div className="lobby">
+          <div className="brand"><span className="b1">FAMILY<br />AFFAIRS</span></div>
+          <div className="card-panel">
+            <span className="field-label">Already open</span>
+            <div className="roomcode">{duplicate.code}</div>
+            <p className="lobby-tag" style={{ fontSize: '.78rem', textAlign: 'center', margin: '4px 0 0' }}>
+              This room is open in another tab. Go back to it - that is the one
+              holding the game.
+            </p>
+          </div>
+          <button className="btn gold" onClick={() => retry(duplicate)}>Use this tab instead</button>
+          <button className="btn ghost" onClick={() => { setDuplicate(null); setResuming(false) }}>
+            Do something else
+          </button>
+        </div>
+      </div>
     )
   }
 
