@@ -29,7 +29,7 @@ export type ClientMsg =
 export type HostMsg =
   | { t: 'welcome'; you: PlayerId; lobby: LobbyPlayer[]; protocol: number }
   | { t: 'lobby'; lobby: LobbyPlayer[] }
-  | { t: 'state'; state: GameState; you: PlayerId }
+  | { t: 'state'; state: GameState; you: PlayerId; turnStartedAt?: number }
   | { t: 'error'; message: string }
   | { t: 'kicked'; reason: string }
   | { t: 'pong' }

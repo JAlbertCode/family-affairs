@@ -38,6 +38,10 @@ export interface RoomView {
   state: GameState | null
   error: string | null
   started: boolean
+  /** When the current Turn began, by the host's clock. Everybody counts from
+   *  the same number, so the table sees the same seconds ticking down on the
+   *  person who is actually holding things up. */
+  turnStartedAt: number
 }
 
 type Listener = (view: RoomView) => void
@@ -152,6 +156,39 @@ export class Room {
     })
   }
 
+  /**
+   * The shot clock.
+   *
+   * Wall-clock time never touches the game state - the engine has to stay
+   * replayable from (seed, intents), and a state that knows what time it is is
+   * not. So the host counts, everybody is told when the Turn started, and when
+   * it runs out the host submits an ordinary endTurn on the current player's
+   * behalf. It is the same intent they would have sent themselves, so a replay
+   * of the game never knows a clock was involved.
+   *
+   * Nothing is taken away when it fires. You keep your cards and your board;
+   * the table just moves on, which is the entire point - somebody thinking for
+   * four minutes is why the other five people are on their phones.
+   */
+  private turnStartedAt = 0
+  private clockTimer: ReturnType<typeof setInterval> | null = null
+
+  private startTurnClock() {
+    this.turnStartedAt = Date.now()
+    if (this.clockTimer) return
+    this.clockTimer = setInterval(() => {
+      const g = this.game
+      if (!g || g.phase === 'gameover' || !g.turnSeconds) return
+      // A battle or a minigame is the table doing something together, and it
+      // is not the current player being slow. The clock waits for it.
+      if (g.battle || (g.minigame && !g.minigame.done)) { this.turnStartedAt = Date.now(); return }
+      if (Date.now() - this.turnStartedAt < g.turnSeconds * 1000) return
+      const pid = g.turnOrder[g.turnIndex]
+      if (!pid) return
+      this.submit(pid, { k: 'endTurn' })
+    }, 1000)
+  }
+
   private emit() {
     this.persist()
     const v = this.view()
@@ -188,6 +225,7 @@ export class Room {
         : this.myState,
       error: this.error,
       started: !!(this.role === 'host' ? this.game : this.myState),
+      turnStartedAt: this.turnStartedAt,
     }
   }
 
@@ -201,7 +239,7 @@ export class Room {
   }
 
   /** Start a pass-and-play game on this device only. */
-  startLocal(names: string[], opts: { cloutToWin: number; useKitchenTable: boolean }) {
+  startLocal(names: string[], opts: { cloutToWin: number; useKitchenTable: boolean; turnSeconds?: number }) {
     this.role = 'host'
     this.hotseat = true
     this.status = 'connected'
@@ -213,6 +251,7 @@ export class Room {
       this.order.map((id) => ({ id, name: this.names.get(id)! })),
       { seed: (Date.now() ^ (Math.random() * 0xffffffff)) | 0, ...opts },
     )
+    this.startTurnClock()
     this.emit()
   }
 
@@ -434,7 +473,7 @@ export class Room {
         this.spectators.add(conn)
         conn.on('close', () => this.spectators.delete(conn))
         this.send(conn, { t: 'welcome', you: SPECTATOR, lobby: this.hostLobby(), protocol: PROTOCOL_VERSION })
-        if (this.game) this.send(conn, { t: 'state', state: redactFor(this.game, SPECTATOR), you: SPECTATOR })
+        if (this.game) this.send(conn, { t: 'state', state: redactFor(this.game, SPECTATOR), you: SPECTATOR, turnStartedAt: this.turnStartedAt })
         return
       }
       const seatResult = assignSeat({
@@ -540,15 +579,19 @@ export class Room {
           seed: (Date.now() ^ (Math.random() * 0xffffffff)) | 0,
           cloutToWin: intent.cloutToWin,
           useKitchenTable: intent.useKitchenTable,
+          turnSeconds: intent.turnSeconds ?? 0,
         },
       )
+      this.startTurnClock()
       this.broadcastState()
       this.emit()
       return
     }
 
     if (!this.game) return
+    const before = `${this.game.round}:${this.game.turnIndex}`
     const res = applyIntent(this.game, pid, intent)
+    if (!res.error && `${this.game.round}:${this.game.turnIndex}` !== before) this.startTurnClock()
     if (res.error) {
       const conn = this.conns.get(pid)
       if (conn && pid !== this.you) this.send(conn, { t: 'error', message: res.error })
@@ -575,14 +618,14 @@ export class Room {
   private broadcastState() {
     if (!this.game) return
     for (const [pid, conn] of this.conns) {
-      if (conn.open) this.send(conn, { t: 'state', state: redactFor(this.game, pid), you: pid })
+      if (conn.open) this.send(conn, { t: 'state', state: redactFor(this.game, pid), you: pid, turnStartedAt: this.turnStartedAt })
     }
     // One redaction for every screen watching, because they all see the same
     // thing: nothing private at all.
     if (this.spectators.size) {
       const seen = redactFor(this.game, SPECTATOR)
       for (const conn of this.spectators) {
-        if (conn.open) this.send(conn, { t: 'state', state: seen, you: SPECTATOR })
+        if (conn.open) this.send(conn, { t: 'state', state: seen, you: SPECTATOR, turnStartedAt: this.turnStartedAt })
       }
     }
   }
@@ -656,6 +699,10 @@ export class Room {
       case 'state':
         this.myState = msg.state
         this.you = msg.you
+        // Taken from the host rather than started locally, so six phones count
+        // the same seconds on the same person instead of six slightly
+        // different ones that all reset when a packet arrives late.
+        if (msg.turnStartedAt) this.turnStartedAt = msg.turnStartedAt
         this.error = null
         break
       case 'error':

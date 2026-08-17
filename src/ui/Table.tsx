@@ -31,10 +31,12 @@ type Targeting =
 const SHAME_KEY = 'fa.shamed'
 
 export function Table({
-  state, you, error, send, hotseat, code, onLeave,
+  state, you, error, send, hotseat, code, onLeave, turnStartedAt = 0,
 }: {
   state: GameState
   you: PlayerId
+  /** When this Turn began, by the host's clock. */
+  turnStartedAt?: number
   error: string | null
   send: (i: Intent) => void
   hotseat?: boolean
@@ -186,12 +188,27 @@ export function Table({
     return () => clearTimeout(t)
   }, [state.tick])
 
+  // Counted from the host's turn-start rather than from a local zero, and run
+  // for EVERYBODY rather than only for whoever is up. That second part is the
+  // whole fix: the person taking four minutes is not the one who needs to see
+  // a clock, the other five people are.
   useEffect(() => {
-    setElapsed(0)
-    if (!isMyTurn) return
-    const id = setInterval(() => setElapsed((n) => n + 1), 1000)
+    const tick = () => setElapsed(turnStartedAt ? Math.max(0, Math.floor((Date.now() - turnStartedAt) / 1000)) : 0)
+    tick()
+    const id = setInterval(tick, 1000)
     return () => clearInterval(id)
-  }, [state.turnIndex, state.round, isMyTurn])
+  }, [turnStartedAt])
+
+  /** Counting up when there is no limit, down when there is. */
+  const clock = (() => {
+    const limit = state.turnSeconds
+    const n = limit ? Math.max(0, limit - elapsed) : elapsed
+    return {
+      label: `${Math.floor(n / 60)}:${String(n % 60).padStart(2, '0')}`,
+      warn: limit ? n <= Math.max(15, limit * 0.35) : elapsed >= 45,
+      urgent: limit ? n <= 10 : elapsed >= 90,
+    }
+  })()
 
   const affair = state.currentAffair ? getAffairDef(state.currentAffair) : null
 
@@ -481,9 +498,9 @@ export function Table({
         <span className={`turn ${isMyTurn ? 'you' : ''}`}>
           {isMyTurn ? 'YOUR TURN' : `${state.playerState[currentPlayer(state)].name}'s turn`}
         </span>
-        {isMyTurn && (
-          <span className={`turnclock ${elapsed >= 90 ? 'late' : elapsed >= 45 ? 'slow' : ''}`}>
-            {Math.floor(elapsed / 60)}:{String(elapsed % 60).padStart(2, '0')}
+        {turnStartedAt > 0 && (
+          <span className={`turnclock ${clock.urgent ? 'late' : clock.warn ? 'slow' : ''}`}>
+            {clock.label}
           </span>
         )}
         <span className="clout-me">{me.clout}<s>/{state.cloutToWin}</s></span>

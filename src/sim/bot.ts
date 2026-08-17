@@ -46,8 +46,39 @@ export function botIntent(state: GameState, pid: PlayerId): Intent | null {
     return { k: 'minigameMove', cell: ticTacToeMove(mg.board, mg.turn) }
   }
 
-  // Interference windows: bots always pass, so battles resolve.
-  if (state.battle) return { k: 'passInterference' }
+  // Interference windows.
+  //
+  // Bots used to always pass, which meant the entire interference system was
+  // unexercised: every Interfere-only card in the deck - ten Consumables whose
+  // only legal moment is somebody else's fight - had never once resolved in a
+  // simulated game, and neither had any of the forty-two consumables that
+  // became throwable. A live audit of fourteen thousand card resolutions found
+  // them by never seeing them at all.
+  //
+  // It throws in roughly half the time it can, which is enough to exercise the
+  // path without every battle turning into a five-card pile-up.
+  if (state.battle) {
+    const b = state.battle
+    const ps = state.playerState[pid]
+    const mine = activeCharacters(state, pid)
+    const iAmIn = b.attackerChar && state.characters[b.attackerChar]?.owner === pid
+    if (ps.interferedThisBattle < 1 && (state.tick + pid.charCodeAt(1)) % 2 === 0) {
+      const card = ps.hand.find((i) => {
+        const st = state.stuff[i]
+        return st && getStuffDef(st.defId).interfere
+      })
+      if (card) {
+        // Point it at the fighter it hurts most to help: the defender if it is
+        // not my Character, otherwise my own attacker.
+        const dfn = state.characters[b.defenderChar]
+        const target = !iAmIn && dfn && dfn.owner !== pid ? dfn.iid
+          : mine.length ? mine[0].iid
+          : b.defenderChar
+        return { k: 'interfere', iid: card, targetChar: target }
+      }
+    }
+    return { k: 'passInterference' }
+  }
 
   if (currentPlayer(state) !== pid) return null
   if (state.phase === 'gameover') return null
@@ -117,6 +148,15 @@ export function botIntent(state: GameState, pid: PlayerId): Intent | null {
           (c) => countAttached(state, c, def.subtype) < itemCap(c, def.subtype)
             && c.attached.length < totalItemCap(c),
         )
+        if (target) return { k: 'playCard', iid, targetChar: target.iid }
+      }
+
+      if (def.subtype === 'Pet') {
+        // Pets were the one subtype the bot had no branch for at all, so Cash
+        // The Dog and The Pet Rock had never entered play in any simulated
+        // game and every balance number that touched them was fiction.
+        const target = mine.find((c) => countAttached(state, c, 'Pet') < itemCap(c, 'Pet')
+          && (!def.onlyFor || def.onlyFor.includes(c.defId)))
         if (target) return { k: 'playCard', iid, targetChar: target.iid }
       }
 

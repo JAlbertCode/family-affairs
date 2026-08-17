@@ -422,6 +422,9 @@ export interface GameState {
   /** the Kitchen Table market (§42) - 3 face-up cards */
   kitchenTable: (InstanceId | null)[]
   useKitchenTable: boolean
+  /** Shot clock in seconds, 0 for none. The engine never reads a wall clock;
+   *  the host counts and submits an ordinary endTurn when it expires. */
+  turnSeconds: number
   currentAffair: DefId | null
   round: number
   turnIndex: number       // index into players[]
@@ -510,7 +513,7 @@ export interface LogEntry {
 // --- Player intents (what clients send the host) ----------------------------
 
 export type Intent =
-  | { k: 'startGame'; cloutToWin: number; useKitchenTable: boolean }
+  | { k: 'startGame'; cloutToWin: number; useKitchenTable: boolean; turnSeconds?: number }
   | { k: 'drawCard'; fromKitchenTable?: number }
   | { k: 'playCard'; iid: InstanceId; targetChar?: InstanceId; slot?: Slot }
   | { k: 'attack'; attacker: InstanceId; defender: InstanceId }

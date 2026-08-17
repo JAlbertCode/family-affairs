@@ -207,6 +207,7 @@ export default function App() {
     return (
       <Tv
         state={demo ?? view.state}
+        turnStartedAt={demo ? Date.now() - 62_000 : view.turnStartedAt}
         code={view.code || tvCode}
         waiting={view.error ?? (view.status === 'connected'
           ? `${view.lobby.length} in the room. Waiting for the host to start.`
@@ -230,6 +231,7 @@ export default function App() {
     return (
       <Table
         state={view.state} you={view.you} error={view.error} send={send}
+        turnStartedAt={view.turnStartedAt}
         hotseat={view.hotseat}
         /* pass-and-play has no room for anyone to join */
         code={view.hotseat ? '' : view.code}
@@ -308,8 +310,8 @@ export default function App() {
         onJoin={onJoin}
         onRecover={onRecover}
         inviteCode={inviteCode}
-        onStart={(cloutToWin, useKitchenTable) => send({ k: 'startGame', cloutToWin, useKitchenTable })}
-        onLocal={(names, cloutToWin, useKitchenTable) => room.startLocal(names, { cloutToWin, useKitchenTable })}
+        onStart={(cloutToWin, useKitchenTable, turnSeconds) => send({ k: 'startGame', cloutToWin, useKitchenTable, turnSeconds })}
+        onLocal={(names, cloutToWin, useKitchenTable, turnSeconds) => room.startLocal(names, { cloutToWin, useKitchenTable, turnSeconds })}
         onLeave={onLeave}
         onBuild={() => {
           try {
@@ -368,6 +370,7 @@ function demoState(): RoomView['state'] {
       damageDealt: null, isFree: false, log: [],
     }
   }
+  g.turnSeconds = 90
   g.round = 4
   // An Affair is on the board most Rounds and it is the widest thing on the
   // screen, so a demo without one is not the layout that has to hold.

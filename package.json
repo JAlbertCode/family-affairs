@@ -14,12 +14,13 @@
     "sim": "tsx src/sim/simulate.ts",
     "sweep": "tsx src/sim/sweep.ts",
     "diagnose": "tsx src/sim/diagnose.ts",
-    "test": "tsx src/net/session.test.ts && tsx src/net/seat.test.ts && tsx src/engine/cards/validate.ts && tsx src/sim/impact.ts && tsx src/sim/textcheck.mjs && tsx src/sim/simulate.ts",
+    "test": "tsx src/net/session.test.ts && tsx src/net/seat.test.ts && tsx src/engine/cards/validate.ts && tsx src/sim/impact.ts && tsx src/sim/textcheck.mjs && GAMES=25 tsx src/sim/liveaudit.ts && tsx src/sim/simulate.ts",
     "textcheck": "tsx src/sim/textcheck.mjs",
     "impact": "tsx src/sim/impact.ts",
     "hand": "tsx src/sim/handsize.ts",
     "tvshot": "node src/sim/tvshot.mjs",
-    "arthash": "node scripts/art-hashes.mjs"
+    "arthash": "node scripts/art-hashes.mjs",
+    "liveaudit": "tsx src/sim/liveaudit.ts"
   },
   "dependencies": {
     "peerjs": "^1.5.4",

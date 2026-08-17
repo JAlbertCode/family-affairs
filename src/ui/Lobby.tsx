@@ -16,8 +16,8 @@ export function Lobby({
   onRecover: (code: string, name: string) => void
   /** A room code from the URL that is still worth offering. '' when it is not. */
   inviteCode: string
-  onStart: (cloutToWin: number, useKitchenTable: boolean) => void
-  onLocal: (names: string[], cloutToWin: number, useKitchenTable: boolean) => void
+  onStart: (cloutToWin: number, useKitchenTable: boolean, turnSeconds: number) => void
+  onLocal: (names: string[], cloutToWin: number, useKitchenTable: boolean, turnSeconds: number) => void
   onLeave: () => void
   onBuild: () => void
   busy: boolean
@@ -49,6 +49,11 @@ export function Lobby({
     return 'home'
   })
   const [kitchen, setKitchen] = useState(false)
+  // Ninety seconds by default. A party game dies when one person thinks for
+  // four minutes and the other five reach for their phones, and the fix is not
+  // to hurry that person - it is to let the table see the clock and to move on
+  // when it runs out. Nothing is lost when it fires.
+  const [turnSeconds, setTurnSeconds] = useState(90)
   const [cloutOverride, setCloutOverride] = useState<number | null>(null)
   const [check, setCheck] = useState<CheckResult | 'running' | null>(null)
 
@@ -134,7 +139,23 @@ export function Lobby({
               </div>
             </div>
 
-            <button className="btn gold" disabled={count < 2 || busy} onClick={() => onStart(clout, kitchen)}>
+            <div className="card-panel">
+              <span className="field-label">Turn timer</span>
+              <div className="seg">
+                {[0, 60, 90, 150].map((n) => (
+                  <button key={n} aria-pressed={turnSeconds === n} onClick={() => setTurnSeconds(n)}>
+                    {n === 0 ? 'Off' : n < 60 ? `${n}s` : `${n / 60}m${n % 60 ? ` ${n % 60}s` : ''}`}
+                  </button>
+                ))}
+              </div>
+              <div className="lobby-tag" style={{ marginTop: 8 }}>
+                Everybody sees the same countdown on whoever is up, not just the person taking
+                the turn. When it runs out the turn ends and nothing is lost - you keep your
+                cards and your board, the table just moves on.
+              </div>
+            </div>
+
+            <button className="btn gold" disabled={count < 2 || busy} onClick={() => onStart(clout, kitchen, turnSeconds)}>
               {count < 2 ? 'Waiting for one more player…' : 'Start the Family Affair'}
             </button>
             {count < 2 && (
@@ -303,7 +324,7 @@ export function Lobby({
             className="btn gold" data-testid="start-local"
             onClick={() => onLocal(
               Array.from({ length: localCount }, (_, i) => (localNames[i] ?? '').trim() || `Player ${i + 1}`),
-              defaultCloutToWin(localCount), false,
+              defaultCloutToWin(localCount), false, 0,
             )}
           >Start game</button>
           <button className="btn ghost" onClick={() => setScreen('home')}>Back</button>

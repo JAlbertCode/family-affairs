@@ -1556,6 +1556,13 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
 .tv-round { font-size: 1.3rem; font-weight: 900; color: var(--gold); letter-spacing: .04em; }
 .tv-turn { font-size: 1.5rem; color: var(--muted); }
 .tv-turn b { color: var(--pink); font-weight: 900; }
+.tv-clock {
+  font-size: 1.5rem; font-weight: 900; font-variant-numeric: tabular-nums;
+  color: var(--muted); padding: 0 .5rem; border-radius: .4rem;
+}
+.tv-clock.warn { color: var(--gold); }
+.tv-clock.urgent { color: #fff; background: var(--red); animation: clockBeat 1s steps(2) infinite; }
+@keyframes clockBeat { 50% { opacity: .55 } }
 .tv-code { margin-left: auto; font-size: 1.1rem; color: var(--muted); letter-spacing: .1em; }
 .tv-code b { color: var(--text); font-size: 1.6rem; font-weight: 900; letter-spacing: .18em; }
 

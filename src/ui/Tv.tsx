@@ -18,10 +18,12 @@ import { FxLayer } from './Fx'
  * decision - the host sends it a state redacted for a viewer who holds no
  * seat, so there is no hand in the data to render even by accident.
  */
-export function Tv({ state, code, waiting }: {
+export function Tv({ state, code, waiting, turnStartedAt = 0 }: {
   state: GameState | null
   code: string
   waiting: string
+  /** When the current Turn began, by the host's clock. */
+  turnStartedAt?: number
 }) {
   if (!state) return <TvLobby code={code} waiting={waiting} />
 
@@ -37,6 +39,7 @@ export function Tv({ state, code, waiting }: {
       <header className="tv-top">
         <span className="tv-round">Round {state.round}{state.finalRound ? ' · FINAL' : ''}</span>
         <span className="tv-turn"><b>{state.playerState[cur]?.name}</b> is up</span>
+        {turnStartedAt > 0 && <TvClock state={state} startedAt={turnStartedAt} />}
         <span className="tv-code">Room <b>{code}</b></span>
       </header>
 
@@ -104,6 +107,29 @@ export function Tv({ state, code, waiting }: {
       <TvLog state={state} />
     </div>
   )
+}
+
+/**
+ * The clock, where the table is already looking.
+ *
+ * This is the whole reason it is on the television rather than only on the
+ * phone of whoever is up: the person taking four minutes is not the one who
+ * needs to be told, and a number the other five can see does more to move a
+ * turn along than any amount of prompting on the slow player's own screen.
+ */
+function TvClock({ state, startedAt }: { state: GameState; startedAt: number }) {
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 500)
+    return () => clearInterval(id)
+  }, [])
+  const elapsed = Math.max(0, Math.floor((now - startedAt) / 1000))
+  const limit = state.turnSeconds
+  const n = limit ? Math.max(0, limit - elapsed) : elapsed
+  const cls = limit
+    ? (n <= 10 ? 'urgent' : n <= Math.max(15, limit * 0.35) ? 'warn' : '')
+    : (elapsed >= 90 ? 'urgent' : elapsed >= 45 ? 'warn' : '')
+  return <span className={`tv-clock ${cls}`}>{Math.floor(n / 60)}:{String(n % 60).padStart(2, '0')}</span>
 }
 
 function TvLobby({ code, waiting }: { code: string; waiting: string }) {

@@ -71,7 +71,7 @@ function nid(prefix: string) { return `${prefix}${(idCounter++).toString(36)}` }
 
 export function createGame(
   players: { id: PlayerId; name: string }[],
-  opts: { seed?: number; cloutToWin?: number; useKitchenTable?: boolean } = {},
+  opts: { seed?: number; cloutToWin?: number; useKitchenTable?: boolean; turnSeconds?: number } = {},
 ): GameState {
   idCounter = 0
   const seed0 = opts.seed ?? 12345
@@ -90,6 +90,11 @@ export function createGame(
     affairsDiscard: [],
     kitchenTable: [null, null, null],
     useKitchenTable: opts.useKitchenTable ?? false,
+    // A shot clock, in seconds, or 0 for none. It is a number on the state
+    // rather than a wall clock: the host counts the time and submits an
+    // ordinary endTurn when it runs out, so the game stays replayable from
+    // (seed, intents) and nothing in the engine ever asks what time it is.
+    turnSeconds: opts.turnSeconds ?? 0,
     currentAffair: null,
     round: 1,
     turnIndex: 0,
