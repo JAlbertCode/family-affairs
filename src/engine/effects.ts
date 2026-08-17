@@ -1,6 +1,6 @@
 import type {
   GameState, Effect, TargetSpec, CharacterInstance, InstanceId, PlayerId,
-  LimitTrack, StatusName, StatName, LogEntry,
+  LimitTrack, StatusName, StatName, LogEntry, FxEvent,
 } from './types'
 import { getAffairDef, getCharacterDef, getStuffDef } from './cards/deck'
 import {
@@ -22,6 +22,16 @@ export interface EffectCtx {
   defender?: InstanceId
   /** targets the player explicitly chose when submitting the intent */
   chosen?: InstanceId[]
+}
+
+/**
+ * Record something worth showing. Capped, because the UI only ever plays the
+ * events newer than the last tick it saw and everything older is dead weight
+ * travelling to five other phones on every state broadcast.
+ */
+export function fx(state: GameState, e: Omit<FxEvent, 't'>) {
+  state.fx.push({ ...e, t: state.tick })
+  if (state.fx.length > 24) state.fx.splice(0, state.fx.length - 24)
 }
 
 export function log(state: GameState, text: string, kind: LogEntry['kind'] = 'system') {
@@ -149,6 +159,7 @@ export function applyDamage(
   if (hasGloves) dmg = Math.max(0, dmg - 1)
 
   target.hp = Math.max(0, target.hp - dmg)
+  fx(state, { k: 'damage', target: target.iid, source: ctx.attacker ?? ctx.sourceChar, amount: dmg })
   log(state, `${def.name} takes ${dmg} damage${note ? ` (${note})` : ''} - ${target.hp} HP left.`, 'combat')
 
   if (target.hp <= 0) knockOut(state, target, ctx)
@@ -168,6 +179,7 @@ export function applyHeal(state: GameState, target: CharacterInstance, amount: n
       src.scratch.healed = ((src.scratch.healed as number) ?? 0) + healed
     }
   }
+  fx(state, { k: 'heal', target: target.iid, amount: healed })
   log(state, `${getCharacterDef(target.defId).name} heals ${healed} - ${target.hp} HP.`, 'status')
 }
 
@@ -192,6 +204,7 @@ export function knockOut(state: GameState, target: CharacterInstance, ctx: Effec
   target.koRecoveryTurns = 1
   target.actedThisTurn = false
 
+  fx(state, { k: 'ko', target: target.iid })
   log(state, `${def.name} is KO'd.`, 'combat')
 
   // Clout to the attacker's controller (§2)
@@ -255,6 +268,7 @@ export function applyStatus(
     return
   }
 
+  fx(state, { k: 'status', target: target.iid, label: name })
   const existing = target.statuses.find((s) => s.name === name)
   if (existing) {
     existing.duration = Math.max(existing.duration, duration)
@@ -381,6 +395,10 @@ export function applyStatMod(
   state: GameState, target: CharacterInstance, stat: StatName, amount: number, duration: 'turn' | 'round' | 'permanent',
 ) {
   target.mods.push({ stat, amount, duration })
+  fx(state, {
+    k: 'buff', target: target.iid, amount,
+    label: `${stat === 'attack' ? '⚔' : '🛡'}${amount > 0 ? '+' : ''}${amount}`,
+  })
 }
 
 // ---------------------------------------------------------------------------

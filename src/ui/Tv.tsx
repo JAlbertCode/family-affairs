@@ -4,6 +4,7 @@ import { currentPlayer, activeCharacters } from '../engine/selectors'
 import { getAffairDef } from '../engine/cards/deck'
 import { BoardToken } from './BoardToken'
 import { EffectChips, affairChips } from './CardFace'
+import { FxLayer } from './Fx'
 
 /**
  * The living-room screen.
@@ -68,6 +69,7 @@ export function Tv({ state, code, waiting }: {
         })}
       </div>
 
+      <FxLayer state={state} />
       <TvLog state={state} />
     </div>
   )

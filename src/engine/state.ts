@@ -14,7 +14,7 @@ import {
 } from './selectors'
 import {
   applyDamage, applyHeal, applyLimit, applyStatMod, applyStatus, awardClout, consumeCard,
-  drawCards, discardRandom, log, needsTarget, removeStatus, rollBadLuck, runEffects,
+  drawCards, discardRandom, fx, log, needsTarget, removeStatus, rollBadLuck, runEffects,
   type EffectCtx,
 } from './effects'
 
@@ -93,6 +93,7 @@ export function createGame(
     cloutSources: {},
     turnOrder: [],
     log: [],
+    fx: [],
     tick: 0,
   }
   for (const p of players) {
@@ -925,6 +926,11 @@ function resolveBattle(state: GameState) {
     state.battle = null
     return
   }
+
+  // The swing, before either roll. The animation runs while the numbers are
+  // being worked out, which is the right order: you see somebody take a swing
+  // and then find out whether it landed.
+  fx(state, { k: 'attack', source: atk.iid, target: realDefender.iid })
 
   // Step 3 & 4 - rolls (§14)
   let r = d6(state.seed); state.seed = r.seed

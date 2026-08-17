@@ -10,6 +10,7 @@ import { needsTarget } from '../engine/effects'
 import { HAND_LIMIT, ACTIONS_PER_TURN, CARDS_PER_TURN } from '../engine/state'
 import { CardFace, cardLabel, EffectChips, stuffChips, affairChips } from './CardFace'
 import { Coach, coachDone, markCoached, resetCoach } from './Coach'
+import { FxLayer } from './Fx'
 import { BoardToken, EmptyToken, LimitMeters } from './BoardToken'
 import { CharacterPortrait } from './CharacterCard'
 import { Minigame } from './Minigame'
@@ -693,6 +694,8 @@ export function Table({
           <div className="waiting">Waiting for {state.playerState[currentPlayer(state)].name}…</div>
         )}
       </div>
+
+      <FxLayer state={state} />
 
       {turnFlash && <div className="turnflash"><span>YOUR TURN</span></div>}
 

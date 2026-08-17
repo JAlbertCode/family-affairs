@@ -36,6 +36,10 @@ export function BoardToken({
     <button
       className={`tok tok-${size} ${mode ?? ''} ${ch.actedThisTurn ? 'acted' : ''} ${ready && !ch.actedThisTurn && !mode ? 'ready' : ''}`}
       style={{ '--accent': def.color } as React.CSSProperties}
+      /* How the effects layer finds this Character on screen. It measures the
+         real element rather than guessing at slot geometry, so it stays correct
+         through collapsed zones, scrolling and every viewport. */
+      data-iid={ch.iid}
       onClick={onClick}
       disabled={!onClick}
       aria-label={`${def.name}, ${ch.hp} of ${ch.maxHp} health`}

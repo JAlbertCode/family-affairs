@@ -418,8 +418,32 @@ export interface GameState {
    *  / initiative) because a fixed order hands the last seat every last hit. */
   turnOrder: PlayerId[]
   log: LogEntry[]
+  /**
+   * What just happened, structurally.
+   *
+   * The log is prose, and prose is the wrong thing to drive animation from -
+   * an interface that greps its own log for "takes 3 damage" breaks the day
+   * somebody rewords a line. These carry the instance ids, so the UI can find
+   * the two tokens on screen and play something between them without knowing
+   * anything about how the sentence was phrased.
+   *
+   * A short ring buffer: an animation that has not been played within a few
+   * ticks has been missed, and replaying it late is worse than dropping it.
+   */
+  fx: FxEvent[]
   /** monotonically increasing, used to key UI animations */
   tick: number
+}
+
+export interface FxEvent {
+  /** state.tick when it happened, so the UI can play each one exactly once */
+  t: number
+  k: 'attack' | 'damage' | 'heal' | 'ko' | 'status' | 'buff'
+  source?: InstanceId
+  target?: InstanceId
+  amount?: number
+  /** a short thing to float, e.g. "Confused" or "⚔+2" */
+  label?: string
 }
 
 // --- Minigames (§ table interaction) ---------------------------------------
