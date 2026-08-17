@@ -46,6 +46,27 @@ const closeSheet = async () => {
   return false
 }
 
+// The ladders live behind Details, which the step loop deliberately never
+// opens (a read-only sheet consumes nothing, so cycling onto it reopens the
+// same panel forever). They are the only place the game says what a drink does
+// to a particular Character, so check them once, on the way past.
+let ladderRungs = 0
+try {
+  // The first-run coach is a modal with a cut-out that swallows clicks
+  // everywhere else, so it has to go before anything can be tapped.
+  for (let i = 0; i < 8 && (await page.locator('.coach').count()); i++) {
+    await click(page.locator('.coach-actions .btn.ghost'))
+    await page.waitForTimeout(160)
+  }
+  await click(page.locator('.myslots .tok:not(.tok-empty)').first())
+  await page.waitForTimeout(250)
+  await click(page.locator('.actionsheet .chip.ghost'))
+  await page.waitForTimeout(300)
+  ladderRungs = await page.locator('.rung').count()
+  await closeSheet()
+  await page.waitForTimeout(200)
+} catch { /* reported as zero below */ }
+
 let played = 0, attacks = 0, battles = 0, turns = 0, abilities = 0, minigames = 0, idle = 0
 
 for (let i = 0; i < STEPS; i++) {
@@ -145,7 +166,8 @@ for (let i = 0; i < STEPS; i++) {
   }
 }
 
-console.log(`\nturns ended:   ${turns}`)
+console.log(`\nlimit ladders: ${ladderRungs} rungs${ladderRungs ? '' : '  <-- NOT RENDERING'}`)
+console.log(`turns ended:   ${turns}`)
 console.log(`cards played:  ${played}`)
 console.log(`attacks:       ${attacks}`)
 console.log(`abilities:     ${abilities}`)

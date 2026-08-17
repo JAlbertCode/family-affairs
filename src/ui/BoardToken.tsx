@@ -10,7 +10,7 @@ const BASE = import.meta.env.BASE_URL
  * them", so that is all this shows. Full detail lives one tap away.
  */
 export function BoardToken({
-  state, ch, onClick, mode, size = 'md', showAura, ready,
+  state, ch, onClick, mode, size = 'md', showAura, ready, cast,
 }: {
   state: GameState
   ch: CharacterInstance
@@ -21,6 +21,9 @@ export function BoardToken({
   /** This Character can still do something this Turn - say so visually,
    *  or combat stays a secret the player has to be told about. */
   ready?: boolean
+  /** What the thing you are about to hand them would do. Only ever passed
+   *  while choosing a target, because it is only ever a decision then. */
+  cast?: { attack: number; defense: number; to: string; over: boolean } | null
 }) {
   const def = getCharacterDef(ch.defId)
   const st = effectiveStats(state, ch)
@@ -45,6 +48,15 @@ export function BoardToken({
       aria-label={`${def.name}, ${ch.hp} of ${ch.maxHp} health`}
     >
       <span className="tok-art">
+        {cast && (
+          <span className={`tok-cast ${cast.over ? 'over' : ''}`}>
+            <s>{cast.to}</s>
+            {cast.attack === 0 && cast.defense === 0
+              ? 'no change'
+              : [cast.attack ? `${cast.attack > 0 ? '+' : ''}${cast.attack}⚔` : '',
+                 cast.defense ? `${cast.defense > 0 ? '+' : ''}${cast.defense}🛡` : ''].filter(Boolean).join(' ')}
+          </span>
+        )}
         {def.art && <img src={`${BASE}art/${def.art}`} alt="" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0' }} />}
         {ch.statuses.length > 0 && (
           <span className="tok-status">

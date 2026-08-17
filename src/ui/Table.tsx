@@ -3,7 +3,8 @@ import type { GameState, Intent, InstanceId, PlayerId, Slot } from '../engine/ty
 import { getCharacterDef, getStuffDef, getAffairDef } from '../engine/cards/deck'
 import {
   activeCharacters, auraSummary, canAct, canAttack, countAttached, currentPlayer,
-  effectiveStat, explainStat, familySize, hasStatus, itemCap, limitTier, limitTierName,
+  effectiveStat, explainStat, familySize, hasStatus, itemCap, limitForecast, limitLadder,
+  limitTier, limitTierName,
   openSlots, totalItemCap, STATUS_RULES,
 } from '../engine/selectors'
 import { needsTarget } from '../engine/effects'
@@ -338,6 +339,48 @@ export function Table({
     return null
   }
 
+  /**
+   * What the card you are holding would do to the Character you are pointing at.
+   *
+   * The ladders are per-Character and the board could only ever tell you what
+   * somebody was on, never what one more would do to them - so "who do I hand
+   * this to" was a guess. The same beer is +2 Attack to Elias, -2 Defense to
+   * Kevin and the thing that finally tips Larry over. It is only shown while
+   * choosing a target, because that is the only moment it is a decision.
+   */
+  function forecastFor(iid: InstanceId) {
+    if (!targeting) return null
+    const cardIid = targeting.kind === 'playStuff' || targeting.kind === 'interfere' ? targeting.iid
+      : targeting.kind === 'useItem' ? targeting.iid : null
+    if (!cardIid) return null
+    const inst = state.stuff[cardIid]
+    if (!inst) return null
+    const sd = getStuffDef(inst.defId)
+    if (!['Food', 'Drink', 'Smoke'].includes(sd.subtype)) return null
+    const gains = { ...(sd.limitGain ?? {}) } as Record<string, number>
+    if (sd.subtype === 'Food' && !gains.food) gains.food = 1
+    const ch = state.characters[iid]
+    if (!ch) return null
+    // One card can move more than one track - an Edible is weed and food - so
+    // add the rungs up rather than showing whichever happens to be first.
+    let attack = 0, defense = 0, over = false
+    const names: string[] = []
+    let anyTrack = false
+    for (const [track, amt] of Object.entries(gains)) {
+      anyTrack = true
+      const f = limitForecast(ch, track as 'alcohol' | 'weed' | 'food', amt)
+      // No forecast means the meter will not move - already at the floor, or
+      // already at the ceiling. Say that rather than showing nothing, because
+      // a blank token during targeting reads as "not worked out" and the whole
+      // point is that it has been.
+      if (!f) { names.push(limitTierName(ch, track as 'alcohol' | 'weed' | 'food')); continue }
+      attack += f.attack; defense += f.defense; over = over || f.over
+      names.push(f.to)
+    }
+    if (!anyTrack) return null
+    return { attack, defense, to: names.join(' · '), over }
+  }
+
   const targetPrompt = !targeting ? null
     : targeting.kind === 'placeChar' ? 'Tap a slot to place them'
     : targeting.kind === 'playStuff'
@@ -489,7 +532,8 @@ export function Table({
                     const ch = iid ? state.characters[iid] : null
                     return ch
                       ? <BoardToken key={iid} state={state} ch={ch} size="sm" showAura
-                          mode={tokenMode(iid!, false)} onClick={() => tapToken(iid!, false)} />
+                          mode={tokenMode(iid!, false)} cast={tokenMode(iid!, false) === 'target' ? forecastFor(iid!) : null}
+                          onClick={() => tapToken(iid!, false)} />
                       : <EmptyToken key={i} label="" size="sm" />
                   })}
                 </div>
@@ -533,6 +577,7 @@ export function Table({
                 <BoardToken
                   key={iid} state={state} ch={ch}
                   mode={tokenMode(iid, true)}
+                  cast={tokenMode(iid, true) === 'target' ? forecastFor(iid) : null}
                   onClick={() => tapToken(iid, true)}
                   showAura
                   ready={isMyTurn && !targeting && me.actionsLeft > 0}
@@ -919,6 +964,52 @@ function CardSheet({
   )
 }
 
+/**
+ * What a drink, a joint and a plate actually do to THIS Character.
+ *
+ * The ladders are per-Character and none of it was anywhere on screen: Kevin
+ * gets tougher on a full stomach and Carlitos falls apart on the same plate,
+ * weed sharpens Dorian and switches Larry off entirely. Without this you can
+ * see what somebody is on but not what one more would do to them, which is the
+ * only question worth asking before you hand it over.
+ *
+ * The numbers are asked of the rules rather than written down here, so they
+ * cannot drift, and they are computed against what this Character is carrying
+ * right now - which is why a rung can jump when they are already lit on
+ * something else.
+ */
+function LimitLadders({ ch }: { ch: any }) {
+  const rows: { track: 'alcohol' | 'weed' | 'food'; glyph: string }[] = [
+    { track: 'alcohol', glyph: '🍺' },
+    { track: 'weed', glyph: '🌿' },
+    { track: 'food', glyph: '🍔' },
+  ]
+  return (
+    <div className="ladders">
+      {rows.map(({ track, glyph }) => {
+        const rungs = limitLadder(ch, track)
+        const at = ch.limits[track]
+        return (
+          <div key={track} className="ladder">
+            <i className="ld-glyph">{glyph}</i>
+            {rungs.map((r) => (
+              <span key={r.level} className={`rung ${r.level === at ? 'now' : ''} ${r.over ? 'over' : ''}`}>
+                <b>{r.name}</b>
+                <em>
+                  {r.attack === 0 && r.defense === 0
+                    ? '—'
+                    : [r.attack ? `${r.attack > 0 ? '+' : ''}${r.attack}⚔` : '',
+                       r.defense ? `${r.defense > 0 ? '+' : ''}${r.defense}🛡` : ''].filter(Boolean).join(' ')}
+                </em>
+              </span>
+            ))}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 /** The numbers behind a Character, shown under their card while inspecting. */
 function CharacterNumbers({ state, ch }: { state: GameState; ch: any }) {
   const def = getCharacterDef(ch.defId)
@@ -947,9 +1038,12 @@ function CharacterNumbers({ state, ch }: { state: GameState; ch: any }) {
           <i>{limitTierName(ch, 'weed')}</i>
           <i>{limitTierName(ch, 'food')}</i>
         </div>
+        <LimitLadders ch={ch} />
         <p className="limitnote">
-          Tolerance {def.tolerance.alcohol} 🍺 · {def.tolerance.weed} 🌿 · {def.tolerance.food} 🍔.
-          The last pip is their line - crossing it turns a bonus into a problem.
+          What each rung is worth <em>to them</em>, against being clean on that
+          track. Worked out from where they are standing right now, so a rung
+          can jump if they are already going on something else. The red one is
+          past their tolerance.
         </p>
       </div>
       {auras.length > 0 && (

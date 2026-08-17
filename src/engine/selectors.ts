@@ -252,6 +252,73 @@ function limitStatDelta(ch: CharacterInstance): Record<StatName, number> {
   return d
 }
 
+/**
+ * What a Limit track actually does to THIS Character, rung by rung.
+ *
+ * The ladders are per-Character - Kevin gets tougher on a full stomach and
+ * Carlitos falls apart, weed sharpens Dorian and switches Larry off - and none
+ * of that was anywhere on screen. You could read what a Character was on right
+ * now, but not what one more drink would do to them, which is the only question
+ * that matters when you are deciding who to hand it to.
+ *
+ * Computed rather than written down, by asking `limitStatDelta` what it would
+ * say at each rung. Nothing can drift out of date with the rules because it is
+ * the rules being asked.
+ */
+export interface LimitRung {
+  level: number
+  tier: 0 | 1 | 2 | 3
+  name: string
+  attack: number
+  defense: number
+  /** past their tolerance - this is the rung that undoes them */
+  over: boolean
+}
+
+function atLevel(ch: CharacterInstance, track: LimitTrack, level: number): CharacterInstance {
+  return { ...ch, limits: { ...ch.limits, [track]: level } }
+}
+
+export function limitLadder(ch: CharacterInstance, track: LimitTrack): LimitRung[] {
+  const def = getCharacterDef(ch.defId)
+  const tol = def.tolerance[track]
+  const base = limitStatDelta(atLevel(ch, track, 0))
+  const out: LimitRung[] = []
+  for (let level = 1; level <= tol + 1; level++) {
+    const probe = atLevel(ch, track, level)
+    const d = limitStatDelta(probe)
+    out.push({
+      level,
+      tier: limitTier(probe, track),
+      name: LIMIT_TIER_NAMES[track][limitTier(probe, track)],
+      attack: d.attack - base.attack,
+      defense: d.defense - base.defense,
+      over: level > tol,
+    })
+  }
+  return out
+}
+
+/** What one more of something would do to them, right now. Null when it would
+ *  change nothing at all, which is itself worth not saying. */
+export function limitForecast(
+  ch: CharacterInstance, track: LimitTrack, amount = 1,
+): { attack: number; defense: number; from: string; to: string; over: boolean } | null {
+  const def = getCharacterDef(ch.defId)
+  const cap = def.tolerance[track] + 1
+  const next = Math.max(0, Math.min(cap, ch.limits[track] + amount))
+  if (next === ch.limits[track]) return null
+  const now = limitStatDelta(ch)
+  const then = limitStatDelta(atLevel(ch, track, next))
+  return {
+    attack: then.attack - now.attack,
+    defense: then.defense - now.defense,
+    from: limitTierName(ch, track),
+    to: LIMIT_TIER_NAMES[track][limitTier(atLevel(ch, track, next), track)],
+    over: next > def.tolerance[track],
+  }
+}
+
 // ---------------------------------------------------------------------------
 // EFFECTIVE STATS
 //   base + equipped Gear/Rides + temporary mods + Limit tiers + statuses + auras
