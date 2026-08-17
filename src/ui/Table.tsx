@@ -55,6 +55,12 @@ export function Table({
   const seenAffair = useRef<string | null>(null)
   const [hideFamily, setHideFamily] = useState(false)
   const [hideOpponents, setHideOpponents] = useState(false)
+  const [showActivity, setShowActivity] = useState(true)
+  // Jay's line still gets said, it just does not cost the space it was meant
+  // to free: hiding your family used to replace them with a dashed box
+  // containing the joke, which is most of the height back. It goes in Activity
+  // now, where every other thing that just happened goes.
+  const [shamed, setShamed] = useState(false)
   const [howOpen, setHowOpen] = useState(false)
   const [coaching, setCoaching] = useState(() => !coachDone())
   const [turnFlash, setTurnFlash] = useState(false)
@@ -139,6 +145,14 @@ export function Table({
     setPickAttacker(false)
     setShowLog(false)
   }, [you, state.turnIndex, state.round])
+
+  useEffect(() => {
+    if (!shamed) return
+    setShamed(false)
+    setFlash(["Don't be ashamed of your family. You don't have to hide them."])
+    const t = setTimeout(() => setFlash(null), 3200)
+    return () => clearTimeout(t)
+  }, [shamed])
 
   // Show whatever the engine just logged as a result of the last thing sent.
   useEffect(() => {
@@ -444,12 +458,8 @@ export function Table({
       {/* ------------------------------------------ OPPONENTS (top) ------ */}
       <div className="board">
         <div className="zone-bar">
-          <button
-            className={`zone-toggle${hideOpponents ? ' off' : ''}`}
-            onClick={() => setHideOpponents((v) => !v)}
-          >
-            {hideOpponents ? `Show everyone else (${opponents.length})` : 'Hide everyone else'}
-          </button>
+          <ZoneToggle label="Everyone else" count={opponents.length}
+            open={!hideOpponents} onToggle={() => setHideOpponents((v) => !v)} />
         </div>
 
         <div className={`oppzone${hideOpponents ? ' hidden' : ''}`}>
@@ -480,14 +490,9 @@ export function Table({
         {/* ------------------------------------- YOUR SIDE (bottom) ------ */}
         <div className="myzone">
           <div className="fam-head">
-            <button
-              className="fam-label as-toggle"
-              onClick={() => setHideFamily((v) => !v)}
-              title={hideFamily ? 'Show your family' : 'Hide your family'}
-            >
-              <span className="caret">{hideFamily ? '▸' : '▾'}</span>
-              Your family
-            </button>
+            <ZoneToggle label="Your family"
+              open={!hideFamily}
+              onToggle={() => { if (!hideFamily) setShamed(true); setHideFamily((v) => !v) }} />
             {/* Both halves of the budget, spent and left, without arithmetic:
                 a filled pip is still yours, a hollow one is gone. */}
             <span className="fam-budget">
@@ -496,13 +501,6 @@ export function Table({
               <button className="budget-help" onClick={() => setHowOpen(true)} aria-label="How a Turn works">?</button>
             </span>
           </div>
-
-          {hideFamily && (
-            <div className="fam-hidden">
-              Don't be ashamed of your family. You don't have to hide them.
-              <button className="linkish" onClick={() => setHideFamily(false)}>Bring them back</button>
-            </div>
-          )}
 
           <div className={`slots myslots${hideFamily ? ' hidden' : ''}`}>
             {me.field.map((iid, i) => {
@@ -585,12 +583,11 @@ export function Table({
 
       {/* ---------------------------------------------- HAND (bottom) ---- */}
       {!targeting && !pickAttacker && <div className={`handstrip ${state.phase === 'draw' ? 'predraw' : ''} ${handOpen ? '' : 'collapsed'}`}>
-        <button className="hs-head" onClick={() => setHandOpen((v) => !v)}
-          aria-expanded={handOpen} aria-label={handOpen ? 'Hide your hand' : 'Show your hand'}>
-          <span>{state.phase === 'draw' ? 'Drawing…' : 'Your hand'}</span>
+        <div className="hs-head">
+          <ZoneToggle label={state.phase === 'draw' ? 'Drawing…' : 'Your hand'}
+            open={handOpen} onToggle={() => setHandOpen((v) => !v)} />
           <b className={me.hand.length > HAND_LIMIT ? 'over' : ''}>{me.hand.length}/{HAND_LIMIT}</b>
-          <i className="hs-toggle">{handOpen ? 'hide ▾' : 'show ▴'}</i>
-        </button>
+        </div>
         <div className="hs-rail">
           {me.hand.length === 0 && <span className="hs-empty">No cards</span>}
           {me.hand.map((iid) => {
@@ -632,9 +629,17 @@ export function Table({
         {/* In the bar rather than floating over it: anything absolutely placed
             above the buttons lands on the hand at some viewport size. */}
         {!error && flash && (
-          <div className="flashbar">
-            {flash.map((t, i) => <span key={i}>{t}</span>)}
-          </div>
+          <>
+            <div className="zone-bar activity-bar">
+              <ZoneToggle label="Activity" open={showActivity}
+                onToggle={() => setShowActivity((v) => !v)} />
+            </div>
+            {showActivity && (
+              <div className="flashbar">
+                {flash.map((t, i) => <span key={i}>{t}</span>)}
+              </div>
+            )}
+          </>
         )}
         {minigame ? (
           <div className="waiting">Tic tac toe in progress…</div>
@@ -941,6 +946,31 @@ function CharacterNumbers({ state, ch }: { state: GameState; ch: any }) {
 }
 
 /** "2 actions" told you what was left but never what you had. */
+/**
+ * The one collapse control.
+ *
+ * There were three of these and all three looked different: a pill above the
+ * opponents, a caret on the family heading, and "hide \u25be" in the hand
+ * header. Three widgets doing one job is three things to learn, so this is the
+ * only one now and every zone wears it.
+ */
+function ZoneToggle({ label, count, open, onToggle }: {
+  label: string; count?: number; open: boolean; onToggle: () => void
+}) {
+  return (
+    <button
+      className={`zone-toggle${open ? '' : ' off'}`}
+      onClick={onToggle}
+      aria-expanded={open}
+      aria-label={`${open ? 'Hide' : 'Show'} ${label}`}
+    >
+      <span className="zt-caret">{open ? '\u25be' : '\u25b8'}</span>
+      <span className="zt-label">{label}</span>
+      {count != null && <b className="zt-count">{count}</b>}
+    </button>
+  )
+}
+
 function Budget({ label, left, total, live }: { label: string; left: number; total: number; live: boolean }) {
   const used = total - left
   return (

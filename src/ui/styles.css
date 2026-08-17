@@ -1077,30 +1077,29 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
    away, and the fold is a real hide rather than a scroll: the point is to get
    the space back for whichever half you are actually looking at. */
 
-.zone-bar { display: flex; justify-content: flex-end; padding: 0 2px 4px; }
+/* One control, worn by every zone: opponents, your family, your hand and the
+   activity feed. Left-aligned everywhere, same caret, same words, so "hide" is
+   one thing to learn rather than three. */
+.zone-bar { display: flex; align-items: center; padding: 0 2px 4px; }
 .zone-toggle {
-  font-size: .66rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
-  color: var(--muted); background: var(--panel); border: 1px solid var(--line);
-  border-radius: 999px; padding: 5px 11px; min-height: 28px;
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: .64rem; font-weight: 900; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--muted); background: none; border: none;
+  padding: 4px 6px 4px 0; min-height: 30px;
 }
-.zone-toggle.off { color: var(--gold); border-color: #6a4a1e; }
+.zone-toggle .zt-caret { font-size: .68rem; opacity: .7; }
+.zone-toggle .zt-count {
+  font-size: .6rem; font-weight: 900; letter-spacing: 0;
+  background: #2a1730; color: #c3a8cd; border-radius: 999px; padding: 1px 7px;
+}
+.zone-toggle.off { color: var(--gold); }
+.zone-toggle.off .zt-count { background: #3a2a10; color: var(--gold); }
+
+.activity-bar { padding: 0 0 2px; }
 
 .oppzone.hidden, .slots.myslots.hidden { display: none; }
 
-.fam-label.as-toggle {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 4px 6px 4px 0; margin-left: -2px; min-height: 32px;
-}
-.fam-label.as-toggle .caret { color: var(--muted); font-size: .7rem; }
 
-/* The gag is Jay's. It is also the only thing in that space, so it has to
-   carry the row on its own. */
-.fam-hidden {
-  display: flex; flex-direction: column; align-items: center; gap: 6px;
-  padding: 14px 12px; text-align: center;
-  border: 1px dashed var(--line); border-radius: 12px;
-  color: var(--muted); font-size: .8rem; line-height: 1.45;
-}
 
 .namelist { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
 .name-input {
