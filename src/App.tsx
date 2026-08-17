@@ -3,6 +3,7 @@ import { Room, loadSession, clearSession, type RoomView, type SavedSession } fro
 import type { Intent } from './engine/types'
 import { Lobby } from './ui/Lobby'
 import { Builder } from './ui/builder/Builder'
+import { Tv } from './ui/Tv'
 import { Table } from './ui/Table'
 import './ui/styles.css'
 
@@ -12,6 +13,12 @@ export default function App() {
   const [busy, setBusy] = useState(false)
   const [resuming, setResuming] = useState(() => !!loadSession())
   const tried = useRef(false)
+  // ?tv=CODE turns this tab into the living-room screen. A URL rather than a
+  // button because the way it gets onto a TV is somebody casting a tab or
+  // plugging in a cable, and both of those want an address you can just open.
+  const tvCode = useMemo(() => {
+    try { return (new URLSearchParams(location.search).get('tv') ?? '').toUpperCase() } catch { return '' }
+  }, [])
   const [building, setBuilding] = useState(() => {
     try { return new URLSearchParams(location.search).has('build') } catch { return false }
   })
@@ -45,6 +52,23 @@ export default function App() {
   const [resumeFailed, setResumeFailed] = useState<SavedSession | null>(null)
 
   useEffect(() => {
+    if (!tvCode || tried.current) return
+    tried.current = true
+    let stop = false
+    const attempt = async (n: number) => {
+      if (stop) return
+      try { await room.spectate(tvCode) } catch {
+        // The host may not be up yet - a TV is usually switched on first.
+        if (n < 60) setTimeout(() => attempt(n + 1), 3000)
+      }
+    }
+    attempt(0)
+    setResuming(false)
+    return () => { stop = true }
+  }, [room, tvCode])
+
+  useEffect(() => {
+    if (tvCode) return
     if (tried.current) return
     tried.current = true
     const s = loadSession()
@@ -138,6 +162,18 @@ export default function App() {
   // The builder is its own screen rather than a modal: it is a workbench, not
   // a dialog, and people will sit in it for an hour. ?build keeps it a real URL
   // that can be bookmarked and shared without adding a router.
+  if (tvCode) {
+    return (
+      <Tv
+        state={view.state}
+        code={view.code || tvCode}
+        waiting={view.error ?? (view.status === 'connected'
+          ? `${view.lobby.length} in the room. Waiting for the host to start.`
+          : 'Looking for the room…')}
+      />
+    )
+  }
+
   if (building) {
     return <Builder onExit={() => {
       setBuilding(false)

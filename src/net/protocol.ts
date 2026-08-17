@@ -16,7 +16,10 @@ export interface LobbyPlayer {
 // ---- client -> host --------------------------------------------------------
 
 export type ClientMsg =
-  | { t: 'join'; name: string; protocol: number; clientId?: string }
+  /** `spectate` asks for a view of the table without a chair at it. The TV in
+   *  the living room is not a seventh player and must not consume one of the
+   *  six seats. */
+  | { t: 'join'; name: string; protocol: number; clientId?: string; spectate?: boolean }
   | { t: 'intent'; intent: Intent }
   | { t: 'rename'; name: string }
   | { t: 'ping' }

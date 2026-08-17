@@ -74,6 +74,13 @@ export function Lobby({
             <p className="lobby-tag" style={{ textAlign: 'center', fontSize: '.76rem', margin: '2px 0 10px' }}>
               Send the link and they join without typing anything.
             </p>
+            <div className="lobby-tag" style={{ fontSize: '.74rem' }}>
+              Playing in the same room? Open{' '}
+              <b style={{ color: 'var(--gold)' }}>
+                {typeof location !== 'undefined' ? `${location.host}${location.pathname}?tv=${view.code}` : ''}
+              </b>{' '}
+              on a laptop and cast it to the TV. It shows the whole table and nobody's hand.
+            </div>
             <div className="sharerow">
               <button className="btn" onClick={() => share(view.code)}>
                 {shared === 'link' ? 'Link copied' : 'Share link'}

@@ -79,6 +79,9 @@ export function explainPeerError(err: unknown): string {
  * holding, because when the host disappears there is nowhere else for it to
  * live.
  */
+/** A viewer id that can never be a seat, so `redactFor` hides every hand. */
+export const SPECTATOR = '__tv'
+
 const SESSION_KEY = 'fa.session'
 const CLIENT_ID_KEY = 'fa.clientId'
 const ROLE_KEY = 'fa.lastRole'
@@ -175,12 +178,16 @@ export class Room {
 
   // host-side
   private conns = new Map<PlayerId, DataConnection>()
+  /** Screens watching the table without a seat. Kept apart from `conns` so
+   *  nothing that walks the player list ever finds one. */
+  private spectators = new Set<DataConnection>()
   private names = new Map<PlayerId, string>()
   private clients = new Map<PlayerId, string>()
   private order: PlayerId[] = []
   private game: GameState | null = null
 
   // client-side
+  spectating = false
   private hostConn: DataConnection | null = null
   private myState: GameState | null = null
   private lobbyCache: LobbyPlayer[] = []
@@ -193,7 +200,7 @@ export class Room {
 
   /** Snapshot whatever a reload would need to put this player back. */
   private persist() {
-    if (this.hotseat || !this.code || !this.you) return
+    if (this.hotseat || this.spectating || !this.code || !this.you) return
     const name = this.names.get(this.you) ?? ''
     if (this.role === 'client') {
       saveSession({ role: 'client', code: this.code, name })
@@ -386,6 +393,22 @@ export class Room {
     return 'host'
   }
 
+  /**
+   * Watch a room without joining it.
+   *
+   * Same transport as a player, same redaction path, minus the seat. The TV
+   * never sends an intent, so there is nothing to guard against beyond not
+   * letting it occupy one of the six chairs.
+   */
+  async spectate(code: string): Promise<void> {
+    this.role = 'client'
+    this.status = 'connecting'
+    this.error = null
+    this.spectating = true
+    this.emit()
+    await this.connectAsClient(code, 'TV', true)
+  }
+
   async host(displayName: string): Promise<string> {
     this.role = 'host'
     this.status = 'connecting'
@@ -461,6 +484,20 @@ export class Room {
     if (msg.t === 'join') {
       if (msg.protocol !== PROTOCOL_VERSION) {
         this.send(conn, { t: 'kicked', reason: 'Different game version - everyone should reload the page.' })
+        return
+      }
+
+      // A spectator watches and never acts, so it skips seat assignment
+      // entirely. The redaction that hides other players' hands already does
+      // the right thing for a viewer who is nobody: `redactFor` keeps only the
+      // viewer's own hand, and a viewer with no seat has none, so every hand at
+      // the table stays face down. No engine change, no new redaction path, and
+      // no way for the TV to leak somebody's cards.
+      if (msg.spectate) {
+        this.spectators.add(conn)
+        conn.on('close', () => this.spectators.delete(conn))
+        this.send(conn, { t: 'welcome', you: SPECTATOR, lobby: this.hostLobby(), protocol: PROTOCOL_VERSION })
+        if (this.game) this.send(conn, { t: 'state', state: redactFor(this.game, SPECTATOR), you: SPECTATOR })
         return
       }
       const seatResult = assignSeat({
@@ -593,12 +630,23 @@ export class Room {
     for (const [, conn] of this.conns) {
       if (conn.open) this.send(conn, { t: 'lobby', lobby })
     }
+    for (const conn of this.spectators) {
+      if (conn.open) this.send(conn, { t: 'lobby', lobby })
+    }
   }
 
   private broadcastState() {
     if (!this.game) return
     for (const [pid, conn] of this.conns) {
       if (conn.open) this.send(conn, { t: 'state', state: redactFor(this.game, pid), you: pid })
+    }
+    // One redaction for every screen watching, because they all see the same
+    // thing: nothing private at all.
+    if (this.spectators.size) {
+      const seen = redactFor(this.game, SPECTATOR)
+      for (const conn of this.spectators) {
+        if (conn.open) this.send(conn, { t: 'state', state: seen, you: SPECTATOR })
+      }
     }
   }
 
@@ -609,6 +657,10 @@ export class Room {
   // ---------------------------------------------------------------- CLIENT --
 
   async join(codeInput: string, displayName: string): Promise<void> {
+    return this.connectAsClient(codeInput, displayName, false)
+  }
+
+  private async connectAsClient(codeInput: string, displayName: string, spectate: boolean): Promise<void> {
     this.role = 'client'
     this.status = 'connecting'
     this.error = null
@@ -634,7 +686,7 @@ export class Room {
         this.hostConn = conn
         this.status = 'connected'
         conn.send({
-          t: 'join', name: displayName,
+          t: 'join', name: displayName, spectate: spectate || undefined,
           protocol: PROTOCOL_VERSION, clientId: clientId(),
         } satisfies ClientMsg)
         this.emit()
