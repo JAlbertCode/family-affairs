@@ -51,6 +51,7 @@ const closeSheet = async () => {
 // same panel forever). They are the only place the game says what a drink does
 // to a particular Character, so check them once, on the way past.
 let ladderRungs = 0
+let clipped = 0
 try {
   // The first-run coach is a modal with a cut-out that swallows clicks
   // everywhere else, so it has to go before anything can be tapped.
@@ -63,6 +64,10 @@ try {
   await click(page.locator('.actionsheet .chip.ghost'))
   await page.waitForTimeout(300)
   ladderRungs = await page.locator('.rung').count()
+  // Nothing on an opened card should be hidden behind a control. The sheet used
+  // to clip the rules text and put a "more" button over the last line, so a
+  // Character's flaw was routinely something nobody had read.
+  clipped = await page.locator('.face-more').count()
   await closeSheet()
   await page.waitForTimeout(200)
 } catch { /* reported as zero below */ }
@@ -167,6 +172,7 @@ for (let i = 0; i < STEPS; i++) {
 }
 
 console.log(`\nlimit ladders: ${ladderRungs} rungs${ladderRungs ? '' : '  <-- NOT RENDERING'}`)
+console.log(`card clipped:  ${clipped ? 'YES - "more" button is back' : 'no, whole card visible'}`)
 console.log(`turns ended:   ${turns}`)
 console.log(`cards played:  ${played}`)
 console.log(`attacks:       ${attacks}`)

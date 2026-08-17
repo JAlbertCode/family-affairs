@@ -586,7 +586,7 @@ export function Table({
             })}
           </div>
 
-          {me.bench.length > 0 && (
+          {me.bench.length > 0 && !hideFamily && (
             <div className="benchrow">
               <span className="fam-sub">Bench</span>
               {me.bench.map((iid) => {
@@ -955,7 +955,12 @@ function CardSheet({
 }) {
   return (
     <div className="sheet-bg" onClick={onClose}>
-      <div className="cardsheet" onClick={(e) => e.stopPropagation()}>
+      {/* The card used to be pinned inside a fixed box with its rules text
+          scrolling behind a "more" button, which meant a Character's flaw was
+          routinely a thing nobody had read. The sheet scrolls instead and the
+          card is whatever height it needs; the buttons stay stuck to the
+          bottom so the thing you came to press never leaves. */}
+      <div className="cardsheet full" onClick={(e) => e.stopPropagation()}>
         <div className="cardsheet-face"><CardFace state={state} iid={iid} focused /></div>
         {detail && <div className="cardsheet-detail">{detail}</div>}
         <div className="cardsheet-actions">{actions}</div>

@@ -509,6 +509,26 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
 .cardsheet-actions .btn { flex: 1; min-height: 52px; }
 .cardsheet-actions .btn.narrow { flex: 0 0 32%; }
 
+/* Show the whole card. The fixed-height sheet clipped the rules text and put a
+   "more" button over the last line, so a Character's flaw was routinely
+   something the player never read. */
+.cardsheet.full { height: auto; max-height: 94dvh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.cardsheet.full .cardsheet-face { flex: none; overflow: visible; }
+.cardsheet.full .cardsheet-face > .face { position: static; inset: auto; width: 100%; height: auto; }
+.cardsheet.full .cardsheet-detail { flex: none; max-height: none; overflow: visible; }
+.cardsheet.full .face-bodywrap { flex: none; }
+/* On the sheet the picture has already been seen on the board; what the player
+   opened it for is underneath. Cap it so the rules start above the fold
+   instead of half a screen down. */
+.cardsheet.full .face-art { flex: none; height: 30vh; min-height: 120px; }
+.cardsheet.full .face-body { overflow: visible; min-height: 0; }
+/* Nothing is clipped now, so the control that said so has nothing to say - it
+   hides itself, because it is driven by whether the body actually overflows. */
+.cardsheet.full .cardsheet-actions {
+  position: sticky; bottom: 0; z-index: 2;
+  padding-top: 8px; background: linear-gradient(180deg, #12070f00, #12070f 40%);
+}
+
 /* ------------------------------------------------------- AFFAIR CARD ---- */
 
 .affair {

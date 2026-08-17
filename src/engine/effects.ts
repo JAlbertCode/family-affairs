@@ -364,6 +364,37 @@ export function applyLimit(
     log(state, `${def.name} is now ${names[after]}.`, 'status')
   }
 
+  // PAST THE LINE.
+  //
+  // The top of a track was a sidegrade for almost everybody - Wasted is +2
+  // Attack and -1 Defense, Zooted is -2 Attack and +2 Defense - so there was no
+  // moment where getting somebody wrecked was a thing that happened TO them.
+  // Three Characters had a real cliff written by hand (Larry on weed, Adrian on
+  // either, Dorian on food) and everyone else could be poured into all night
+  // for free. The tolerance number on every card is the line; crossing it now
+  // means something to everybody, and what it means fits the track.
+  //
+  // The hand-written ones above run first and already say their piece, so this
+  // only fires for a Character who has not been given their own.
+  const OVER: Partial<Record<LimitTrack, { status: StatusName; line: string }>> = {
+    alcohol: { status: 'Asleep', line: 'is done. Somebody put a blanket on them.' },
+    weed: { status: 'Confused', line: 'has lost the plot completely.' },
+    food: { status: 'Asleep', line: 'is in a food coma and is not getting up.' },
+  }
+  const CUSTOM: Record<string, LimitTrack[]> = {
+    larry: ['weed'], adrian: ['weed', 'food'], dorian: ['food'], grandpa: ['weed'], kevin: ['food'],
+  }
+  const over = OVER[track]
+  if (
+    over && amount > 0
+    && target.limits[track] > def.tolerance[track]
+    && !(CUSTOM[def.id] ?? []).includes(track)
+    && !hasStatus(target, over.status)
+  ) {
+    applyStatus(state, target, over.status, 1, ctx)
+    log(state, `${def.name} ${over.line}`, 'status')
+  }
+
   // Dorian - Food Coma: exceeding tolerance puts him to sleep
   if (track === 'food' && def.id === 'dorian' && target.limits.food > def.tolerance.food) {
     applyStatus(state, target, 'Asleep', 1, ctx)
