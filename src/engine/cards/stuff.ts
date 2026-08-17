@@ -554,10 +554,30 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'potpie', name: "Titi Evelyn's Chicken Pot Pie", subtype: 'Food', copies: 3, giftable: true, icon: '🥧', color: FOOD,
-    text: 'Nobody makes it like Titi Evelyn. She will not say what is in it, but it is +1 Weed too.',
+    text: 'Nobody makes it like Titi Evelyn. She will not say what is in it, but it is +1 Weed too, and whoever eats it is steadier for the Round.',
     interfere: true, interfereWindow: 'beforeRoll',
     limitGain: { food: 1, weed: 1 },
-    effects: [{ k: 'heal', target: { scope: 'self' }, amount: 3 }],
+    effects: [
+      { k: 'heal', target: { scope: 'self' }, amount: 3 },
+      { k: 'statMod', target: { scope: 'self' }, stat: 'defense', amount: 1, duration: 'round' },
+    ],
+  },
+  {
+    kind: 'stuff', id: 'samedamnshoes', name: 'The Same Damn Shoes', subtype: 'Gear', copies: 2, onlyFor: ['titievelyn'], icon: '🥾', color: GEAR,
+    text: 'Ancient hiking boots she refuses to replace. Everybody keeps telling her to buy new ones. She will not.',
+    equipMods: [{ stat: 'defense', amount: 2 }],
+    activated: {
+      name: 'Weekend Hike',
+      text: 'She leaves the chaos for a Round. Heal 4, and one drink and one plate wear off on the way up the hill.',
+      actionCost: 1,
+      cooldown: 2,
+      effects: [
+        { k: 'heal', target: { scope: 'self' }, amount: 4 },
+        { k: 'limit', target: { scope: 'self' }, track: 'alcohol', amount: -1 },
+        { k: 'limit', target: { scope: 'self' }, track: 'food', amount: -1 },
+      ],
+    },
+    effects: [],
   },
   {
     kind: 'stuff', id: 'nerfgun', name: 'Nerf Gun', subtype: 'Gear', copies: 3, icon: '🔫', color: GEAR,

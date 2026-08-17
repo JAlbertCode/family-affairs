@@ -15,6 +15,7 @@ import { FxLayer } from './Fx'
 import { BoardToken, EmptyToken, LimitMeters } from './BoardToken'
 import { CharacterPortrait } from './CharacterCard'
 import { Minigame } from './Minigame'
+import { artUrl } from './artHashes'
 
 /** What the player is currently being asked to point at. */
 type Targeting =
@@ -661,7 +662,7 @@ export function Table({
                   {chDef
                     ? <CharacterPortrait defId={chDef.id} />
                     : stDef?.art
-                      ? <img src={`${import.meta.env.BASE_URL}art/${stDef.art}`} alt=""
+                      ? <img src={artUrl(stDef.art)} alt=""
                           loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0' }} />
                       : <span className="hs-glyph">{stDef?.icon ?? '❔'}</span>}
                   {chDef && <span className="hs-hp">{chDef.stats.hp}</span>}

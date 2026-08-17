@@ -1,6 +1,7 @@
 import type { GameState, CharacterInstance } from '../engine/types'
 import { getCharacterDef, getStuffDef } from '../engine/cards/deck'
 import { effectiveStats, limitTier, limitTierName, auraSummary, incomingAuras } from '../engine/selectors'
+import { artUrl } from './artHashes'
 
 const BASE = import.meta.env.BASE_URL
 
@@ -57,7 +58,7 @@ export function BoardToken({
                  cast.defense ? `${cast.defense > 0 ? '+' : ''}${cast.defense}🛡` : ''].filter(Boolean).join(' ')}
           </span>
         )}
-        {def.art && <img src={`${BASE}art/${def.art}`} alt="" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0' }} />}
+        {def.art && <img src={artUrl(def.art)} alt="" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0' }} />}
         {ch.statuses.length > 0 && (
           <span className="tok-status">
             {ch.statuses.slice(0, 3).map((s) => (

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { GameState, InstanceId, PlayerId, Effect, StuffDef, AffairDef } from '../engine/types'
 import { getCharacterDef, getStuffDef } from '../engine/cards/deck'
+import { artUrl } from './artHashes'
 
 const BASE = import.meta.env.BASE_URL
 
@@ -60,7 +61,7 @@ export function CardFace({
     return (
       <article className={`face face-char ${focused ? 'focused' : ''}`} style={{ '--accent': def.color } as React.CSSProperties}>
         <div className="face-art">
-          {def.art && <img src={`${BASE}art/${def.art}`} alt="" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0' }} />}
+          {def.art && <img src={artUrl(def.art)} alt="" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0' }} />}
           <div className="face-art-fade" />
           <div className="face-hp" title="Health">{def.stats.hp}<span>HP</span></div>
         </div>
@@ -100,7 +101,7 @@ export function CardFace({
       <article className={`face face-stuff sub-${def.subtype.toLowerCase()} ${focused ? 'focused' : ''}`} style={{ '--accent': def.color } as React.CSSProperties}>
         {def.art ? (
           <div className="face-art stuff">
-            <img src={`${BASE}art/${def.art}`} alt="" loading="lazy"
+            <img src={artUrl(def.art)} alt="" loading="lazy"
               onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0' }} />
             <div className="face-art-fade" />
             <span className="face-glyph-mini">{def.icon ?? '❔'}</span>

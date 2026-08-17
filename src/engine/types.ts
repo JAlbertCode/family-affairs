@@ -176,6 +176,15 @@ export interface Ability {
   maxUses?: number
   /** rounds between uses */
   cooldown?: number
+  /**
+   * This ability is implemented in the engine rather than as effects, and this
+   * string says why. The escape hatch exists for the small number of cards that
+   * read stored state about OTHER Characters - Titi Evelyn's ornament
+   * collection is the whole of it - because the effect DSL describes what
+   * happens to a target, not what a card remembers about people. It has to be
+   * filled in, so that "no effects" can never quietly mean "unfinished".
+   */
+  engine?: string
 }
 
 export interface Achievement {

@@ -10,7 +10,7 @@ import { d6, shuffle } from './rng'
 import {
   acrossFrom, activeCharacters, adjacentAllies, allActiveEveryone, canAct, canAttack, charmBlocks, currentPlayer,
   countAttached, effectiveStat, familySize, gearSlots, hasStatus, hasTag, limitTier, itemCap, totalItemCap,
-  openSlots, rideSlots, isCurrentPlayer,
+  openSlots, rideSlots, isCurrentPlayer, ornaments, bestStat, ORNAMENT_MAX,
 } from './selectors'
 import {
   applyDamage, applyHeal, applyLimit, applyStatMod, applyStatus, awardClout, consumeCard,
@@ -216,6 +216,33 @@ function openingCharacter(state: GameState, pid: PlayerId) {
   grantStartingStuff(state, ch)
   arrivesAlreadyGoing(state, ch)
   log(state, `${ps.name} arrives with ${def.name}.`, 'play')
+}
+
+/**
+ * Somebody just handed Titi Evelyn something.
+ *
+ * She keeps a piece of them for it - the strongest Character that player has on
+ * the table, because what an ornament remembers is the energy of whoever gave
+ * it, not the thing.
+ *
+ * Never twice from the same Character. That one rule is what stops her filling
+ * the tree off her own hand in a single Turn, and it is also what makes the
+ * three-different-people payoff on Trim The Tree something you have to go and
+ * arrange: her own Family can only ever supply two of the three. The first
+ * version barred her own Family outright, and the result was a Character whose
+ * entire kit depended on opponents volunteering gifts - dead on arrival, and
+ * the simulator said so immediately.
+ */
+function keepOrnament(state: GameState, target: CharacterInstance, giver: PlayerId) {
+  if (getCharacterDef(target.defId).id !== 'titievelyn') return
+  const have = ornaments(target)
+  if (have.length >= ORNAMENT_MAX) return
+  const from = activeCharacters(state, giver)
+    .filter((c) => c.hp > 0 && c.iid !== target.iid && !have.includes(c.defId))
+    .sort((a, b) => bestStat(state, b).value - bestStat(state, a).value)[0]
+  if (!from) return
+  target.scratch['keep:ornaments'] = [...have, from.defId]
+  log(state, `Titi Evelyn keeps a little of ${getCharacterDef(from.defId).name}. ${have.length + 1} of ${ORNAMENT_MAX} on the tree.`, 'status')
 }
 
 function claim(state: GameState, iid: InstanceId, pid: PlayerId) {
@@ -788,6 +815,7 @@ function playCard(
       target.attached.push(iid)
       inst.attachedTo = target.iid
       inst.owner = pid
+      keepOrnament(state, target, pid)
       log(state, `${getCharacterDef(target.defId).name} equips ${def.name}.`, 'play')
       break
     }
@@ -808,6 +836,7 @@ function playCard(
       inst.owner = pid
       target.attached.push(iid)
       inst.attachedTo = target.iid
+      keepOrnament(state, target, pid)
       log(state, `${ps.name} gives ${def.name} to ${getCharacterDef(target.defId).name}.`, 'play')
       break
     }
@@ -859,6 +888,11 @@ function useAbility(
   if (ability.requiresStatus && !hasStatus(ch, ability.requiresStatus)) {
     return `${def.name} has to be ${ability.requiresStatus} first.`
   }
+  // Nothing on the tree, nothing to break.
+  if (def.id === 'titievelyn' && (ability.name === 'Borrowed Spark' || ability.name === 'Trim The Tree')
+      && ornaments(ch).length === 0) {
+    return 'There is nothing on the tree yet. Somebody has to give her something first.'
+  }
   if (ability.maxUses && uses(ch, ability.name) >= ability.maxUses) {
     return `${ability.name} is ${ability.maxUses} times a game, and that was the last one.`
   }
@@ -890,6 +924,46 @@ function useAbility(
     eventTarget: targetChar ?? charIid,
     chosen: targetChar ? [targetChar] : [],
   })
+
+  // BORROWED SPARK and TRIM THE TREE. Both read the ornament collection, which
+  // is stored state about other Characters and so cannot be expressed in an
+  // effect list - the DSL describes what happens to a target, not what the card
+  // remembers about people.
+  if (def.id === 'titievelyn' && (ability.name === 'Borrowed Spark' || ability.name === 'Trim The Tree')) {
+    const have = ornaments(ch)
+    if (ability.name === 'Borrowed Spark') {
+      // Break the newest one. Whose it was decides what she takes: their best
+      // number, for the Round. "You gave it to me. Of course I kept it."
+      const fromId = have[have.length - 1]
+      ch.scratch['keep:ornaments'] = have.slice(0, -1)
+      const source = Object.values(state.characters).find((c) => c.defId === fromId && c.zone === 'active')
+      const donor = getCharacterDef(fromId)
+      const best = source ? bestStat(state, source) : { stat: 'attack' as const, value: donor.stats.attack }
+      applyStatMod(state, ch, best.stat, 2, 'round', `Borrowed from ${donor.name}`)
+      log(state, `Titi Evelyn breaks ${donor.name}'s ornament and borrows the spark.`, 'status')
+    } else {
+      // Everybody on the tree gets it back, and she gets it too. Three
+      // different people up there and the whole family is better for it.
+      const distinct = new Set(have)
+      for (const id of distinct) {
+        const c = Object.values(state.characters).find((x) => x.defId === id && x.zone === 'active')
+        if (!c) continue
+        applyStatMod(state, c, bestStat(state, c).stat, 1, 'round', 'On the tree')
+      }
+      applyStatMod(state, ch, bestStat(state, ch).stat, distinct.size, 'round', 'On the tree')
+      if (distinct.size >= 3) {
+        for (const a of activeCharacters(state, pid)) {
+          applyHeal(state, a, 3, { controller: pid })
+          for (const s of [...a.statuses]) {
+            if (s.name === 'Fired Up' || s.name === 'Powered Up') continue
+            removeStatus(state, a, s.name); break
+          }
+        }
+        log(state, 'Three of them on the tree. The whole family is better for what they gave each other.', 'status')
+      }
+      log(state, `Titi Evelyn trims the tree with ${distinct.size} ornament${distinct.size === 1 ? '' : 's'}.`, 'status')
+    }
+  }
 
   // The third Level is the one that matters. Everything before it is just
   // Attack; this is what unlocks the phone call.
@@ -1404,10 +1478,18 @@ function startNewRound(state: GameState) {
     }
   }
 
-  // expire round modifiers, clear per-round scratch
+  // Expire round modifiers and clear per-round scratch.
+  //
+  // Scratch is per-Round by design: it is where achievements and passives count
+  // things that only matter inside a Round. A few Characters keep something
+  // across the whole game, though - Titi Evelyn's ornaments are the point of
+  // her - and those need somewhere a new Round does not take away. Keys
+  // prefixed `keep:` survive, which is a convention rather than a new field on
+  // every Character in the game for the sake of one of them.
   for (const ch of Object.values(state.characters)) {
     ch.mods = ch.mods.filter((m) => m.duration === 'permanent')
-    ch.scratch = {}
+    const kept = Object.entries(ch.scratch).filter(([k]) => k.startsWith('keep:'))
+    ch.scratch = Object.fromEntries(kept)
   }
 
   log(state, `--- Round ${state.round} --- order: ${state.turnOrder.map((p) => state.playerState[p].name).join(' -> ')}`)

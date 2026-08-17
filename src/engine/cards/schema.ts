@@ -167,8 +167,11 @@ function checkAbility(name: string, label: string, a: Ability, budget: number, o
   if (a.text && a.text.length > 220) {
     out.push({ card: name, severity: 'warn', field: `${label}.text`, message: 'Card text should stay short - flavour belongs in the art.' })
   }
-  if (!a.effects?.length) {
-    out.push({ card: name, severity: 'error', field: `${label}.effects`, message: 'Does nothing.' })
+  if (!a.effects?.length && !a.engine?.trim()) {
+    out.push({
+      card: name, severity: 'error', field: `${label}.effects`,
+      message: 'Does nothing. If it is implemented in the engine, say so in `engine`.',
+    })
   }
 
   const gambled = a.effects.some((e) => e.k === 'roll')

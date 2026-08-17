@@ -1,5 +1,5 @@
 import type {
-  GameState, CharacterInstance, InstanceId, PlayerId, Slot, StatName,
+  GameState, CharacterInstance, DefId, InstanceId, PlayerId, Slot, StatName,
   LimitTrack, Tag, StuffInstance, StatusName,
 } from './types'
 import { getCharacterDef, getStuffDef } from './cards/deck'
@@ -191,6 +191,14 @@ function limitStatDelta(ch: CharacterInstance): Record<StatName, number> {
     // without giving back the Defense everyone else gets.
     if (w === 1) d.attack -= 1
     if (w >= 2) d.attack -= 2
+  } else if (isEvelyn) {
+    // GOOD VIBES into REALLY GOOD VIBES. She is a Support and this is the only
+    // track that makes her better at it without a cliff attached - right up
+    // until the third one, which does not appear here because it is not a
+    // number. See applyLimit: she is violently sick and it clears itself.
+    if (w === 1) d.defense += 1
+    if (w === 2) d.defense += 2
+    if (w >= 3) { d.defense += 2; d.attack -= 2 }
   } else if (isDorian) {
     // BLUNT FOCUS. One or two settles him and he swings harder. He is the only
     // Character who buys Attack with weed rather than Defense, and the only one
@@ -265,6 +273,27 @@ function limitStatDelta(ch: CharacterInstance): Record<StatName, number> {
   if (lit >= 3) { d.attack += 1; d.defense -= 1 }
 
   return d
+}
+
+/**
+ * THE ORNAMENT COLLECTION.
+ *
+ * Titi Evelyn keeps a piece of whoever hands her something - not the thing, the
+ * person. Three at a time, stored under a `keep:` key so a new Round does not
+ * sweep them up with everything else, and each one remembers which Character it
+ * came from. Nothing else in the deck holds state about somebody else.
+ */
+export const ORNAMENT_MAX = 3
+
+export function ornaments(ch: CharacterInstance): DefId[] {
+  return (ch.scratch['keep:ornaments'] as DefId[]) ?? []
+}
+
+/** Their best number, which is what an ornament is worth borrowing. */
+export function bestStat(state: GameState, ch: CharacterInstance): { stat: StatName; value: number } {
+  const a = effectiveStat(state, ch, 'attack')
+  const d = effectiveStat(state, ch, 'defense')
+  return a >= d ? { stat: 'attack', value: a } : { stat: 'defense', value: d }
 }
 
 /**
@@ -723,11 +752,9 @@ export function explainStat(state: GameState, ch: CharacterInstance, stat: StatN
     const ef = limitTier(ch, 'food')
     if (ef >= 2 && stat === 'defense') parts.push({ label: '🍔 Used To It', amount: 1, kind: 'limit' })
     const ew = limitTier(ch, 'weed')
-    if (ew === 1 && stat === 'defense') parts.push({ label: '🌿 High', amount: 1, kind: 'limit' })
-    if (ew >= 2) {
-      if (stat === 'defense') parts.push({ label: ew === 3 ? '🌿 Zooted' : '🌿 Stoned', amount: 2, kind: 'limit' })
-      if (stat === 'attack') parts.push({ label: ew === 3 ? '🌿 Zooted' : '🌿 Stoned', amount: ew === 3 ? -2 : -1, kind: 'limit' })
-    }
+    if (ew === 1 && stat === 'defense') parts.push({ label: '🌿 Good Vibes', amount: 1, kind: 'limit' })
+    if (ew === 2 && stat === 'defense') parts.push({ label: '🌿 Really Good Vibes', amount: 2, kind: 'limit' })
+    if (ew >= 3) parts.push({ label: '🌿 Way Too High', amount: stat === 'attack' ? -2 : 2, kind: 'limit' })
   } else if (who === 'elias') {
     if (a >= 1 && stat === 'attack') {
       parts.push({ label: '🎬 Drunken Flow', amount: a === 1 ? 1 : a === 2 ? 2 : 3, kind: 'limit' })

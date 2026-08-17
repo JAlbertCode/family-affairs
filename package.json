@@ -9,7 +9,7 @@
     "build": "tsc -b --noEmit && vite build",
     "preview": "vite preview --host --port 4173",
     "icons": "node scripts/make-icons.mjs",
-    "prebuild": "node scripts/make-icons.mjs",
+    "prebuild": "node scripts/make-icons.mjs && node scripts/art-hashes.mjs",
     "validate": "tsx src/engine/cards/validate.ts",
     "sim": "tsx src/sim/simulate.ts",
     "sweep": "tsx src/sim/sweep.ts",
@@ -18,7 +18,8 @@
     "textcheck": "tsx src/sim/textcheck.mjs",
     "impact": "tsx src/sim/impact.ts",
     "hand": "tsx src/sim/handsize.ts",
-    "tvshot": "node src/sim/tvshot.mjs"
+    "tvshot": "node src/sim/tvshot.mjs",
+    "arthash": "node scripts/art-hashes.mjs"
   },
   "dependencies": {
     "peerjs": "^1.5.4",

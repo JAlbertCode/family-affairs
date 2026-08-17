@@ -395,6 +395,15 @@ export function applyLimit(
     log(state, `${def.name} ${over.line}`, 'status')
   }
 
+  // Titi Evelyn - WAY TOO HIGH. Everyone else's cliff is a status they carry
+  // around; hers empties the track behind her, because the whole joke on the
+  // sheet is that she is sick, she is fine, and she has learned nothing.
+  if (track === 'weed' && def.id === 'titievelyn' && before < 3 && after >= 3) {
+    applyStatus(state, target, 'Asleep', 1, ctx)
+    target.limits.weed = 0
+    log(state, 'Titi Evelyn went way too far and is violently sick. She has learned absolutely nothing.', 'status')
+  }
+
   // Dorian - Food Coma: exceeding tolerance puts him to sleep
   if (track === 'food' && def.id === 'dorian' && target.limits.food > def.tolerance.food) {
     applyStatus(state, target, 'Asleep', 1, ctx)

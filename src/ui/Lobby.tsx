@@ -5,6 +5,7 @@ import { checkConnection, type CheckResult } from '../net/checkConnection'
 import { lastRole, type RoomView } from '../net/room'
 import { defaultCloutToWin } from '../engine/state'
 import { deckSummary } from '../engine/cards/deck'
+import { artUrl } from './artHashes'
 
 export function Lobby({
   view, onHost, onJoin, onRecover, onStart, onLocal, onLeave, onBuild, inviteCode, busy,
@@ -190,7 +191,7 @@ export function Lobby({
   return (
     <div className="lobby">
       <div className="hero">
-        <img src={`${import.meta.env.BASE_URL}art/family.webp`} alt="" />
+        <img src={artUrl('family.webp')} alt="" />
       </div>
       <div className="brand">
         <span className="b1">FAMILY<br />AFFAIRS</span>

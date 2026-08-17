@@ -295,6 +295,30 @@ export const AFFAIRS: AffairDef[] = [
       { k: 'heal', target: { scope: 'allActiveEveryone' }, amount: 2 },
     ],
   },
+
+  // The first Affair in the deck that reads differently depending on who is at
+  // the table. `ifCharacterActive` has been in the DSL since the beginning and
+  // nothing had ever used it - which is its own small lesson about writing a
+  // feature before there is a card that wants it.
+  {
+    kind: 'affair', id: 'thanksgiving', name: "Thanksgiving At Titi's", duration: 'immediate', color: C,
+    text: 'Everybody comes over. Everybody eats. If Titi Evelyn is at the table she does the cooking, and it shows.',
+    effects: [
+      {
+        k: 'ifCharacterActive',
+        defId: 'titievelyn',
+        then: [
+          { k: 'limit', target: { scope: 'allActiveEveryone' }, track: 'food', amount: 1 },
+          { k: 'heal', target: { scope: 'allActiveEveryone' }, amount: 3 },
+          { k: 'removeStatus', target: { scope: 'allActiveEveryone' }, status: 'Confused' },
+        ],
+        else: [
+          { k: 'limit', target: { scope: 'allActiveEveryone' }, track: 'food', amount: 1 },
+          { k: 'heal', target: { scope: 'allActiveEveryone' }, amount: 1 },
+        ],
+      },
+    ],
+  },
 ]
 
 export const AFFAIRS_BY_ID: Record<string, AffairDef> = Object.fromEntries(

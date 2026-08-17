@@ -7,6 +7,7 @@ import {
 import { needsTarget } from '../engine/effects'
 import { effectsCost } from '../engine/cards/schema'
 import { HAND_LIMIT, uses } from '../engine/state'
+import { ornaments } from '../engine/selectors'
 
 /**
  * A deliberately simple greedy bot. Its job is not to play well - it is to
@@ -155,6 +156,10 @@ export function botIntent(state: GameState, pid: PlayerId): Intent | null {
         }
         if (ab.requiresStatus && !hasStatus(ch, ab.requiresStatus)) continue
         if (ab.maxUses && uses(ch, ab.name) >= ab.maxUses) continue
+        // An engine ability can have a precondition the bot cannot read off the
+        // card. This is the only one so far; if there is ever a second, it
+        // wants a predicate on the definition rather than another line here.
+        if (ab.engine && def.id === 'titievelyn' && ornaments(ch).length === 0) continue
         const need = needsTarget(ab.effects)
         let intent: Intent | null = null
         if (!need) intent = { k: 'useAbility', char: ch.iid, which }
@@ -165,7 +170,14 @@ export function botIntent(state: GameState, pid: PlayerId): Intent | null {
         }
         if (!intent) continue
         // Save a limited move for when it is actually the better play.
-        const score = effectsCost(ab.effects) - (ab.oncePerGame ? 2 : (ab.cooldown ?? 0) * 0.5)
+        //
+        // An ability implemented in the engine has an empty effect list, so
+        // costing it off its effects scores it at zero and the bot never once
+        // presses it. That is not the ability being weak, it is the bot being
+        // unable to see it, and it quietly reported Titi Evelyn ten points of
+        // win share below where she actually sits.
+        const raw = ab.engine ? 4 : effectsCost(ab.effects)
+        const score = raw - (ab.oncePerGame ? 2 : (ab.cooldown ?? 0) * 0.5)
         if (!best || score > best.score) best = { intent, score }
       }
     }
