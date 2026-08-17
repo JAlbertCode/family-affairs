@@ -7,7 +7,8 @@
 // moves the meter its whole subtype is named after.
 import { STUFF, STUFF_BY_ID } from '../engine/cards/stuff'
 import { AFFAIRS } from '../engine/cards/affairs'
-import type { Effect } from '../engine/types'
+import { CHARACTERS } from '../engine/cards/characters'
+import type { Effect, Tag } from '../engine/types'
 
 const TRACK_KINDS = new Set(['limit', 'alcohol', 'weed', 'food'])
 
@@ -25,6 +26,9 @@ function walk(effects: Effect[] | undefined, seen: Set<string> = new Set()): Set
 }
 
 const problems: string[] = []
+// Advisory: who counts as a Kid or a Mom in this family is not a thing a linter
+// gets to decide, so a thin tag is reported and never fatal.
+const notes: string[] = []
 
 // Duplicate ids silently shadow each other in the by-id lookup, so one of the
 // two cards is in the deck list and never once resolves as itself.
@@ -45,15 +49,55 @@ for (const s of STUFF) {
   }
 }
 
+// A card that aims at a tag nobody has is a card that does nothing, and no
+// amount of reading the card tells you that - it is a property of the deck, not
+// of the card. Six cards were keyed to Kid, which one Character in twenty-three
+// has, and Super Bowl Weekend poured drinks for an Adult tag that six grown
+// adults had been left off.
+const tagUsers: Map<string, Set<string>> = new Map()
+function note(t: string | undefined, who: string) {
+  if (!t) return
+  if (!tagUsers.has(t)) tagUsers.set(t, new Set())
+  tagUsers.get(t)!.add(who)
+}
+function tags(effects: Effect[] | undefined, who: string) {
+  for (const e of effects ?? []) {
+    const any = e as any
+    for (const k of ['target', 'from']) { note(any[k]?.withTag, who); note(any[k]?.withoutTag, who) }
+    note(any.tag, who)
+    for (const k of ['effects', 'then', 'else']) if (any[k]) tags(any[k], who)
+    if (any.branches) for (const b of any.branches) tags(b.effects, who)
+  }
+}
+for (const c of CHARACTERS) { tags(c.ability?.effects, c.name); tags(c.powerMove?.effects, c.name) }
+for (const s of STUFF) { tags(s.effects, s.name); tags(s.activated?.effects, s.name) }
+for (const a of AFFAIRS) tags(a.effects, a.name)
+
+/** Mirrors `hasTag`: Adult is derived from not being a child, not written down. */
+const holders = (t: string) => CHARACTERS.filter((c) => (t === 'Adult'
+  ? !(c.tags as string[]).includes('Kid') && !(c.tags as string[]).includes('Grandkid')
+  : (c.tags as string[]).includes(t as Tag))).length
+
+for (const [tag, cards] of tagUsers) {
+  const n = holders(tag)
+  const list = [...cards].sort().join(', ')
+  if (n === 0) problems.push(`DEAD TAG      ${tag.padEnd(14)} nobody in the deck has it, and ${cards.size} card(s) aim at it: ${list}`)
+  else if (n < 3) notes.push(`THIN TAG      ${tag.padEnd(14)} only ${n} of ${CHARACTERS.length} Characters have it, and ${cards.size} card(s) aim at it: ${list}`)
+}
+
 for (const a of AFFAIRS) {
   const kinds = walk(a.effects)
   if (kinds.size === 0) problems.push(`INERT AFFAIR  ${a.id.padEnd(17)} ${a.name} - no effects at all`)
 }
 
+if (notes.length) {
+  console.log(`${notes.length} tag(s) too thin for the cards aimed at them:\n`)
+  for (const n of notes.sort()) console.log('  ' + n)
+  console.log('')
+}
 if (problems.length) {
   console.log(`${problems.length} card(s) to look at:\n`)
   for (const p of problems.sort()) console.log('  ' + p)
   process.exit(1)
-} else {
-  console.log('Every card moves something.')
 }
+console.log('Every card moves something, and every tag a card aims at exists.')

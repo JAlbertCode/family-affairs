@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Room, loadSession, clearSession, liveElsewhere, type RoomView, type SavedSession } from './net/room'
 import type { Intent } from './engine/types'
+import { createGame } from './engine/state'
+import { AFFAIRS } from './engine/cards/affairs'
 import { Lobby } from './ui/Lobby'
 import { Builder } from './ui/builder/Builder'
 import { Tv } from './ui/Tv'
@@ -71,8 +73,19 @@ export default function App() {
   const [resumeFailed, setResumeFailed] = useState<SavedSession | null>(null)
   const [duplicate, setDuplicate] = useState<SavedSession | null>(null)
 
+  /**
+   * ?tv=DEMO renders the living-room screen against a game made up on the spot.
+   *
+   * The TV is the one screen in this app that cannot be checked by playing:
+   * it needs a host, a room and other people before it draws anything at all,
+   * which is how it shipped with a layout nobody had ever looked at. This is a
+   * board with six families on it, one keypress away, and it costs a call to
+   * the same `createGame` the room already imports.
+   */
+  const demo = useMemo(() => (tvCode === 'DEMO' ? demoState() : null), [tvCode])
+
   useEffect(() => {
-    if (!tvCode || tried.current) return
+    if (!tvCode || tvCode === 'DEMO' || tried.current) return
     tried.current = true
     let stop = false
     const attempt = async (n: number) => {
@@ -193,7 +206,7 @@ export default function App() {
   if (tvCode) {
     return (
       <Tv
-        state={view.state}
+        state={demo ?? view.state}
         code={view.code || tvCode}
         waiting={view.error ?? (view.status === 'connected'
           ? `${view.lobby.length} in the room. Waiting for the host to start.`
@@ -309,4 +322,42 @@ export default function App() {
       />
     </div>
   )
+}
+
+/**
+ * A mid-game board, deterministic, for looking at the TV screen with.
+ *
+ * Six families because six is the layout that has to work; a spread of Clout,
+ * damage, Limits and statuses because an empty board hides every case where a
+ * token grows taller than the panel holding it.
+ */
+function demoState(): RoomView['state'] {
+  const names = ['Jay', 'Bry', 'Dorian', 'Kevin', 'Nani', 'Grandma']
+  const g = createGame(names.map((n, i) => ({ id: `p${i}`, name: n })), { seed: 20260817, cloutToWin: 7 })
+  // Distinct Characters, or the screen is three copies of the same face and a
+  // layout problem hides behind looking like a bug in the deck.
+  const seen = new Set<string>()
+  const pool = Object.values(g.characters).filter((c) => !seen.has(c.defId) && seen.add(c.defId))
+  let n = 0
+  g.players.forEach((pid, p) => {
+    const ps = g.playerState[pid]
+    ps.clout = [5, 3, 6, 1, 4, 2][p]
+    ps.hand = ps.hand.slice(0, [7, 2, 5, 4, 6, 3][p])
+    // The sixth family is left empty on purpose: three dashed slots is a case
+    // the layout has to hold as surely as three tall tokens.
+    for (let s = 0; s < (p === 5 ? 0 : 3); s++) {
+      const ch = pool[n++]
+      if (!ch) continue
+      ch.owner = pid; ch.zone = 'active'; ch.slot = s as 0 | 1 | 2
+      ch.hp = Math.max(1, ch.maxHp - ((p + s) % 4) * 3)
+      ch.limits = { alcohol: (p + s) % 4, weed: (s + 1) % 4, food: (p + 2 * s) % 4 }
+      if ((p + s) % 5 === 0) ch.statuses = [{ name: 'Asleep', duration: 1 }]
+      ps.field[s] = ch.iid
+    }
+  })
+  g.round = 4
+  // An Affair is on the board most Rounds and it is the widest thing on the
+  // screen, so a demo without one is not the layout that has to hold.
+  g.currentAffair = g.currentAffair ?? AFFAIRS[0]?.id ?? null
+  return g
 }

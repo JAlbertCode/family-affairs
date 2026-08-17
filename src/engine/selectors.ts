@@ -232,6 +232,23 @@ function limitStatDelta(ch: CharacterInstance): Record<StatName, number> {
     if (f === 3) { d.defense += 1; d.attack -= 1 }
   }
 
+  // CROSS-FADED. Measured over sixty games, 47.5% of Characters were knocked
+  // out stone cold sober, clear and hungry, and another 37% at tier 1 where the
+  // curve is a single point - so 85% of deaths happened before any of the three
+  // meters did anything anybody could feel. The cause is not that the meters
+  // fill slowly; it is that they fill *sideways*. A Character who has had a
+  // beer, a joint and a plate is at tier 1 on three tracks and tier 2 on none,
+  // and every ladder in the game reads one track at a time, so the most common
+  // state at the table was worth almost nothing.
+  //
+  // Being lit on more than one thing at once is also the actual joke of this
+  // game, and half the character sheets already assume it exists. Bold and
+  // sloppy: Attack up, Defense down, on top of whatever the individual tracks
+  // are already doing.
+  const lit = (['alcohol', 'weed', 'food'] as const).filter((t) => limitTier(ch, t) >= 1).length
+  if (lit >= 2) { d.attack += 1; d.defense -= 1 }
+  if (lit >= 3) { d.attack += 1; d.defense -= 1 }
+
   return d
 }
 
@@ -412,7 +429,15 @@ export function allActiveEveryone(state: GameState): CharacterInstance[] {
 }
 
 export function hasTag(ch: CharacterInstance, tag: Tag): boolean {
-  return getCharacterDef(ch.defId).tags.includes(tag)
+  const tags = getCharacterDef(ch.defId).tags
+  // Adult is not a tag anybody has to remember to write down, it is the absence
+  // of being a child - and leaving it to each card meant six Characters quietly
+  // did not have it. Grandpa was not an Adult while Oh Grandma was; Super Bowl
+  // Weekend poured drinks for two thirds of the table and skipped a grown man
+  // holding a guitar. Nothing an author has to remember on twenty-three cards
+  // stays right, so it is derived.
+  if (tag === 'Adult') return !tags.includes('Kid') && !tags.includes('Grandkid')
+  return tags.includes(tag)
 }
 
 /** §27: can this character take an Action at all right now? */
@@ -615,6 +640,15 @@ export function explainStat(state: GameState, ch: CharacterInstance, stat: StatN
       if (stat === 'defense') parts.push({ label: '🍔 Stuffed', amount: 1, kind: 'limit' })
       if (stat === 'attack') parts.push({ label: '🍔 Stuffed', amount: -1, kind: 'limit' })
     }
+  }
+
+  const lit = (['alcohol', 'weed', 'food'] as const).filter((t) => limitTier(ch, t) >= 1).length
+  if (lit >= 2) {
+    parts.push({
+      label: lit >= 3 ? '🍺🌿🍔 Cross-Faded' : '🍺🌿 Cross-Faded',
+      amount: (stat === 'attack' ? 1 : -1) * (lit >= 3 ? 2 : 1),
+      kind: 'limit',
+    })
   }
 
   if (stat === 'attack' && hasStatus(ch, 'Powered Up')) {

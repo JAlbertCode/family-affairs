@@ -182,7 +182,7 @@ export const CHARACTERS: CharacterDef[] = [
     title: 'Big Sexy',
     archetype: 'Tank',
     stats: { hp: 18, attack: 2, defense: 6 },
-    tags: ['Uncle', 'Psychic', 'Heavyweight', 'Wheel Gang', 'Adult'],
+    tags: ['Uncle', 'Psychic', 'Heavyweight', 'Wheel Gang'],
     tolerance: T(4, 3, 4), // heavyweight
     color: '#8e5bb5',
     art: 'manny.webp',
@@ -228,7 +228,7 @@ export const CHARACTERS: CharacterDef[] = [
     title: 'La Reina de la Casa',
     archetype: 'Bruiser',
     stats: { hp: 13, attack: 6, defense: 2 },
-    tags: ['Grandma', 'Elder', 'Cook', 'Adult'],
+    tags: ['Grandma', 'Elder', 'Cook'],
     tolerance: DEFAULT_TOL,
     color: '#c9772f',
     art: 'grandma.webp',
@@ -339,7 +339,7 @@ export const CHARACTERS: CharacterDef[] = [
     title: 'The Baker',
     archetype: 'Support',
     stats: { hp: 12, attack: 4, defense: 4 },
-    tags: ['Mom', 'Baker', 'Cook', 'Lightweight', 'Adult'],
+    tags: ['Mom', 'Baker', 'Cook', 'Lightweight'],
     tolerance: T(2, 3, 3), // Lightweight (§21)
     gearSlots: 2, // she carries more than most, but 3 stacked too much value
     itemSlots: 3, // she out-performed the field at 4; three still reads as the one who carries everything
@@ -392,7 +392,7 @@ export const CHARACTERS: CharacterDef[] = [
     title: 'The Drama Queen Angel',
     archetype: 'Trickster',
     stats: { hp: 12, attack: 4, defense: 4 },
-    tags: ['Aunt', 'Collector', 'Party Animal', 'Troublemaker', 'Adult'],
+    tags: ['Aunt', 'Collector', 'Party Animal', 'Troublemaker'],
     tolerance: T(4, 3, 3),
     color: '#d98cae',
     art: 'titibum.webp',
@@ -441,7 +441,7 @@ export const CHARACTERS: CharacterDef[] = [
     title: 'The Sacred Samurai',
     archetype: 'Support',
     stats: { hp: 15, attack: 3, defense: 5 },
-    tags: ['Aunt', 'Elder', 'Caretaker', 'Cook', 'Adult'],
+    tags: ['Aunt', 'Elder', 'Caretaker', 'Cook'],
     tolerance: DEFAULT_TOL,
     color: '#b9a24a',
     art: 'titibibi.webp',
@@ -554,7 +554,7 @@ export const CHARACTERS: CharacterDef[] = [
     title: 'The Remote Commander',
     archetype: 'Balanced',
     stats: { hp: 12, attack: 3, defense: 5 },
-    tags: ['Dad', 'Tech', 'Psychic', 'Adult'],
+    tags: ['Dad', 'Tech', 'Psychic'],
     tolerance: DEFAULT_TOL,
     color: '#3fb6c9',
     art: 'jay.webp',
@@ -653,7 +653,7 @@ export const CHARACTERS: CharacterDef[] = [
     title: 'The One With The Spreadsheet',
     archetype: 'Support',
     stats: { hp: 17, attack: 3, defense: 5 },
-    tags: ['Sister', 'Caretaker', 'Athlete', 'Collector', 'Adult'],
+    tags: ['Sister', 'Caretaker', 'Athlete', 'Collector'],
     tolerance: { alcohol: 3, weed: 3, food: 3 },
     color: '#3fa87d',
     art: 'nani.webp',
@@ -706,7 +706,7 @@ export const CHARACTERS: CharacterDef[] = [
     title: 'The One-Man Production',
     archetype: 'Trickster',
     stats: { hp: 12, attack: 3, defense: 5 },
-    tags: ['Brother', 'Trickster', 'Collector', 'Adult'],
+    tags: ['Brother', 'Trickster', 'Collector'],
     tolerance: T(4, 2, 3), // drinks well, cannot handle weed at all
     color: '#c94f7c',
     art: 'elias.webp',
@@ -758,7 +758,7 @@ export const CHARACTERS: CharacterDef[] = [
     title: 'The Tech Tank',
     archetype: 'Tank',
     stats: { hp: 14, attack: 3, defense: 5 },
-    tags: ['Brother', 'Athlete', 'Tech', 'Heavyweight', 'Adult'],
+    tags: ['Brother', 'Athlete', 'Tech', 'Heavyweight', 'Foodie'],
     tolerance: T(2, 2, 3), // eats like it is a job, cannot handle the rest
     color: '#c0392b',
     art: 'kevin.webp',
@@ -813,7 +813,7 @@ export const CHARACTERS: CharacterDef[] = [
     title: 'The Sober Hustler',
     archetype: 'Trickster',
     stats: { hp: 13, attack: 4, defense: 4 },
-    tags: ['Uncle', 'Trickster', 'Troublemaker', 'Athlete', 'Adult'],
+    tags: ['Uncle', 'Trickster', 'Troublemaker', 'Athlete', 'Foodie'],
     tolerance: T(2, 2, 3), // moot for the first two: nothing gets past Sober Influence
     color: '#c0392b',
     art: 'carlitos.webp',
@@ -864,7 +864,7 @@ export const CHARACTERS: CharacterDef[] = [
     title: 'The Party Captain',
     archetype: 'Support',
     stats: { hp: 14, attack: 4, defense: 4 },
-    tags: ['Sister', 'Adult', 'Athlete', 'Party Animal', 'Caretaker'],
+    tags: ['Sister', 'Athlete', 'Party Animal', 'Caretaker'],
     // Tolerance 4 on alcohol is the highest in the deck and it is the point:
     // everyone else is Wasted at 3 and eating the penalty while she is still on
     // the way up. Weed 1 is the lowest, and that is the point too.
@@ -919,7 +919,7 @@ export const CHARACTERS: CharacterDef[] = [
     title: 'The Fed',
     archetype: 'Support',
     stats: { hp: 14, attack: 3, defense: 5 },
-    tags: ['Dad', 'Adult', 'Collector', 'Athlete'],
+    tags: ['Dad', 'Collector', 'Athlete'],
     // Alcohol 3 is ordinary; the family gets him there fast enough without
     // help. Weed 2 is the whole counter-play: two and he is on the couch.
     tolerance: T(3, 2, 3),
@@ -972,7 +972,7 @@ export const CHARACTERS: CharacterDef[] = [
     title: 'The Handyman',
     archetype: 'Bruiser',
     stats: { hp: 16, attack: 4, defense: 4 },
-    tags: ['Cousin', 'Adult', 'Party Animal', 'Heavyweight'],
+    tags: ['Cousin', 'Party Animal', 'Heavyweight'],
     // Alcohol 4 because the whole build runs on it and he collects everyone
     // else's as well. Nothing else about him is unusual.
     tolerance: T(4, 3, 3),
@@ -1026,7 +1026,7 @@ export const CHARACTERS: CharacterDef[] = [
     title: 'The Hippie Adjuster',
     archetype: 'Support',
     stats: { hp: 14, attack: 3, defense: 5 },
-    tags: ['Cousin', 'Adult', 'Stoner', 'Psychic'],
+    tags: ['Cousin', 'Stoner', 'Psychic'],
     // Weed 3 rather than 4: his sweet spot is tier 2 and the whole risk is that
     // it sits one puff from Zooted. Food 2 so a plate takes him out of a Round.
     tolerance: T(3, 3, 2),
@@ -1079,7 +1079,7 @@ export const CHARACTERS: CharacterDef[] = [
     title: 'The Ride Or Die Writer',
     archetype: 'Support',
     stats: { hp: 15, attack: 3, defense: 5 },
-    tags: ['Cousin', 'Adult', 'Collector', 'Tech'],
+    tags: ['Cousin', 'Collector', 'Tech'],
     tolerance: T(3, 3, 3),
     color: '#2f6fb5',
     art: 'hoza.webp',
@@ -1184,7 +1184,7 @@ export const CHARACTERS: CharacterDef[] = [
     title: 'The Tallest Problem',
     archetype: 'Bruiser',
     stats: { hp: 16, attack: 5, defense: 3 },
-    tags: ['Brother', 'Adult', 'Athlete', 'Troublemaker'],
+    tags: ['Brother', 'Athlete', 'Troublemaker'],
     // FRESHMAN 20: food tolerance 4, and he carries more than anybody.
     tolerance: T(3, 3, 4),
     itemSlots: 4,

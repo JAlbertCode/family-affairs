@@ -1494,10 +1494,14 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
    the smallest text on screen is 18px, the room code is readable from a sofa,
    and there is not one control anywhere because nobody can press it. */
 
+/* Everything on this screen is sized in rem off this one number, so the whole
+   board scales with the height of the television rather than being laid out
+   for one. At 18px fixed, a 768p projector had to fit 1080p furniture into two
+   thirds the height and the text landed on top of the pictures. */
 .tv {
-  height: 100dvh; display: flex; flex-direction: column; gap: 14px;
-  padding: 20px 24px; overflow: hidden;
-  font-size: 18px;
+  height: 100dvh; display: flex; flex-direction: column; gap: 1.4vh;
+  padding: 1.8vh 1.4vw; overflow: hidden;
+  font-size: clamp(11px, 1.62vh, 24px);
 }
 .tv-top { display: flex; align-items: baseline; gap: 20px; flex: none; }
 .tv-round { font-size: 1.3rem; font-weight: 900; color: var(--gold); letter-spacing: .04em; }
@@ -1542,14 +1546,51 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
 .tv-clout { margin-left: auto; font-size: 1.6rem; font-weight: 900; color: var(--text); }
 .tv-clout s { text-decoration: none; opacity: .45; font-size: .9rem; }
 
+/* On the phone a token keeps its shape and sits at the top of its slot,
+   because the slot is barely bigger than the token. A television is the
+   opposite problem: the panel is four hundred pixels tall, the token was two
+   hundred, and the rest was a hole. Fill it - a family's three Characters
+   should be the biggest thing on the screen, because they are the only thing
+   anybody is looking at from a sofa. */
 .tv-slots {
-  flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(3, 1fr);
-  gap: 8px; align-content: start;
+  flex: 1; min-height: 0; display: grid;
+  grid-template-columns: repeat(3, 1fr); grid-template-rows: 1fr;
+  gap: 10px;
 }
-/* Tokens keep their shape rather than stretching to fill the row. An empty
-   family should look like empty slots, not like three very tall cards. */
-.tv-slots > * { align-self: start; max-height: 100%; }
-.tv-empty { border: 2px dashed var(--line); border-radius: 12px; min-height: 120px; opacity: .3; }
+.tv-slots > * { align-self: stretch; min-height: 0; max-height: none; height: 100%; }
+.tv-empty { border: 2px dashed var(--line); border-radius: 14px; opacity: .28; }
+
+/* The art takes whatever height is left after the name, the HP bar and the
+   three meters have had theirs, rather than being capped at a phone-sized
+   letterbox. Capped, the picture on a TV was an eighty-pixel strip across the
+   middle of somebody's face. */
+/* The name, the HP bar, the stats and the meters keep the height they need;
+   the picture is the only thing that gives. Without this the text is what
+   flexbox shrinks, and text does not shrink - it just draws over the art,
+   which is what a 768p screen looked like. */
+.tv .tok { min-height: 0; }
+.tv .tok > * { flex: none; }
+.tv .tok-art {
+  flex: 1 1 auto; min-height: 0; aspect-ratio: auto; max-height: none;
+}
+.tv .tok-art img { object-position: 50% 18%; }
+.tv .tok-name { font-size: 1rem; line-height: 1.2; padding: 2px 6px; }
+.tv .tok-hp { height: 12px; }
+.tv .tok-stats { font-size: .92rem; }
+/* Nobody counts pips from a sofa. Three stacked bars cost three rows of a
+   token that is mostly picture and say nothing legible at four metres, so the
+   television keeps the part that does read - which track is lit and how hot -
+   and drops the arithmetic. A sober, clear, hungry Character shows nothing at
+   all, which is the point: something is only on this screen if it is doing
+   something. */
+.tv .meters { flex-direction: row; justify-content: center; align-items: center; gap: .55rem; padding: .25rem 0 .1rem; min-height: 1.5rem; }
+.tv .meter { flex: none; gap: 0; }
+.tv .m-pips { display: none; }
+.tv .meter.t0 { display: none; }
+.tv .meter .m-glyph { line-height: 1; }
+.tv .meter.t1 .m-glyph { font-size: 1rem; opacity: .85; }
+.tv .meter.t2 .m-glyph { font-size: 1.3rem; opacity: 1; }
+.tv .meter.t3 .m-glyph { font-size: 1.55rem; opacity: 1; filter: drop-shadow(0 0 6px currentColor); }
 /* Nothing here is pressable. The tokens are buttons because the phone reuses
    them, and a button nobody can press should not look like one from a sofa. */
 .tv .tok { pointer-events: none; cursor: default; }

@@ -214,6 +214,7 @@ function openingCharacter(state: GameState, pid: PlayerId) {
   ch.slot = 1
   ps.hand = ps.hand.filter((x) => x !== iid)
   grantStartingStuff(state, ch)
+  arrivesAlreadyGoing(state, ch)
   log(state, `${ps.name} arrives with ${def.name}.`, 'play')
 }
 
@@ -673,6 +674,32 @@ function handle(state: GameState, pid: PlayerId, intent: Intent): string | undef
  * on: it can be stolen, destroyed, eaten or handed over, and when it goes the
  * bonus goes with it.
  */
+/**
+ * Nobody arrives sober.
+ *
+ * Measured over sixty games, 46.6% of Characters were knocked out having never
+ * touched a drink, a joint or a plate - they turned up, got hit, and left
+ * before a single meter moved. That is not a tuning problem with the tracks,
+ * it is that every Character starts at zero on all three and a life at this
+ * table is short.
+ *
+ * So they turn up already going, on whatever they would obviously have been
+ * doing before they walked in. One pip is not a curve on its own; what it does
+ * is put everybody one item away from a tier that means something, and two
+ * items from Cross-Faded.
+ */
+function arrivesAlreadyGoing(state: GameState, ch: CharacterInstance) {
+  const def = getCharacterDef(ch.defId)
+  const tags = def.tags as string[]
+  const track: LimitTrack =
+    tags.includes('Stoner') ? 'weed'
+    : tags.includes('Foodie') || tags.includes('Cook') || tags.includes('Baker') ? 'food'
+    : 'alcohol'
+  // Kids get a plate. Obviously.
+  const t: LimitTrack = tags.includes('Kid') || tags.includes('Grandkid') ? 'food' : track
+  ch.limits[t] = Math.max(ch.limits[t], 1)
+}
+
 function grantStartingStuff(state: GameState, ch: CharacterInstance) {
   const def = getCharacterDef(ch.defId)
   if (!def.startsWith?.length || ch.scratch.startingStuffGranted) return
@@ -714,6 +741,7 @@ function playCard(
     ps.hand = ps.hand.filter((x) => x !== iid)
     ps.cardsPlayedThisTurn += 1
     grantStartingStuff(state, ch)
+    arrivesAlreadyGoing(state, ch)
     return
   }
 
@@ -1075,9 +1103,22 @@ function resolveBattle(state: GameState) {
 function endTurn(state: GameState, pid: PlayerId, recover?: LimitTrack) {
   const ps = state.playerState[pid]
 
-  // Limit recovery: one track down by 1 (§24)
+  // Limit recovery (§24), but only for a Character that had nothing this Round.
+  //
+  // This used to run unconditionally, and it is why nobody at Jay's table ever
+  // saw Drunk, High or Stuffed do anything. A Character may consume once per
+  // Turn, which is +1; this took 1 straight back off, off the highest track by
+  // design. Those two rules together are a hard mathematical ceiling of tier 1
+  // on everything, for every Character, for the whole game - the ladders were
+  // unreachable, not badly tuned. Measured: 85% of Characters were knocked out
+  // at tier 1 or below.
+  //
+  // Sobering up is now something you do by taking a Round off, which is a real
+  // decision rather than a tax, and it means force-feeding somebody actually
+  // sticks as long as the drinks keep coming.
   for (const ch of Object.values(state.characters)) {
     if (ch.owner !== pid || ch.zone === 'recovering') continue
+    if (ch.scratch.tookSomething) continue
     const track = recover ?? pickRecoveryTrack(ch)
     if (track && ch.limits[track] > 0) {
       ch.limits[track] -= 1
@@ -1095,6 +1136,7 @@ function endTurn(state: GameState, pid: PlayerId, recover?: LimitTrack) {
     delete ch.scratch.freeAttacks
     delete ch.scratch.freeAttackMod
     delete ch.scratch.consumedThisTurn
+    delete ch.scratch.tookSomething
   }
 
   // KO recovery (§15)
@@ -1259,13 +1301,16 @@ function startNewRound(state: GameState) {
     return
   }
 
-  // Re-roll seating every Round. With a fixed order the last seat always swings
-  // at the most-softened board and farms the kills; the sim had seat 6 taking
-  // 1.38 KOs a game against seat 1's 0.54. Rotating removes that entirely and
-  // fits a family that has never once started anything on time.
-  const ro = shuffle(state.players, state.seed)
-  state.turnOrder = ro.arr
-  state.seed = ro.seed
+  // Turn order is rolled once, at the start, and then it is the seating for the
+  // rest of the game. It used to be re-rolled every Round, which was aimed at a
+  // real problem - a fixed last seat swings at the most-softened board and
+  // farms the kills, and the sim had seat 6 taking 1.38 KOs a game against
+  // seat 1's 0.54 - but the actual cause of that was crossing the Clout
+  // threshold ending play on the spot, which handed the later seats a free
+  // extra Turn. That is fixed separately: crossing it now starts a final Round
+  // so everybody gets the same number of Turns. Re-rolling on top of that
+  // bought nothing and cost the thing a table cares about, which is knowing
+  // who is after you.
 
   // Titi The Bum - Attention Hunger
   for (const ch of allActiveEveryone(state)) {

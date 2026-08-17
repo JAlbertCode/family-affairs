@@ -353,6 +353,10 @@ export function applyLimit(
   const before = limitTier(target, track)
   const cap = def.tolerance[track] + 1
   target.limits[track] = Math.max(0, Math.min(cap, target.limits[track] + amount))
+  // Anything that put something INTO them - a drink they chose, a plate
+  // somebody pushed at them, an Affair - means they are not sobering up at the
+  // end of this Round. See endTurn.
+  if (amount > 0) target.scratch.tookSomething = 1
   const after = limitTier(target, track)
 
   if (after !== before) {
