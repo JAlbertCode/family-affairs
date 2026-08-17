@@ -289,6 +289,27 @@ export function effectiveStat(state: GameState, ch: CharacterInstance, stat: Sta
   if (stat === 'defense' && def.id === 'nani' && activeCharacters(state, ch.owner)
     .some((c) => getCharacterDef(c.defId).id === 'bry')) v += 1
 
+  // ---- Justin: Giant Reach ----
+  // He is reaching over whoever is in front of him, so it comes off their
+  // Defense rather than adding to his Attack - same arithmetic, but it reads
+  // as height rather than as strength.
+  if (stat === 'defense') {
+    for (const enemy of acrossFrom(state, ch.iid)) {
+      if (getCharacterDef(enemy.defId).id === 'justin') v -= 1
+    }
+  }
+
+  // ---- Grandpa: the Sunday Service aura, sized by Faith ----
+  // Read off whoever is standing next to him rather than off him, because the
+  // whole character is what he does for other people.
+  if (stat === 'defense') {
+    for (const ally of adjacentAllies(state, ch.iid)) {
+      if (getCharacterDef(ally.defId).id !== 'grandpa') continue
+      const f = (ally.scratch.faith as number) ?? 0
+      v += f >= 5 ? 3 : f >= 3 ? 2 : 1
+    }
+  }
+
   // ---- Hoza: Red Bull, Clutch Player, Ride or Die ----
   if (def.id === 'hoza') {
     const rb = (ch.scratch.redbull as number) ?? 0
@@ -590,6 +611,19 @@ export function explainStat(state: GameState, ch: CharacterInstance, stat: StatN
       if (sd.id === 'bigsexychain' && stat === 'attack') parts.push({ label: `Beside ${sd.name}`, amount: 1, kind: 'aura' })
       if (sd.id === 'momvan' && stat === 'defense') parts.push({ label: `Beside ${sd.name}`, amount: 1, kind: 'aura' })
       if (sd.id === 'homegym' && stat === 'attack') parts.push({ label: `🏋️ ${sd.name}`, amount: 2, kind: 'aura' })
+    }
+  }
+
+  if (stat === 'defense') {
+    for (const ally of adjacentAllies(state, ch.iid)) {
+      if (getCharacterDef(ally.defId).id !== 'grandpa') continue
+      const f = (ally.scratch.faith as number) ?? 0
+      parts.push({ label: '🙏 Sunday Service', amount: f >= 5 ? 3 : f >= 3 ? 2 : 1, kind: 'aura' })
+    }
+    for (const enemy of acrossFrom(state, ch.iid)) {
+      if (getCharacterDef(enemy.defId).id === 'justin') {
+        parts.push({ label: '🏀 Facing Justin', amount: -1, kind: 'aura' })
+      }
     }
   }
 

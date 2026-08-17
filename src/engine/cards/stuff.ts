@@ -493,9 +493,42 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'walker', name: "Grandpa's Walker", subtype: 'Gear', copies: 2, icon: '🦼', color: GEAR,
-    text: 'Equip. +2 Defense, -1 Attack. Nobody is knocking this over, and nobody is getting anywhere fast either.',
+    text: 'Equip. +2 Defense, -1 Attack. Nobody is knocking this over and nobody is getting anywhere fast. He has modified it: Walker Cannon fires a tennis ball at somebody across the room for 3, and Defense is not going to help.',
     equipMods: [{ stat: 'defense', amount: 2 }, { stat: 'attack', amount: -1 }],
+    activated: {
+      name: 'Walker Cannon',
+      text: 'Deal 3 to a chosen enemy, ignoring Defense, and knock the wind out of them: Busy until their next Turn. Cooldown 2 Rounds.',
+      actionCost: 1,
+      cooldown: 2,
+      effects: [
+        { k: 'damage', target: { scope: 'chosenEnemyActive' }, amount: 3, ignoreDefense: true },
+        { k: 'status', target: { scope: 'chosenEnemyActive' }, status: 'Busy', duration: 1 },
+      ],
+    },
     effects: [],
+  },
+  {
+    kind: 'stuff', id: 'gospelrecord', name: 'The Gospel Record', subtype: 'Gear', copies: 2, onlyFor: ['grandpa'], icon: '📀', color: GEAR,
+    text: 'The one he will not let anybody else touch. Equip. +1 Defense. Holy Remix: everybody in your family takes +1 Attack for the Round, because he finally put something good on.',
+    equipMods: [{ stat: 'defense', amount: 1 }],
+    activated: {
+      name: 'Holy Remix',
+      text: 'Your whole family gains +1 Attack for the Round. Cooldown 2 Rounds.',
+      actionCost: 1,
+      cooldown: 2,
+      effects: [
+        { k: 'statMod', target: { scope: 'allMyActive' }, stat: 'attack', amount: 1, duration: 'round' },
+      ],
+    },
+    effects: [],
+  },
+  {
+    kind: 'stuff', id: 'cologne', name: 'Too Much Cologne', subtype: 'Consumable', copies: 3, icon: '🧴', color: UTIL,
+    text: 'He does not wear it, he deploys it. A chosen enemy cannot bring themselves to look at anybody else: Charmed until their next Turn, and -1 Attack for the Round.',
+    effects: [
+      { k: 'status', target: { scope: 'chosenEnemyActive' }, status: 'Charmed', duration: 1 },
+      { k: 'statMod', target: { scope: 'chosenEnemyActive' }, stat: 'attack', amount: -1, duration: 'round' },
+    ],
   },
   {
     kind: 'stuff', id: 'sharpied', name: 'Sharpied While You Slept', subtype: 'Consumable', copies: 3, icon: '🖊️', color: UTIL,

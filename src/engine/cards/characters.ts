@@ -1111,6 +1111,119 @@ export const CHARACTERS: CharacterDef[] = [
       key: 'wired',
     },
   },
+
+  // -------------------------------------------------------------- GRANDPA --
+  {
+    kind: 'character',
+    id: 'grandpa',
+    name: 'Grandpa',
+    title: 'The Holy Roller',
+    archetype: 'Support',
+    stats: { hp: 13, attack: 3, defense: 5 },
+    tags: ['Grandpa', 'Elder', 'Musician', 'Caretaker', 'Tech'],
+    // He has been drinking at family parties since before most of them were
+    // born. Weed 2 because he sits down and watches television.
+    tolerance: T(4, 2, 3),
+    color: '#1f9e9e',
+    art: 'grandpa.webp',
+    startsWith: ['walker'],
+    passive: {
+      name: 'Faith',
+      text: 'He builds momentum rather than having it. Grandpa gains 1 Faith at the start of every Round he is standing, up to 5, and the Characters beside him get +1 Defense, +2 at Faith 3, +3 at Faith 5. Taking a hit costs him 1 Faith: the music stops when somebody swings at him.',
+      hooks: ['faith', 'sundayService'],
+    },
+    ability: {
+      name: 'Sunday Service',
+      text: 'He puts something on and gets everybody spiritually prepared for whatever this is. Your whole family gains +1 Defense for the Round and shakes off Confused, and Grandpa gains a Faith for the trouble. Cooldown 2 Rounds.',
+      actionCost: 1,
+      cooldown: 2,
+      effects: [
+        { k: 'statMod', target: { scope: 'allMyActive' }, stat: 'defense', amount: 1, duration: 'round' },
+        { k: 'removeStatus', target: { scope: 'allMyActive' }, status: 'Confused' },
+      ],
+    },
+    powerMove: {
+      name: 'Miracle',
+      text: 'He throws on the right record and somehow gets the whole family back together. Once per game: heal every one of your Active Characters 3, and clear Asleep, Busy and Confused off all of them.',
+      actionCost: 1,
+      oncePerGame: true,
+      effects: [
+        { k: 'heal', target: { scope: 'allMyActive' }, amount: 3 },
+        { k: 'removeStatus', target: { scope: 'allMyActive' }, status: 'Asleep' },
+        { k: 'removeStatus', target: { scope: 'allMyActive' }, status: 'Busy' },
+        { k: 'removeStatus', target: { scope: 'allMyActive' }, status: 'Confused' },
+      ],
+    },
+    flaw: {
+      name: 'He Needs To Sit Down',
+      text: 'Weed tolerance 2, and reaching it puts him in front of the television until his next Turn. Every hit he takes also costs a Faith, so the longer anybody lets him stand there the more it costs to stop him.',
+      hooks: ['needsToSitDown', 'faithBreaks'],
+    },
+    achievement: {
+      name: 'Holy Roller',
+      text: 'Reach 5 Faith. +1 Clout.',
+      clout: 1,
+      key: 'holyRoller',
+    },
+  },
+
+  // --------------------------------------------------------------- JUSTIN --
+  {
+    kind: 'character',
+    id: 'justin',
+    name: 'Justin',
+    title: 'The Tallest Problem',
+    archetype: 'Bruiser',
+    stats: { hp: 16, attack: 5, defense: 3 },
+    tags: ['Brother', 'Adult', 'Athlete', 'Troublemaker'],
+    // FRESHMAN 20: food tolerance 4, and he carries more than anybody.
+    tolerance: T(3, 3, 4),
+    itemSlots: 4,
+    color: '#f2762b',
+    art: 'justin.webp',
+    startsWith: ['airmax'],
+    passive: {
+      name: 'Giant Reach',
+      text: 'He is simply taller than this and there is nothing anybody can do about it. Enemy Characters directly across the table from Justin lose 1 Defense: he is reaching over them. Freshman 20: he carries four items rather than three.',
+      hooks: ['giantReach', 'freshman20'],
+    },
+    ability: {
+      name: 'Ankle Breaker',
+      text: 'The crossover. A chosen enemy is left going the wrong way: 2 damage and Confused until their next Turn. Cooldown 2 Rounds.',
+      actionCost: 1,
+      cooldown: 2,
+      effects: [
+        { k: 'damage', target: { scope: 'chosenEnemyActive' }, amount: 2 },
+        { k: 'status', target: { scope: 'chosenEnemyActive' }, status: 'Confused', duration: 1 },
+      ],
+    },
+    powerMove: {
+      name: 'Half-Court Bucket',
+      text: 'He is going to try it. Roll d6: on 4-6 it goes in for 5, on 1-3 it hits the ceiling fan and he takes 1 for the attempt. Cooldown 2 Rounds.',
+      actionCost: 1,
+      cooldown: 2,
+      effects: [
+        {
+          k: 'roll',
+          branches: [
+            { on: [4, 5, 6], label: 'Nothing but net', effects: [{ k: 'damage', target: { scope: 'chosenEnemyActive' }, amount: 5 }] },
+            { on: [1, 2, 3], label: 'Ceiling fan', effects: [{ k: 'damage', target: { scope: 'self' }, amount: 1 }] },
+          ],
+        },
+      ],
+    },
+    flaw: {
+      name: 'Thief Mode',
+      text: 'Drunk, he takes things that are not his: at the start of each Round he helps himself to an item from whoever is standing next to him. Stoned, it runs the other way and he gives one of his away. Either way somebody is going to have to have a conversation with him.',
+      hooks: ['thiefMode', 'goodVibes'],
+    },
+    achievement: {
+      name: 'Freshman 20',
+      text: 'End your Turn with Justin Stuffed and carrying three or more items. +1 Clout.',
+      clout: 1,
+      key: 'freshman20',
+    },
+  },
 ]
 
 export const CHARACTERS_BY_ID: Record<string, CharacterDef> = Object.fromEntries(

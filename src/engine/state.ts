@@ -1213,6 +1213,45 @@ function startNewRound(state: GameState) {
       applyStatMod(state, ch, 'attack', -1, 'round')
       log(state, 'Titi The Bum was ignored all Round. -1 Attack.', 'status')
     }
+    // Justin - THIEF MODE and GOOD VIBES. Drunk he takes something off
+    // whoever is standing next to him; Stoned it runs the other way and he
+    // hands one of his own over. Same gesture, opposite direction, and both
+    // are somebody else's problem to sort out.
+    if (getCharacterDef(ch.defId).id === 'justin' && ch.zone === 'active') {
+      const drunk = limitTier(ch, 'alcohol') >= 2
+      const stoned = limitTier(ch, 'weed') >= 2
+      const neighbours = adjacentAllies(state, ch.iid).filter((c) => c.hp > 0)
+      if (drunk && neighbours.length) {
+        const victim = neighbours.find((c) => c.attached.length > 0)
+        const iid = victim?.attached[0]
+        if (victim && iid && ch.attached.length < totalItemCap(ch)) {
+          victim.attached = victim.attached.filter((x) => x !== iid)
+          ch.attached.push(iid)
+          state.stuff[iid].attachedTo = ch.iid
+          state.stuff[iid].owner = ch.owner
+          log(state, `Thief Mode. Justin has taken ${getStuffDef(state.stuff[iid].defId).name} off ${getCharacterDef(victim.defId).name}.`, 'status')
+        }
+      } else if (stoned && neighbours.length && ch.attached.length) {
+        const iid = ch.attached[0]
+        const lucky = neighbours[0]
+        if (lucky.attached.length < totalItemCap(lucky)) {
+          ch.attached = ch.attached.filter((x) => x !== iid)
+          lucky.attached.push(iid)
+          state.stuff[iid].attachedTo = lucky.iid
+          state.stuff[iid].owner = lucky.owner
+          log(state, `Good vibes. Justin gives ${getCharacterDef(lucky.defId).name} his ${getStuffDef(state.stuff[iid].defId).name}. He insists.`, 'status')
+        }
+      }
+    }
+
+    // Grandpa - the music builds. Faith goes up a point every Round he is
+    // still standing, which makes him the one Character who is worth more in
+    // the tenth Round than the first, and the only reason to deal with him
+    // early rather than leaving the old man alone.
+    if (getCharacterDef(ch.defId).id === 'grandpa' && ch.zone === 'active') {
+      ch.scratch.faith = Math.min(5, ((ch.scratch.faith as number) ?? 0) + 1)
+    }
+
     // Hoza - the Red Bull wears off. One a Round, so Wired is something you
     // maintain rather than a switch you flip once and forget.
     if (getCharacterDef(ch.defId).id === 'hoza') {
@@ -1289,6 +1328,10 @@ function achievementMet(state: GameState, ch: CharacterInstance, key: string): b
         c.iid !== ch.iid && (limitTier(c, 'alcohol') >= 2 || limitTier(c, 'weed') >= 2))
       return messy.length >= 3
     }
+    case 'freshman20':
+      return limitTier(ch, 'food') >= 3 && ch.attached.length >= 3
+    case 'holyRoller':
+      return ((ch.scratch.faith as number) ?? 0) >= 5
     case 'wired':
       return ((ch.scratch.redbull as number) ?? 0) >= 3 && ch.zone === 'active'
     case 'oneLove': {

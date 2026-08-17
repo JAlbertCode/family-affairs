@@ -158,6 +158,17 @@ export function applyDamage(
   const hasGloves = target.attached.some((i) => state.stuff[i] && getStuffDef(state.stuff[i].defId).id === 'pineapplegloves')
   if (hasGloves) dmg = Math.max(0, dmg - 1)
 
+  // Grandpa - the music stops when somebody swings at him. His whole kit is
+  // an aura that grows while he is left alone, so the counterplay has to be
+  // hitting him, and this is what makes that worth an action.
+  if (def.id === 'grandpa') {
+    const f = (target.scratch.faith as number) ?? 0
+    if (f > 0) {
+      target.scratch.faith = f - 1
+      log(state, 'The needle skips. Grandpa loses a Faith.', 'status')
+    }
+  }
+
   target.hp = Math.max(0, target.hp - dmg)
   fx(state, { k: 'damage', target: target.iid, source: ctx.attacker ?? ctx.sourceChar, amount: dmg })
   log(state, `${def.name} takes ${dmg} damage${note ? ` (${note})` : ''} - ${target.hp} HP left.`, 'combat')
@@ -363,6 +374,13 @@ export function applyLimit(
   if (track === 'weed' && def.id === 'larry' && before < 3 && after >= 3) {
     applyStatus(state, target, 'Asleep', 1, ctx)
     log(state, 'Larry goes Catatonic. He is present, and that is all.', 'status')
+  }
+
+  // Grandpa - HE NEEDS TO SIT DOWN. Weed 2 and he is in front of the
+  // television until his next Turn.
+  if (def.id === 'grandpa' && track === 'weed' && before < 3 && after >= 3) {
+    applyStatus(state, target, 'Asleep', 1, ctx)
+    log(state, 'Grandpa sits down and puts the television on. That is the end of that.', 'status')
   }
 
   // Adrian - GONE, and TOO FULL. Two ways to lose him for a Turn, and they are
