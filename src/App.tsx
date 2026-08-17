@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Room, loadSession, clearSession, type RoomView, type SavedSession } from './net/room'
+import { Room, loadSession, clearSession, sessionExpired, type RoomView, type SavedSession } from './net/room'
 import type { Intent } from './engine/types'
 import { Lobby } from './ui/Lobby'
 import { Builder } from './ui/builder/Builder'
@@ -19,6 +19,24 @@ export default function App() {
   const tvCode = useMemo(() => {
     try { return (new URLSearchParams(location.search).get('tv') ?? '').toUpperCase() } catch { return '' }
   }, [])
+  /**
+   * The room code from the URL, if it still means anything.
+   *
+   * Decided once, here, rather than by the Lobby reading `location` on every
+   * render: the effect that strips a stale code runs after the first paint, so
+   * a component reading the URL itself would already have rendered the panel
+   * for a room that timed out. `resuming` above has by then called
+   * `loadSession`, which is what sets the expired flag.
+   */
+  const [inviteCode] = useState(() => {
+    try {
+      const raw = new URLSearchParams(location.search).get('room') ?? ''
+      const code = raw.trim().toUpperCase().replace(/[^A-Z0-9]/g, '')
+      if (!code) return ''
+      return sessionExpired() ? '' : code
+    } catch { return '' }
+  })
+
   const [building, setBuilding] = useState(() => {
     try { return new URLSearchParams(location.search).has('build') } catch { return false }
   })
@@ -72,7 +90,15 @@ export default function App() {
     if (tried.current) return
     tried.current = true
     const s = loadSession()
-    if (!s) return
+    if (!s) {
+      // The room this browser was in has timed out, so the code left in the
+      // address bar points at something that is almost certainly gone. Take it
+      // out, or every future visit opens on a gold panel offering to rejoin
+      // last night's game. Somebody arriving on a shared link has no session to
+      // expire and keeps their way in.
+      if (sessionExpired()) dropRoomFromUrl()
+      return
+    }
     ;(async () => {
       try {
         if (s.role === 'host') await room.resumeHost(s)
@@ -140,8 +166,10 @@ export default function App() {
   // Once somebody has won there is nothing to come back to, and a stale
   // session would drop the next visit straight into a finished game.
   useEffect(() => {
-    if (view.state?.phase === 'gameover') clearSession()
-  }, [view.state?.phase])
+    if (view.state?.phase !== 'gameover') return
+    clearSession()
+    dropRoomFromUrl()
+  }, [view.state?.phase, dropRoomFromUrl])
 
   /**
    * Keep the room code in the address bar for as long as the room is live.
@@ -241,6 +269,7 @@ export default function App() {
         onHost={onHost}
         onJoin={onJoin}
         onRecover={onRecover}
+        inviteCode={inviteCode}
         onStart={(cloutToWin, useKitchenTable) => send({ k: 'startGame', cloutToWin, useKitchenTable })}
         onLocal={(names, cloutToWin, useKitchenTable) => room.startLocal(names, { cloutToWin, useKitchenTable })}
         onLeave={onLeave}

@@ -7,12 +7,14 @@ import { defaultCloutToWin } from '../engine/state'
 import { deckSummary } from '../engine/cards/deck'
 
 export function Lobby({
-  view, onHost, onJoin, onRecover, onStart, onLocal, onLeave, onBuild, busy,
+  view, onHost, onJoin, onRecover, onStart, onLocal, onLeave, onBuild, inviteCode, busy,
 }: {
   view: RoomView
   onHost: (name: string) => void
   onJoin: (code: string, name: string) => void
   onRecover: (code: string, name: string) => void
+  /** A room code from the URL that is still worth offering. '' when it is not. */
+  inviteCode: string
   onStart: (cloutToWin: number, useKitchenTable: boolean) => void
   onLocal: (names: string[], cloutToWin: number, useKitchenTable: boolean) => void
   onLeave: () => void
@@ -41,9 +43,7 @@ export function Lobby({
     copy(url, 'link')
   }
   const [name, setName] = useState(() => localStorage.getItem('fa.name') ?? '')
-  const [code, setCode] = useState(() => {
-    try { return normalizeRoomCode(new URLSearchParams(location.search).get('room') ?? '') } catch { return '' }
-  })
+  const [code, setCode] = useState(() => inviteCode)
   const [screen, setScreen] = useState<'home' | 'join' | 'local'>(() => {
     return 'home'
   })
@@ -184,7 +184,7 @@ export function Lobby({
    * thing to press makes a brand new room. That is Jay's bug exactly: share
    * the link, come back, new code.
    */
-  const urlRoom = code
+  const urlRoom = inviteCode
   const wasHost = urlRoom ? lastRole(urlRoom)?.role === 'host' : false
 
   return (

@@ -99,7 +99,20 @@ export function clientId(): string {
     return `c${Math.random().toString(36).slice(2)}`
   }
 }
+/**
+ * How long a session is worth coming back to.
+ *
+ * A game in progress is worth restoring hours later - people put a game down
+ * and pick it up. A lobby is not. The room code now stays in the URL until
+ * somebody deliberately leaves, and a host session is written the moment a room
+ * opens, so without a shorter fuse on the lobby case every future visit to the
+ * site drops you straight back into an empty room from last night instead of
+ * the main menu. Twenty minutes is long enough for the case the lobby session
+ * exists for - reload after sharing the link, which happens in seconds - and
+ * short enough that it is never what greets you tomorrow.
+ */
 const SESSION_MAX_AGE_MS = 4 * 60 * 60 * 1000
+const LOBBY_MAX_AGE_MS = 20 * 60 * 1000
 
 export interface SavedSession {
   v: 1
@@ -114,13 +127,31 @@ export interface SavedSession {
   clients?: [PlayerId, string][]
 }
 
+let expired = false
+/** Did the last `loadSession` throw away a session that had timed out? */
+export function sessionExpired(): boolean { return expired }
+
 export function loadSession(): SavedSession | null {
   try {
     const raw = localStorage.getItem(SESSION_KEY) ?? sessionStorage.getItem(SESSION_KEY)
     if (!raw) return null
     const s = JSON.parse(raw) as SavedSession
     if (s?.v !== 1 || !s.code || !s.name) return null
-    if (Date.now() - s.at > SESSION_MAX_AGE_MS) { clearSession(); return null }
+    // A host session with no game in it was a lobby, and a lobby goes stale
+    // fast. A client cannot tell from its own session whether a game had
+    // started, so it gets the short fuse too: rejoining a room that is still
+    // live is what the comeback panel is for.
+    const age = Date.now() - s.at
+    const inGame = s.role === 'host' && !!s.game
+    if (age > (inGame ? SESSION_MAX_AGE_MS : LOBBY_MAX_AGE_MS)) {
+      // Remembered, so the caller can tell "this browser's room timed out"
+      // apart from "somebody just followed a link". They land on the same
+      // screen with the same ?room in the URL and want opposite things: one
+      // wants a clean menu, the other wants a way in.
+      expired = true
+      clearSession()
+      return null
+    }
     return s
   } catch { return null }
 }
