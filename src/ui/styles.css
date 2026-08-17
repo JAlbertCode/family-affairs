@@ -1524,6 +1524,44 @@ input[type="text"]:focus { outline: 2px solid var(--pink); outline-offset: -1px;
 .tv-affair .fx { margin-left: auto; }
 .tv-affair .fx-chip { font-size: .8rem; }
 
+/* THE RACE. Six Clout numbers scattered across six panels is not a scoreboard.
+   This is the only line on the screen that answers "who is winning" without
+   anybody reading a digit. */
+.tv-race { flex: none; display: flex; gap: .8rem; align-items: center; }
+.tv-runner {
+  flex: 1 1 0; min-width: 0; display: flex; align-items: center; gap: .45rem;
+  font-size: .82rem; color: var(--muted);
+}
+.tv-runner b { font-weight: 900; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 7ch; }
+.tv-runner i { flex: 1 1 auto; height: .5rem; border-radius: .25rem; background: #ffffff12; overflow: hidden; }
+.tv-runner i s { display: block; height: 100%; background: linear-gradient(90deg, #8b3a86, var(--pink)); transition: width .6s cubic-bezier(.2,1,.3,1); }
+.tv-runner em { font-style: normal; font-weight: 900; font-size: 1.05rem; color: var(--text); min-width: 1.4ch; text-align: right; margin-right: .1rem; }
+.tv-runner.lead b, .tv-runner.lead em { color: var(--gold); }
+.tv-runner.lead i s { background: linear-gradient(90deg, #9a6b12, var(--gold)); }
+.tv-runner.up b { color: var(--pink); }
+
+/* A fight is the only moment everybody at the table looks up at once. It gets
+   the band the Affair would have had, because the Affair has been sitting there
+   all Round and this is happening now. */
+.tv-fight {
+  flex: none; display: flex; align-items: center; justify-content: center; gap: 1.6rem;
+  padding: .5rem 1rem; border-radius: .8rem;
+  background: linear-gradient(100deg, #6d1020, #2a0a18 60%, #6d1020);
+  border: 2px solid var(--red);
+  animation: fightIn .28s cubic-bezier(.2,1.4,.4,1);
+}
+@keyframes fightIn { from { transform: scale(.94); opacity: 0 } }
+.tv-fighter { font-size: 1.6rem; font-weight: 900; }
+.tv-fighter.atk { color: #ff9a4d; }
+.tv-fighter.dfn { color: #9ad2ff; }
+.tv-vs { font-size: 1.1rem; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
+
+/* Whose turn it is should be findable from the sofa without reading a name.
+   Everybody else steps back rather than the active family shouting. */
+.tv-fam { transition: opacity .4s, filter .4s; }
+.tv-fam:not(.up) { opacity: .62; filter: saturate(.75); }
+.tv.fighting .tv-fam:not(.up) { opacity: .45; }
+
 /* Every family at once. Six across is unreadable and six down does not fit, so
    it wraps into a grid that gets denser as the table gets bigger. */
 .tv-tables { flex: 1; min-height: 0; display: grid; gap: 12px; }

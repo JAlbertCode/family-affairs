@@ -560,13 +560,27 @@ function handle(state: GameState, pid: PlayerId, intent: Intent): string | undef
 
       const b = state.battle
       log(state, `${ps.name} interferes: ${def.name}.`, 'combat')
-      runEffects(state, def.effects, {
+      const hitIid = intent.targetChar ?? b.defenderChar
+      const ctx2: EffectCtx = {
         controller: pid,
         attacker: b.attackerChar,
         defender: b.defenderChar,
-        eventTarget: intent.targetChar ?? b.defenderChar,
+        eventTarget: hitIid,
         chosen: intent.targetChar ? [intent.targetChar] : [],
-      })
+      }
+      // Something shoved at somebody mid-fight is still something they had.
+      // This path ran the card's effects and skipped its limitGain entirely,
+      // so a shot pressed into a man's hand during a brawl moved his Attack
+      // and not his Alcohol - which is the half of the card that matters.
+      const hit = state.characters[hitIid]
+      if (hit && (def.subtype === 'Food' || def.subtype === 'Drink' || def.subtype === 'Smoke')) {
+        const gains: Partial<Record<LimitTrack, number>> = { ...(def.limitGain ?? {}) }
+        if (def.subtype === 'Food' && !gains.food) gains.food = 1
+        for (const [track, amt] of Object.entries(gains)) {
+          applyLimit(state, hit, track as LimitTrack, amt as number, ctx2)
+        }
+      }
+      runEffects(state, def.effects, ctx2)
       // playing an interfere re-opens the window for everyone else
       state.battle.passed = [pid]
       maybeResolveBattle(state)

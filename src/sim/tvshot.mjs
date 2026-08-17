@@ -35,10 +35,12 @@ for (const [w, h, tag] of [[1920, 1080, '1080p'], [1366, 768, '768p'], [2560, 14
       logBottom: Math.round(document.querySelector('.tv-log')?.getBoundingClientRect().bottom ?? 0),
       viewport: window.innerHeight,
       affair: !!document.querySelector('.tv-affair'),
+      fight: !!document.querySelector('.tv-fight'),
+      race: document.querySelectorAll('.tv-runner').length,
     }
   })
-  console.log(`${tag.padEnd(6)} affair:${r.affair ? 'yes' : 'NO'}  page scroll:${r.pageScroll}px  ${r.spill.length ? 'SPILLED OUT OF ITS PANEL: ' + r.spill.join(', ') : 'everything inside its panel'}`)
-  if (r.spill.length || r.pageScroll > 0) bad++
+  console.log(`${tag.padEnd(6)} race:${r.race} fight:${r.fight ? 'yes' : 'NO'}  page scroll:${r.pageScroll}px  ${r.spill.length ? 'SPILLED OUT OF ITS PANEL: ' + r.spill.join(', ') : 'everything inside its panel'}`)
+  if (r.spill.length || r.pageScroll > 0 || !r.fight || r.race !== 6) bad++
   await p.close()
 }
 await b.close()

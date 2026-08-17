@@ -106,7 +106,12 @@ export function botIntent(state: GameState, pid: PlayerId): Intent | null {
         if (target) return { k: 'playCard', iid, targetChar: target.iid }
       }
 
-      if (['Food', 'Drink', 'Smoke'].includes(def.subtype) && !def.interfere) {
+      // Being throwable into somebody else's fight does not stop a card being
+      // a drink you hand your own cousin on your own Turn. It used to: while
+      // interfere was a category rather than an extra thing a card can do,
+      // skipping them here was right, and the moment forty-two consumables
+      // became throwable it would have stopped the bot playing any of them.
+      if (['Food', 'Drink', 'Smoke'].includes(def.subtype)) {
         const target = mine.find(
           (c) => countAttached(state, c, def.subtype) < itemCap(c, def.subtype)
             && c.attached.length < totalItemCap(c),

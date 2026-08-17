@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { GameState, PlayerId } from '../engine/types'
 import { currentPlayer, activeCharacters } from '../engine/selectors'
-import { getAffairDef } from '../engine/cards/deck'
+import { getAffairDef, getCharacterDef } from '../engine/cards/deck'
 import { BoardToken } from './BoardToken'
 import { EffectChips, affairChips } from './CardFace'
 import { FxLayer } from './Fx'
@@ -28,16 +28,47 @@ export function Tv({ state, code, waiting }: {
   const cur = currentPlayer(state)
   const affair = state.currentAffair ? getAffairDef(state.currentAffair) : null
   const leader = [...state.players].sort((a, b) => state.playerState[b].clout - state.playerState[a].clout)[0]
+  const b = state.battle
+  const atk = b ? state.characters[b.attackerChar] : null
+  const dfn = b ? state.characters[b.defenderChar] : null
 
   return (
-    <div className="tv">
+    <div className={`tv ${b ? 'fighting' : ''}`}>
       <header className="tv-top">
         <span className="tv-round">Round {state.round}{state.finalRound ? ' · FINAL' : ''}</span>
         <span className="tv-turn"><b>{state.playerState[cur]?.name}</b> is up</span>
         <span className="tv-code">Room <b>{code}</b></span>
       </header>
 
-      {affair && (
+      {/* The race, in one line. Six numbers scattered across six panels is not
+          a scoreboard; this is the only thing on the screen that answers "who
+          is winning" without reading. */}
+      <div className="tv-race">
+        {[...state.players]
+          .sort((x, y) => state.playerState[y].clout - state.playerState[x].clout)
+          .map((pid) => {
+            const ps = state.playerState[pid]
+            return (
+              <span key={pid} className={`tv-runner ${pid === leader ? 'lead' : ''} ${pid === cur ? 'up' : ''}`}>
+                <b>{ps.name}</b>
+                <em>{ps.clout}</em>
+                <i><s style={{ width: `${Math.min(100, (ps.clout / state.cloutToWin) * 100)}%` }} /></i>
+              </span>
+            )
+          })}
+      </div>
+
+      {/* A fight is the only moment everybody at the table is looking up, so it
+          takes the screen rather than becoming another grey line in the log. */}
+      {b && atk && dfn && (
+        <div className="tv-fight">
+          <span className="tv-fighter atk">{getCharacterDef(atk.defId).name}</span>
+          <span className="tv-vs">{b.attackRoll != null ? `${b.attackScore} v ${b.defenseScore}` : 'swings at'}</span>
+          <span className="tv-fighter dfn">{getCharacterDef(dfn.defId).name}</span>
+        </div>
+      )}
+
+      {affair && !b && (
         <div className="tv-affair">
           <span className="tv-affair-badge">Family Affair</span>
           <b>{affair.name}</b>

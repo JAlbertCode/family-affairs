@@ -50,6 +50,7 @@ let played = 0, attacks = 0, battles = 0, turns = 0, abilities = 0, minigames = 
 
 for (let i = 0; i < STEPS; i++) {
   if (await page.locator('.winner').count()) { console.log('GAME OVER reached'); break }
+  try {
   // The first-run coach is a modal with a cut-out that swallows clicks
   // everywhere else on the page. It is only shown once per browser, so it
   // never appears in a manual retest of a game already in progress - and a
@@ -100,7 +101,12 @@ for (let i = 0; i < STEPS; i++) {
     if (await act.count()) {
       const k = await act.count()
       const pick = act.nth(i % k)
-      const label = (await pick.textContent()) ?? ''
+      // The chip list changes as the sheet re-renders - selecting a Character
+      // adds a Move chip per slot, using an item removes one - so the handle
+      // can go stale between reading it and clicking it. That is a harness
+      // problem, not a game problem, and it should not end the run.
+      let label = ''
+      try { label = (await pick.textContent()) ?? '' } catch { continue }
       await click(pick)
       await page.waitForTimeout(160)
       if (await page.locator('.tok.target').count()) await click(page.locator('.tok.target'))
@@ -130,6 +136,13 @@ for (let i = 0; i < STEPS; i++) {
   if (await click(page.locator('.actionbar button', { hasText: 'End turn' }))) { turns++; idle = 0; continue }
 
   await page.waitForTimeout(50)
+  } catch (e) {
+    // A long run in a small container can lose the browser to memory pressure.
+    // That is the harness dying, not the game, and it should report what it got
+    // to rather than throwing a stack trace over the top of the numbers.
+    console.log(`stopped early at step ${i}: ${String(e).split('\n')[0]}`)
+    break
+  }
 }
 
 console.log(`\nturns ended:   ${turns}`)

@@ -355,6 +355,19 @@ function demoState(): RoomView['state'] {
       ps.field[s] = ch.iid
     }
   })
+  // A fight in progress, because the band it puts on the screen is the one
+  // thing on this display that only exists for a few seconds and so is the one
+  // nobody would ever catch by looking.
+  const fighters = g.players.flatMap((pid) => g.playerState[pid].field.filter(Boolean) as string[])
+  if (fighters.length >= 4) {
+    g.battle = {
+      attackerPlayer: g.characters[fighters[0]].owner, attackerChar: fighters[0],
+      defenderPlayer: g.characters[fighters[3]].owner, defenderChar: fighters[3],
+      stage: 'declared', passed: [], attackRoll: null, defenseRoll: null,
+      attackScore: null, defenseScore: null, attackMod: 0, defenseMod: 0,
+      damageDealt: null, isFree: false, log: [],
+    }
+  }
   g.round = 4
   // An Affair is on the board most Rounds and it is the widest thing on the
   // screen, so a demo without one is not the layout that has to hold.

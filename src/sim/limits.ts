@@ -7,6 +7,7 @@
 import { createGame, applyIntent, defaultCloutToWin } from '../engine/state'
 import { botIntent } from './bot'
 import { limitTier } from '../engine/selectors'
+import { getStuffDef } from '../engine/cards/deck'
 import type { GameState, CharacterInstance } from '../engine/types'
 
 const GAMES = Number(process.env.GAMES ?? 60)
@@ -17,6 +18,10 @@ const peak = new Map<string, number>()          // best tier any track ever hit
 const peakBy: Record<string, number[]> = { alcohol: [], weed: [], food: [] }
 const atKo: number[] = []
 let kos = 0, everActive = 0
+// How often does a battle open a window somebody could actually act in? That is
+// the only moment in this game when it is not your turn and you still have a
+// decision, so it is the whole of off-turn engagement.
+let battles = 0, windowsWithAnOption = 0, seatsWithAnOption = 0, seatsAsked = 0
 let roundsToFirstTier2 = 0, gamesWithTier2 = 0
 
 function best(ch: CharacterInstance) {
@@ -28,6 +33,7 @@ for (let g = 0; g < GAMES; g++) {
   let state: GameState = createGame(players, { seed: g * 6151 + 3, cloutToWin: defaultCloutToWin(PLAYERS) })
   const seenAlive = new Set<string>()
   const lives = new Map<string, number>()
+  const seenBattle = new Set<string>()
   let firstTier2 = 0
 
   for (let step = 0; step < 40000 && state.phase !== 'gameover'; step++) {
@@ -55,6 +61,22 @@ for (let g = 0; g < GAMES; g++) {
     // KO clears the meters, so a reading taken afterwards always says Sober.
     // Snapshot before the intent resolves or the answer is a tautology.
     const before = new Map(Object.values(state.characters).map((c) => [c.iid, { hp: c.hp, tier: best(c) }]))
+    if (state.battle && !seenBattle.has(state.battle.attackerChar + state.battle.defenderChar + state.round + state.turnIndex)) {
+      seenBattle.add(state.battle.attackerChar + state.battle.defenderChar + state.round + state.turnIndex)
+      battles++
+      let any = false
+      for (const p of state.players) {
+        const ps = state.playerState[p]
+        if (p === state.characters[state.battle.attackerChar]?.owner) continue
+        seatsAsked++
+        const can = ps.hand.some((i) => {
+          const st = state.stuff[i]
+          return st && (getStuffDef(st.defId) as any).interfere
+        })
+        if (can) { seatsWithAnOption++; any = true }
+      }
+      if (any) windowsWithAnOption++
+    }
     const intent = botIntent(state, actor)
     if (!intent) break
     const res = applyIntent(state, actor, intent)
@@ -98,3 +120,7 @@ console.log('  ' + hist(atKo))
 console.log(`\nFinal tier per track, over every Character that was ever on a field:`)
 for (const t of TRACKS) console.log(`  ${t.padEnd(8)} ${hist(peakBy[t])}`)
 console.log(`\nFirst time anybody hit tier 2 in a game: Round ${(roundsToFirstTier2 / Math.max(1, gamesWithTier2)).toFixed(1)} (${gamesWithTier2}/${GAMES} games ever got there)`)
+
+console.log(`\nOff-turn engagement: ${battles} battles opened a window.`)
+console.log(`  windows where at least one other player could act: ${pct(windowsWithAnOption, battles)}`)
+console.log(`  seats asked that had something to throw in:        ${pct(seatsWithAnOption, seatsAsked)}`)

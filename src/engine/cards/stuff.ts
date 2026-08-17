@@ -18,18 +18,21 @@ export const STUFF: StuffDef[] = [
   {
     kind: 'stuff', id: 'burger', name: 'Burger', subtype: 'Food', copies: 3, giftable: true, icon: '🍔', color: FOOD,
     text: 'Heal 2 HP.',
+    interfere: true, interfereWindow: 'beforeRoll',
     limitGain: { food: 1 },
     effects: [{ k: 'heal', target: { scope: 'eventTarget' }, amount: 2 }],
   },
   {
     kind: 'stuff', id: 'cake', name: 'Cake', subtype: 'Food', copies: 2, giftable: true, icon: '🍰', color: FOOD,
     text: 'Heal 3 HP.',
+    interfere: true, interfereWindow: 'beforeRoll',
     limitGain: { food: 1 },
     effects: [{ k: 'heal', target: { scope: 'eventTarget' }, amount: 3 }],
   },
   {
     kind: 'stuff', id: 'garbageplate', name: 'Garbage Plate', subtype: 'Food', copies: 2, giftable: true, icon: '🍽️', color: FOOD,
     text: 'Heal 3 HP. +2 Attack this Turn.',
+    interfere: true, interfereWindow: 'beforeRoll',
     limitGain: { food: 2 },
     effects: [
       { k: 'heal', target: { scope: 'eventTarget' }, amount: 3 },
@@ -39,12 +42,14 @@ export const STUFF: StuffDef[] = [
   {
     kind: 'stuff', id: 'sancocho', name: 'Sancocho', subtype: 'Food', copies: 2, giftable: true, icon: '🍲', color: FOOD,
     text: '+1 Food. Heal 1 HP to every Active Character in that Family.',
+    interfere: true, interfereWindow: 'beforeRoll',
     limitGain: { food: 1 },
     effects: [{ k: 'heal', target: { scope: 'allMyActive' }, amount: 1 }],
   },
   {
     kind: 'stuff', id: 'pizzacake', name: 'Pizza Cake', subtype: 'Food', copies: 2, giftable: true, icon: '🍕', color: FOOD,
     text: 'Heal 2 HP. +1 Attack this Turn.',
+    interfere: true, interfereWindow: 'beforeRoll',
     limitGain: { food: 1 },
     effects: [
       { k: 'heal', target: { scope: 'eventTarget' }, amount: 2 },
@@ -54,6 +59,7 @@ export const STUFF: StuffDef[] = [
   {
     kind: 'stuff', id: 'chickenwings', name: 'Chicken Wings', subtype: 'Food', copies: 2, giftable: true, icon: '🍗', color: FOOD,
     text: 'Heal 1 HP. +2 Defense this Round.',
+    interfere: true, interfereWindow: 'beforeRoll',
     limitGain: { food: 1 },
     effects: [
       { k: 'heal', target: { scope: 'eventTarget' }, amount: 1 },
@@ -63,6 +69,7 @@ export const STUFF: StuffDef[] = [
   {
     kind: 'stuff', id: 'pineapple', name: 'Pineapple', subtype: 'Food', copies: 2, giftable: true, icon: '🍍', color: FOOD,
     text: 'Somebody cut it up hours ago and it is still the best thing on the table.',
+    interfere: true, interfereWindow: 'beforeRoll',
     limitGain: { food: 1 },
     effects: [{ k: 'heal', target: { scope: 'eventTarget' }, amount: 2 }],
   },
@@ -71,6 +78,7 @@ export const STUFF: StuffDef[] = [
   {
     kind: 'stuff', id: 'pepsi', name: 'Can Of Pepsi', subtype: 'Drink', copies: 3, giftable: true, icon: '🥤', color: '#d4713f',
     text: 'No alcohol. Heal 2 HP and reduce Weed by 1. Sometimes you just need a Pepsi.',
+    interfere: true, interfereWindow: 'beforeRoll',
     effects: [
       { k: 'heal', target: { scope: 'eventTarget' }, amount: 2 },
       { k: 'limit', target: { scope: 'eventTarget' }, track: 'weed', amount: -1 },
@@ -79,6 +87,7 @@ export const STUFF: StuffDef[] = [
   {
     kind: 'stuff', id: 'beer', name: 'Beer', subtype: 'Drink', copies: 3, giftable: true, icon: '🍺', color: DRINK,
     text: '+1 Alcohol.',
+    interfere: true, interfereWindow: 'beforeRoll',
     limitGain: { alcohol: 1 },
     effects: [{ k: 'heal', target: { scope: 'eventTarget' }, amount: 1 }],
   },
@@ -93,6 +102,7 @@ export const STUFF: StuffDef[] = [
   {
     kind: 'stuff', id: 'strongdrink', name: 'Strong Drink', subtype: 'Drink', copies: 2, giftable: true, icon: '🍸', color: DRINK,
     text: '+2 Alcohol. +3 Attack this Turn. Dangerous.',
+    interfere: true, interfereWindow: 'beforeRoll',
     limitGain: { alcohol: 2 },
     effects: [{ k: 'statMod', target: { scope: 'eventTarget' }, stat: 'attack', amount: 3, duration: 'turn' }],
   },
@@ -115,12 +125,14 @@ export const STUFF: StuffDef[] = [
   {
     kind: 'stuff', id: 'edible', name: 'Edible', subtype: 'Smoke', copies: 2, giftable: true, icon: '🍪', color: SMOKE,
     text: '+1 Food and +1 Weed.',
+    interfere: true, interfereWindow: 'beforeRoll',
     limitGain: { weed: 1, food: 1 },
     effects: [{ k: 'heal', target: { scope: 'eventTarget' }, amount: 1 }],
   },
   {
     kind: 'stuff', id: 'weedbrownies', name: 'Weed Brownies', subtype: 'Smoke', copies: 2, giftable: true, icon: '🍫', color: SMOKE,
     text: 'Counts as Food and Smoke. +1 Food, +1 Weed, heal 2 HP, -1 Attack this Round.',
+    interfere: true, interfereWindow: 'beforeRoll',
     limitGain: { weed: 1, food: 1 },
     effects: [
       { k: 'heal', target: { scope: 'eventTarget' }, amount: 2 },
@@ -141,6 +153,7 @@ export const STUFF: StuffDef[] = [
   {
     kind: 'stuff', id: 'nerdedibles', name: 'The Nerd Edibles', subtype: 'Smoke', copies: 3, giftable: true, icon: '🍬', color: '#6d9f52',
     text: 'Unexpectedly strong. This Character loses their next Turn contemplating life.',
+    interfere: true, interfereWindow: 'beforeRoll',
     limitGain: { weed: 2 },
     effects: [{ k: 'status', target: { scope: 'eventTarget' }, status: 'Asleep', duration: 1 }],
   },
@@ -400,12 +413,14 @@ export const STUFF: StuffDef[] = [
   {
     kind: 'stuff', id: 'flatcoke', name: 'Flat Coke', subtype: 'Drink', copies: 2, giftable: true, icon: '🥤', color: DRINK,
     text: 'No fizz, no alcohol, and it is the morning after. Too disappointed to fight anybody.',
+    interfere: true, interfereWindow: 'beforeRoll',
     limitGain: { alcohol: -1 },
     effects: [{ k: 'statMod', target: { scope: 'eventTarget' }, stat: 'attack', amount: -1, duration: 'round' }],
   },
   {
     kind: 'stuff', id: 'leftovers', name: "Grandma's Leftovers", subtype: 'Food', copies: 3, giftable: true, icon: '🥡', color: FOOD,
     text: '+1 Food. +2 Defense, -1 Attack for the Round. Heavy in the best possible way.',
+    interfere: true, interfereWindow: 'beforeRoll',
     limitGain: { food: 1 },
     effects: [
       { k: 'statMod', target: { scope: 'eventTarget' }, stat: 'defense', amount: 2, duration: 'round' },
@@ -415,18 +430,21 @@ export const STUFF: StuffDef[] = [
   {
     kind: 'stuff', id: 'fakehydration', name: 'Fake Hydration', subtype: 'Drink', copies: 2, giftable: true, icon: '🚰', color: DRINK,
     text: 'It looks like a water bottle. It is not water. +2 Alcohol, and they had no idea.',
+    interfere: true, interfereWindow: 'beforeRoll',
     limitGain: { alcohol: 2 },
     effects: [],
   },
   {
     kind: 'stuff', id: 'hotsauce', name: 'Hot Sauce', subtype: 'Food', copies: 3, giftable: true, icon: '🌶️', color: FOOD,
     text: 'Goes on everything and everything is better. +1 Food and +2 Attack for the Round.',
+    interfere: true, interfereWindow: 'beforeRoll',
     limitGain: { food: 1 },
     effects: [{ k: 'statMod', target: { scope: 'eventTarget' }, stat: 'attack', amount: 2, duration: 'round' }],
   },
   {
     kind: 'stuff', id: 'scoobysnacks', name: 'Twin Scooby Snacks', subtype: 'Food', copies: 2, giftable: true, icon: '🍪', color: FOOD,
     text: '+1 Food. The Character beside them gets one too - there are always exactly two.',
+    interfere: true, interfereWindow: 'beforeRoll',
     limitGain: { food: 1 },
     effects: [
       { k: 'heal', target: { scope: 'eventTarget' }, amount: 2 },
@@ -537,6 +555,7 @@ export const STUFF: StuffDef[] = [
   {
     kind: 'stuff', id: 'potpie', name: "Titi Evelyn's Chicken Pot Pie", subtype: 'Food', copies: 3, giftable: true, icon: '🥧', color: FOOD,
     text: 'Nobody makes it like Titi Evelyn. She will not say what is in it, but it is +1 Weed too.',
+    interfere: true, interfereWindow: 'beforeRoll',
     limitGain: { food: 1, weed: 1 },
     effects: [{ k: 'heal', target: { scope: 'self' }, amount: 3 }],
   },
@@ -570,6 +589,7 @@ export const STUFF: StuffDef[] = [
   {
     kind: 'stuff', id: 'lilly40', name: "Grandma Lilly's 40", subtype: 'Drink', copies: 3, giftable: true, icon: '🍺', color: DRINK,
     text: 'Forty ounces, one hand, no cup. +2 Alcohol and +1 Attack for the Round. Grandma Lilly does not share and does not explain.',
+    interfere: true, interfereWindow: 'beforeRoll',
     limitGain: { alcohol: 2 },
     effects: [{ k: 'statMod', target: { scope: 'self' }, stat: 'attack', amount: 1, duration: 'round' }],
   },
@@ -675,6 +695,7 @@ export const STUFF: StuffDef[] = [
   {
     kind: 'stuff', id: 'arizona', name: 'Arizona Iced Tea', subtype: 'Drink', copies: 3, giftable: true, icon: '🥤', color: DRINK,
     text: 'Ninety-nine cents. It says so on the can, and it is twenty-four ounces of sugar. No Alcohol, no drama.',
+    interfere: true, interfereWindow: 'beforeRoll',
     limitGain: { food: 1 },
     effects: [
       { k: 'heal', target: { scope: 'self' }, amount: 2 },
@@ -727,6 +748,7 @@ export const STUFF: StuffDef[] = [
   {
     kind: 'stuff', id: 'shroomchocolate', name: "Adrian's Chocolate", subtype: 'Smoke', copies: 2, giftable: true, icon: '🍫', color: SMOKE,
     text: 'It is chocolate, and then it is not. +2 Weed and +1 Food immediately. +3 Defense for the Round, and good luck attacking anybody.',
+    interfere: true, interfereWindow: 'beforeRoll',
     limitGain: { weed: 2, food: 1 },
     effects: [
       { k: 'statMod', target: { scope: 'self' }, stat: 'defense', amount: 3, duration: 'round' },
@@ -775,6 +797,7 @@ export const STUFF: StuffDef[] = [
   {
     kind: 'stuff', id: 'ninjastars', name: "Amanda's Ninja Star Cookies", subtype: 'Food', copies: 3, giftable: true, icon: '🍪', color: FOOD,
     text: 'Baked with points on them, on purpose. Nobody has ever asked why.',
+    interfere: true, interfereWindow: 'beforeRoll',
     limitGain: { food: 1 },
     effects: [{ k: 'heal', target: { scope: 'self' }, amount: 2 }],
   },
@@ -798,24 +821,28 @@ export const STUFF: StuffDef[] = [
   {
     kind: 'stuff', id: 'mimosa', name: 'Mimosas', subtype: 'Drink', copies: 3, giftable: true, icon: '🥂', color: DRINK,
     text: 'It is basically juice, which is how everybody ends up having four.',
+    interfere: true, interfereWindow: 'beforeRoll',
     limitGain: { alcohol: 1 },
     effects: [{ k: 'heal', target: { scope: 'self' }, amount: 2 }],
   },
   {
     kind: 'stuff', id: 'budlight', name: 'Bud Light', subtype: 'Drink', copies: 3, giftable: true, icon: '🍺', color: DRINK,
     text: 'Cold, wet, and there are thirty of them.',
+    interfere: true, interfereWindow: 'beforeRoll',
     limitGain: { alcohol: 1 },
     effects: [],
   },
   {
     kind: 'stuff', id: 'corona', name: 'Coronas', subtype: 'Drink', copies: 3, giftable: true, icon: '🍾', color: DRINK,
     text: 'With the lime, obviously. +1 Alcohol and +1 Attack for the Round.',
+    interfere: true, interfereWindow: 'beforeRoll',
     limitGain: { alcohol: 1 },
     effects: [{ k: 'statMod', target: { scope: 'self' }, stat: 'attack', amount: 1, duration: 'round' }],
   },
   {
     kind: 'stuff', id: 'germanshot', name: 'German Chocolate Cake Shot', subtype: 'Drink', copies: 2, giftable: true, icon: '🥃', color: DRINK,
     text: 'Tastes like dessert, which is the trap. +2 Alcohol, because one is never enough.',
+    interfere: true, interfereWindow: 'beforeRoll',
     limitGain: { alcohol: 2 },
     effects: [],
   },
@@ -838,6 +865,7 @@ export const STUFF: StuffDef[] = [
   {
     kind: 'stuff', id: 'sugarfree', name: 'The Sugar Free One', subtype: 'Drink', copies: 2, giftable: true, icon: '🐂', color: DRINK,
     text: 'The silver can. No Alcohol, and it cuts through being high the same way. For Hoza it counts as a Red Bull like any other, which is the problem.',
+    interfere: true, interfereWindow: 'beforeRoll',
     limitGain: { weed: -1 },
     effects: [
       { k: 'statMod', target: { scope: 'self' }, stat: 'attack', amount: 1, duration: 'round' },
@@ -869,6 +897,7 @@ export const STUFF: StuffDef[] = [
   {
     kind: 'stuff', id: 'peacepipe', name: 'The Peace Pipe', subtype: 'Smoke', copies: 3, giftable: true, icon: '☮️', color: SMOKE,
     text: 'It goes round. +1 Weed for whoever smokes it and +1 Weed for the Characters standing beside them, because it was never going to stop with one person.',
+    interfere: true, interfereWindow: 'beforeRoll',
     limitGain: { weed: 1 },
     effects: [
       { k: 'limit', target: { scope: 'adjacentAllies' }, track: 'weed', amount: 1 },
@@ -877,6 +906,7 @@ export const STUFF: StuffDef[] = [
   {
     kind: 'stuff', id: 'sacredherbs', name: 'Sacred Herbs', subtype: 'Smoke', copies: 3, giftable: true, icon: '🌿', color: SMOKE,
     text: 'Organic, ethically sourced, and he will tell you where from. +1 Weed and +1 Defense for the Round.',
+    interfere: true, interfereWindow: 'beforeRoll',
     limitGain: { weed: 1 },
     effects: [
       { k: 'statMod', target: { scope: 'self' }, stat: 'defense', amount: 1, duration: 'round' },
@@ -953,6 +983,7 @@ export const STUFF: StuffDef[] = [
   {
     kind: 'stuff', id: 'teremana', name: 'Teremana', subtype: 'Drink', copies: 3, giftable: true, icon: '🥃', color: DRINK,
     text: 'Gain 1 Alcohol and +1 Attack for the Round. The same bottle reads differently depending on who picks it up: Bry gets +2 Attack on top, Nani has one and gets +2 Defense, and Elias pours a second and goes a tier deeper.',
+    interfere: true, interfereWindow: 'beforeRoll',
     limitGain: { alcohol: 1 },
     effects: [
       { k: 'statMod', target: { scope: 'self' }, stat: 'attack', amount: 1, duration: 'round' },
@@ -961,6 +992,7 @@ export const STUFF: StuffDef[] = [
   {
     kind: 'stuff', id: 'mate', name: 'Mate', subtype: 'Drink', copies: 3, giftable: true, icon: '🧉', color: DRINK,
     text: 'The gourd goes round and you do not refuse it. No Alcohol. Clear 1 Alcohol, shake off Asleep, and +1 Defense for the Round from sitting still long enough to finish it.',
+    interfere: true, interfereWindow: 'beforeRoll',
     limitGain: {},
     effects: [
       { k: 'limit', target: { scope: 'self' }, track: 'alcohol', amount: -1 },
@@ -971,6 +1003,7 @@ export const STUFF: StuffDef[] = [
   {
     kind: 'stuff', id: 'redbull', name: 'Red Bull', subtype: 'Drink', copies: 3, giftable: true, icon: '🐂', color: DRINK,
     text: 'No Alcohol. Cuts straight through being high, and somebody has to stay up.',
+    interfere: true, interfereWindow: 'beforeRoll',
     limitGain: { weed: -1 },
     effects: [
       { k: 'statMod', target: { scope: 'self' }, stat: 'attack', amount: 2, duration: 'round' },
@@ -980,6 +1013,7 @@ export const STUFF: StuffDef[] = [
   {
     kind: 'stuff', id: 'coffee', name: 'A Fresh Pot', subtype: 'Drink', copies: 3, giftable: true, icon: '☕', color: DRINK,
     text: 'Somebody made coffee at 9pm. Shake off Confused and Busy, and clear 1 Alcohol.',
+    interfere: true, interfereWindow: 'beforeRoll',
     limitGain: {},
     effects: [
       { k: 'removeStatus', target: { scope: 'self' }, status: 'Confused' },
@@ -990,6 +1024,7 @@ export const STUFF: StuffDef[] = [
   {
     kind: 'stuff', id: 'teramana', name: "Bry's Teramana Bottle", subtype: 'Drink', copies: 2, giftable: true, icon: '🍶', color: DRINK,
     text: 'Hand it to somebody and they are having two. Any Character gains +2 Alcohol. In the wrong hands it is also just a heavy bottle: 2 damage.',
+    interfere: true, interfereWindow: 'beforeRoll',
     limitGain: {},
     effects: [
       { k: 'limit', target: { scope: 'chosenAnyActive' }, track: 'alcohol', amount: 2 },
@@ -1023,6 +1058,7 @@ export const STUFF: StuffDef[] = [
   {
     kind: 'stuff', id: 'angeldust', name: "Fake Sugar That's Angel Dust", subtype: 'Smoke', copies: 2, giftable: true, icon: '🧂', color: SMOKE,
     text: 'It was in a sugar packet. It was not sugar. +2 Weed, 2 damage, and +3 Attack for the Round because they have stopped negotiating.',
+    interfere: true, interfereWindow: 'beforeRoll',
     limitGain: { weed: 2 },
     effects: [
       { k: 'damage', target: { scope: 'self' }, amount: 2 },
@@ -1034,6 +1070,7 @@ export const STUFF: StuffDef[] = [
   {
     kind: 'stuff', id: 'dogfood', name: 'Dog Food', subtype: 'Food', copies: 2, giftable: true, icon: '🥫', color: FOOD,
     text: 'It was on the counter and nobody labelled it. +1 Food, 1 damage, and they are not talking about it: -1 Attack for the Round.',
+    interfere: true, interfereWindow: 'beforeRoll',
     limitGain: { food: 1 },
     effects: [
       { k: 'damage', target: { scope: 'self' }, amount: 1 },
@@ -1043,24 +1080,28 @@ export const STUFF: StuffDef[] = [
   {
     kind: 'stuff', id: 'chichisundae', name: "Chi Chi's Sundae", subtype: 'Food', copies: 3, giftable: true, icon: '🍨', color: FOOD,
     text: 'Built at midnight out of whatever was in the freezer.',
+    interfere: true, interfereWindow: 'beforeRoll',
     limitGain: { food: 1 },
     effects: [{ k: 'heal', target: { scope: 'self' }, amount: 3 }],
   },
   {
     kind: 'stuff', id: 'dorianplate', name: "Dorian's Garbage Plate", subtype: 'Food', copies: 2, giftable: true, icon: '🍽️', color: FOOD,
     text: 'Everything on one plate, on purpose. Straight to Stuffed for almost anybody.',
+    interfere: true, interfereWindow: 'beforeRoll',
     limitGain: { food: 2 },
     effects: [{ k: 'heal', target: { scope: 'self' }, amount: 4 }],
   },
   {
     kind: 'stuff', id: 'proteinpowder', name: "Kevin's Protein Powder", subtype: 'Food', copies: 3, giftable: true, icon: '🥤', color: FOOD,
     text: 'Thirty grams, chalk flavour. +1 Food and +2 Attack for the Round.',
+    interfere: true, interfereWindow: 'beforeRoll',
     limitGain: { food: 1 },
     effects: [{ k: 'statMod', target: { scope: 'self' }, stat: 'attack', amount: 2, duration: 'round' }],
   },
   {
     kind: 'stuff', id: 'weedbutter', name: "Chi Chi's Weed Butter", subtype: 'Food', copies: 2, giftable: true, icon: '🧈', color: FOOD,
     text: 'She puts it on everything and tells nobody. +2 Food and +2 Weed at once - Stuffed and Stoned in a single sitting.',
+    interfere: true, interfereWindow: 'beforeRoll',
     limitGain: { food: 2, weed: 2 },
     effects: [],
   },
@@ -1261,6 +1302,7 @@ export const STUFF: StuffDef[] = [
   {
     kind: 'stuff', id: 'fakepickleback', name: 'The Fake Pickleback', subtype: 'Drink', copies: 3, giftable: true, icon: '🥒', color: DRINK,
     text: 'Nobody knows which one they are getting until it is down. Roll d6: on 1-3 it was pickle juice and clears 1 Alcohol, on 4-6 it was the shot and gives 2.',
+    interfere: true, interfereWindow: 'beforeRoll',
     limitGain: {},
     effects: [
       {
