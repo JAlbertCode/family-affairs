@@ -276,12 +276,11 @@ export function effectiveStat(state: GameState, ch: CharacterInstance, stat: Sta
     if (ad.id === 'manny' && stat === 'attack') v += 1          // Big Chain
     for (const s of attachedStuff(state, ally)) {
       const sd = getStuffDef(s.defId)
-      if (sd.id === 'bigsexychain' && stat === 'attack') v += 1
-      if (sd.id === 'momvan' && stat === 'defense') v += 1
-      // Chris's first Construct. It sits on a Character the way Gear does, but
-      // what it does is project outwards, which is the whole difference between
-      // an Item and a Construct.
-      if (sd.id === 'homegym' && stat === 'attack') v += 2
+      // Constructs. They sit on a Character the way Gear does, but what they
+      // do projects outwards, which is the whole difference between an Item and
+      // a Construct - and it is now a field on the card rather than three id
+      // checks in here, so a card pack can ship one.
+      if (sd.aura?.stat === stat) v += sd.aura.amount
     }
   }
 
@@ -641,9 +640,8 @@ export function explainStat(state: GameState, ch: CharacterInstance, stat: StatN
     if (ad.id === 'manny' && stat === 'attack') parts.push({ label: `Beside ${ad.name}`, amount: 1, kind: 'aura' })
     for (const s of attachedStuff(state, ally)) {
       const sd = getStuffDef(s.defId)
-      if (sd.id === 'bigsexychain' && stat === 'attack') parts.push({ label: `Beside ${sd.name}`, amount: 1, kind: 'aura' })
-      if (sd.id === 'momvan' && stat === 'defense') parts.push({ label: `Beside ${sd.name}`, amount: 1, kind: 'aura' })
-      if (sd.id === 'homegym' && stat === 'attack') parts.push({ label: `🏋️ ${sd.name}`, amount: 2, kind: 'aura' })
+      if (sd.aura?.stat === stat) parts.push({ label: `Beside ${sd.name}`, amount: sd.aura.amount, kind: 'aura' })
+
     }
   }
 
@@ -752,8 +750,7 @@ export function auraSummary(state: GameState, ch: CharacterInstance): string[] {
   if (def.id === 'carlitos') out.push('Hands his drinks to a neighbour')
   for (const s of attachedStuff(state, ch)) {
     const sd = getStuffDef(s.defId)
-    if (sd.id === 'bigsexychain') out.push('Neighbours get +1 Attack')
-    if (sd.id === 'momvan') out.push('Neighbours get +1 Defense')
+    if (sd.aura) out.push(`Neighbours get ${sd.aura.amount > 0 ? '+' : ''}${sd.aura.amount} ${sd.aura.stat === 'attack' ? 'Attack' : 'Defense'}`)
   }
   return out
 }
@@ -771,8 +768,7 @@ export function incomingAuras(state: GameState, ch: CharacterInstance): string[]
     if (ad.id === 'amanda') out.push(`${ad.name} may take a hit for them`)
     for (const s of attachedStuff(state, a)) {
       const sd = getStuffDef(s.defId)
-      if (sd.id === 'bigsexychain') out.push(`+1 ⚔ from ${sd.name}`)
-      if (sd.id === 'momvan') out.push(`+1 🛡 from ${sd.name}`)
+      if (sd.aura) out.push(`${sd.aura.amount > 0 ? '+' : ''}${sd.aura.amount} ${sd.aura.stat === 'attack' ? '⚔' : '🛡'} from ${sd.name}`)
     }
   }
   for (const e of acrossFrom(state, ch.iid)) {

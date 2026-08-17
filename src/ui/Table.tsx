@@ -7,7 +7,7 @@ import {
   openSlots, totalItemCap, STATUS_RULES,
 } from '../engine/selectors'
 import { needsTarget } from '../engine/effects'
-import { HAND_LIMIT, ACTIONS_PER_TURN, CARDS_PER_TURN } from '../engine/state'
+import { HAND_LIMIT, ACTIONS_PER_TURN, CARDS_PER_TURN, CARDS_DRAWN_PER_TURN } from '../engine/state'
 import { CardFace, cardLabel, EffectChips, stuffChips, affairChips } from './CardFace'
 import { Coach, coachDone, markCoached, resetCoach } from './Coach'
 import { FxLayer } from './Fx'
@@ -24,6 +24,9 @@ type Targeting =
   | { kind: 'useItem'; char: InstanceId; iid: InstanceId; scope: 'enemy' | 'ally' | 'any' }
   | { kind: 'interfere'; iid: InstanceId }
   | null
+
+/** One-per-browser flag for the hide-your-family line. */
+const SHAME_KEY = 'fa.shamed'
 
 export function Table({
   state, you, error, send, hotseat, code, onLeave,
@@ -147,9 +150,16 @@ export function Table({
     setShowLog(false)
   }, [you, state.turnIndex, state.round])
 
+  // The line is funny once. After that it is a banner in front of the board
+  // every time somebody folds a section away, which is the opposite of what
+  // hiding is for. One per browser, then it stops.
   useEffect(() => {
     if (!shamed) return
     setShamed(false)
+    try {
+      if (localStorage.getItem(SHAME_KEY) === '1') return
+      localStorage.setItem(SHAME_KEY, '1')
+    } catch { /* private mode: it stays as it was, which is not worth more code */ }
     setFlash(["Don't be ashamed of your family. You don't have to hide them."])
     const t = setTimeout(() => setFlash(null), 3200)
     return () => clearTimeout(t)
@@ -360,9 +370,9 @@ export function Table({
   const canOpenAttack = isMyTurn && state.phase === 'main' && !battle && !minigame
     && me.actionsLeft > 0 && attackers.length > 0 && enemyCount > 0
   const cardsLeft = CARDS_PER_TURN - me.cardsPlayedThisTurn
-  const overHand = me.hand.length > HAND_LIMIT
-  const turnHint = overHand
-    ? `${me.hand.length} cards - over the limit of ${HAND_LIMIT}. Ending your turn discards down to ${HAND_LIMIT}.`
+  const overHand = Math.max(0, me.hand.length - HAND_LIMIT)
+  const turnHint = overHand > 0
+    ? `${me.hand.length} cards, ${HAND_LIMIT} allowed. Bin ${overHand} before you can end your turn.`
     : readyCount === 0 && anyPlayable
       // Having actions and nobody to spend them on is a different problem from
       // having spent them, and telling the player the wrong one is worse than
@@ -649,7 +659,7 @@ export function Table({
             onInterfere={(iid) => setTargeting({ kind: 'interfere', iid })} />
         ) : isMyTurn && state.phase === 'draw' ? (
           <>
-            <button className="btn gold" onClick={() => send({ k: 'drawCard' })}>Draw a card</button>
+            <button className="btn gold" onClick={() => send({ k: 'drawCard' })}>Draw {CARDS_DRAWN_PER_TURN}</button>
             {state.useKitchenTable && state.kitchenTable.some(Boolean) && (
               <div className="kt">
                 {state.kitchenTable.map((c, i) => c && (
@@ -682,12 +692,16 @@ export function Table({
               className={`btn ${autoPass ? 'gold passing' : ''} ${canOpenAttack ? 'end-narrow' : ''}`}
               data-testid="end-turn"
               onClick={() => {
-                if (me.hand.length > HAND_LIMIT) {
-                  send({ k: 'discardDown', iids: me.hand.slice(0, me.hand.length - HAND_LIMIT) })
-                }
+                // Over the limit, this used to quietly bin the oldest cards in
+                // your hand on the way out. Nobody could see it happen and
+                // nobody chose which went. Now it opens the hand and says how
+                // many have to go, and Bin it on any card does the rest.
+                if (overHand > 0) { setHandOpen(true); return }
                 send({ k: 'endTurn' })
               }}
-            >{autoPass ? 'Nothing you can do - passing…' : 'End turn'}</button>
+            >{autoPass ? 'Nothing you can do - passing…'
+              : overHand > 0 ? `Bin ${overHand} to end turn`
+              : 'End turn'}</button>
           </div>
           </>
         ) : (
@@ -1121,14 +1135,29 @@ function CharacterActions({
           )
         })}
 
+        {/* Who stands next to whom is what every adjacency aura and Team-Up in
+            the deck reads, and until now the only way to change it was to
+            recruit somebody. One chip per slot you are not already in: empty
+            means walk over, occupied means trade places. */}
+        {ch.zone === 'active' && ([0, 1, 2] as const).filter((s) => s !== ch.slot).map((s) => {
+          const sitting = me.field[s] ? state.characters[me.field[s]!] : null
+          return (
+            <button key={`mv${s}`} className="chip" disabled={me.actionsLeft < 1}
+              onClick={() => { send({ k: 'move', char: ch.iid, slot: s }); onClose() }}>
+              <b>⇄ Move {['left', 'centre', 'right'][s]}</b>
+              <i>{sitting ? `Trade places with ${getCharacterDef(sitting.defId).name} · 1 action` : '1 action'}</i>
+            </button>
+          )
+        })}
+
         {me.bench.map((b) => {
           const bc = state.characters[b]
           if (!bc || ch.zone !== 'active') return null
           return (
             <button key={b} className="chip" disabled={me.actionsLeft < 1}
               onClick={() => { send({ k: 'swap', activeChar: ch.iid, benchChar: b }); onClose() }}>
-              <b>⇄ Swap in {getCharacterDef(bc.defId).name}</b>
-              <i>1 action</i>
+              <b>⇄ Bring in {getCharacterDef(bc.defId).name}</b>
+              <i>Off to the bench, {getCharacterDef(bc.defId).name} takes the slot · 1 action</i>
             </button>
           )
         })}

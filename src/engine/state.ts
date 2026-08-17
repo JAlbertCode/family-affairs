@@ -21,6 +21,17 @@ import {
 export const HAND_LIMIT = 7          // §41
 export const ACTIONS_PER_TURN = 3    // §8 Phase 3
 export const CARDS_PER_TURN = 2      // §8 Phase 2
+/**
+ * Cards drawn at the top of a Turn.
+ *
+ * §8 Phase 1 says one, and one is what the game shipped with - but one drawn
+ * against two playable is a hand that empties in five Turns and then never
+ * refills. From there every Turn is draw a card, play that card: no hand, no
+ * decision, and half the deck's interactions (hold an Interference, save a
+ * counter, choose between two plays) simply never come up. Two is the number
+ * that keeps a hand on the table.
+ */
+export const CARDS_DRAWN_PER_TURN = 2
 export const STARTING_HAND = 5       // §6
 
 /**
@@ -347,10 +358,10 @@ function handle(state: GameState, pid: PlayerId, intent: Intent): string | undef
         claim(state, card, pid)
         refillKitchenTable(state)
         log(state, `${ps.name} takes a card from the Kitchen Table.`, 'play')
+        // A Kitchen Table pick is one of the two, not instead of them.
+        drawInto(state, pid, CARDS_DRAWN_PER_TURN - 1)
       } else {
-        drawCards(state, pid, 1)
-        const last = ps.hand[ps.hand.length - 1]
-        if (last) claim(state, last, pid)
+        drawInto(state, pid, CARDS_DRAWN_PER_TURN)
         log(state, `${ps.name} draws.`, 'play')
       }
       state.phase = 'main'
@@ -490,6 +501,31 @@ function handle(state: GameState, pid: PlayerId, intent: Intent): string | undef
       a.zone = 'bench'; a.slot = null
       ps.actionsLeft -= 1
       log(state, `${ps.name} swaps ${getCharacterDef(a.defId).name} for ${getCharacterDef(b.defId).name}.`, 'play')
+      return
+    }
+
+    // -------------------------------------------------------------- MOVE ----
+    case 'move': {
+      if (!isCurrentPlayer(state, pid)) return 'Not your turn.'
+      if (ps.actionsLeft < 1) return 'No Family Actions left.'
+      const a = state.characters[intent.char]
+      if (!a || a.owner !== pid || a.zone !== 'active') return 'That Character is not on your field.'
+      const to = intent.slot
+      if (to !== 0 && to !== 1 && to !== 2) return 'No such slot.'
+      if (a.slot === to) return 'Already there.'
+      const from = a.slot!
+      const b = ps.field[to] ? state.characters[ps.field[to]!] : null
+
+      ps.field[from] = b ? b.iid : null
+      ps.field[to] = a.iid
+      a.slot = to
+      if (b) b.slot = from
+
+      ps.actionsLeft -= 1
+      const where = ['LEFT', 'CENTER', 'RIGHT']
+      log(state, b
+        ? `${ps.name} has ${getCharacterDef(a.defId).name} and ${getCharacterDef(b.defId).name} trade places.`
+        : `${ps.name} moves ${getCharacterDef(a.defId).name} to the ${where[to]} slot.`, 'play')
       return
     }
 
@@ -1115,15 +1151,18 @@ function endTurn(state: GameState, pid: PlayerId, recover?: LimitTrack) {
  *  automatically and drop the player straight into their real turn. */
 export function autoDraw(state: GameState) {
   if (state.phase !== 'draw' || state.useKitchenTable) return
-  const pid = currentPlayer(state)
-  drawCards(state, pid, 1)
-  const ps = state.playerState[pid]
-  const last = ps.hand[ps.hand.length - 1]
-  if (last) {
-    if (state.characters[last]) state.characters[last].owner = pid
-    else if (state.stuff[last]) state.stuff[last].owner = pid
-  }
+  drawInto(state, currentPlayer(state), CARDS_DRAWN_PER_TURN)
   state.phase = 'main'
+}
+
+/** Draw and take ownership. Drawing without claiming leaves cards in a hand
+ *  that the rest of the engine still thinks belong to nobody. */
+function drawInto(state: GameState, pid: PlayerId, n: number) {
+  if (n <= 0) return
+  const ps = state.playerState[pid]
+  const before = ps.hand.length
+  drawCards(state, pid, n)
+  for (const iid of ps.hand.slice(before)) claim(state, iid, pid)
 }
 
 // --------------------------------------------------------------------------

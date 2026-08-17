@@ -153,12 +153,6 @@ export const STUFF: StuffDef[] = [
     effects: [],
   },
   {
-    kind: 'stuff', id: 'woodenspoon', name: 'Wooden Spoon', subtype: 'Gear', copies: 2, icon: '🥄', color: GEAR,
-    text: 'Equip. Her sacred weapon.',
-    equipMods: [{ stat: 'attack', amount: 1 }, { stat: 'defense', amount: 1 }],
-    effects: [],
-  },
-  {
     kind: 'stuff', id: 'shades', name: 'Shades', subtype: 'Gear', copies: 2, icon: '🕶️', color: GEAR,
     text: 'Equip. Nobody knows what you are looking at.',
     equipMods: [{ stat: 'defense', amount: 2 }],
@@ -180,6 +174,7 @@ export const STUFF: StuffDef[] = [
     kind: 'stuff', id: 'bigsexychain', name: 'Big Sexy Chain', subtype: 'Gear', copies: 1, icon: '📿', color: GEAR,
     text: 'Equip. Adjacent allies gain +1 Attack. The chain of greatness.',
     equipMods: [{ stat: 'attack', amount: 1 }],
+    aura: { stat: 'attack', amount: 1 },
     effects: [],
   },
   {
@@ -277,6 +272,7 @@ export const STUFF: StuffDef[] = [
     kind: 'stuff', id: 'momvan', name: 'Mom Van', subtype: 'Ride', copies: 1, icon: '🚐', color: RIDE,
     text: 'Ride. Adjacent allies gain +1 Defense. Everybody gets in.',
     equipMods: [{ stat: 'defense', amount: 1 }],
+    aura: { stat: 'defense', amount: 1 },
     effects: [],
   },
   {
@@ -403,7 +399,8 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'flatcoke', name: 'Flat Coke', subtype: 'Drink', copies: 2, giftable: true, icon: '🥤', color: DRINK,
-    text: 'No fizz. No alcohol. -1 Attack for the Round - too disappointed to fight anybody.',
+    text: 'No fizz, no alcohol, and it is the morning after. Too disappointed to fight anybody.',
+    limitGain: { alcohol: -1 },
     effects: [{ k: 'statMod', target: { scope: 'eventTarget' }, stat: 'attack', amount: -1, duration: 'round' }],
   },
   {
@@ -578,8 +575,8 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'marlboros', name: 'Pack Of Marlboros', subtype: 'Smoke', copies: 3, icon: '🚬', color: SMOKE,
-    text: 'Stepping outside for one. +1 Defense for the Round and shake off Busy - whatever it was, it can wait.',
-    limitGain: {},
+    text: 'Stepping outside for one. It kills your appetite and whatever it was, it can wait.',
+    limitGain: { food: -1 },
     effects: [
       { k: 'statMod', target: { scope: 'self' }, stat: 'defense', amount: 1, duration: 'round' },
       { k: 'removeStatus', target: { scope: 'self' }, status: 'Busy' },
@@ -677,8 +674,8 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'arizona', name: 'Arizona Iced Tea', subtype: 'Drink', copies: 3, giftable: true, icon: '🥤', color: DRINK,
-    text: 'Ninety-nine cents. It says so on the can. Heal 2 HP and shake off Confused. No Alcohol, no drama.',
-    limitGain: {},
+    text: 'Ninety-nine cents. It says so on the can, and it is twenty-four ounces of sugar. No Alcohol, no drama.',
+    limitGain: { food: 1 },
     effects: [
       { k: 'heal', target: { scope: 'self' }, amount: 2 },
       { k: 'removeStatus', target: { scope: 'self' }, status: 'Confused' },
@@ -840,8 +837,8 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'sugarfree', name: 'The Sugar Free One', subtype: 'Drink', copies: 2, giftable: true, icon: '🐂', color: DRINK,
-    text: 'The silver can. No Alcohol. +1 Attack for the Round and shake off Busy. For Hoza it counts as a Red Bull like any other, which is the problem.',
-    limitGain: {},
+    text: 'The silver can. No Alcohol, and it cuts through being high the same way. For Hoza it counts as a Red Bull like any other, which is the problem.',
+    limitGain: { weed: -1 },
     effects: [
       { k: 'statMod', target: { scope: 'self' }, stat: 'attack', amount: 1, duration: 'round' },
       { k: 'removeStatus', target: { scope: 'self' }, status: 'Busy' },
@@ -900,8 +897,8 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'homegym', name: 'The Home Gym', subtype: 'Gear', copies: 2, icon: '🏋️', color: GEAR,
-    text: 'A Construct rather than an Item: it sits on one Character and works for the people beside them. The Characters standing next to whoever holds this gain +2 Attack. The holder gets nothing; they are the one racking the plates.',
-    equipMods: [],
+    text: 'A Construct rather than an Item: it sits on one Character and works for the people beside them. The holder gets nothing; they are the one racking the plates.',
+    aura: { stat: 'attack', amount: 2 },
     effects: [],
   },
   {
@@ -973,8 +970,8 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'redbull', name: 'Red Bull', subtype: 'Drink', copies: 3, giftable: true, icon: '🐂', color: DRINK,
-    text: 'No Alcohol. +2 Attack for the Round and shake off Asleep - somebody has to stay up.',
-    limitGain: {},
+    text: 'No Alcohol. Cuts straight through being high, and somebody has to stay up.',
+    limitGain: { weed: -1 },
     effects: [
       { k: 'statMod', target: { scope: 'self' }, stat: 'attack', amount: 2, duration: 'round' },
       { k: 'removeStatus', target: { scope: 'self' }, status: 'Asleep' },
@@ -1050,7 +1047,7 @@ export const STUFF: StuffDef[] = [
     effects: [{ k: 'heal', target: { scope: 'self' }, amount: 3 }],
   },
   {
-    kind: 'stuff', id: 'garbageplate', name: "Dorian's Garbage Plate", subtype: 'Food', copies: 2, giftable: true, icon: '🍽️', color: FOOD,
+    kind: 'stuff', id: 'dorianplate', name: "Dorian's Garbage Plate", subtype: 'Food', copies: 2, giftable: true, icon: '🍽️', color: FOOD,
     text: 'Everything on one plate, on purpose. Straight to Stuffed for almost anybody.',
     limitGain: { food: 2 },
     effects: [{ k: 'heal', target: { scope: 'self' }, amount: 4 }],

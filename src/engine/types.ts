@@ -235,6 +235,13 @@ export interface StuffDef {
   copies: number
   /** Gear/Ride/Pet: persistent stat bonuses while equipped */
   equipMods?: { stat: StatName; amount: number }[]
+  /**
+   * A Construct: it sits on one Character and works for the people beside them,
+   * not for the holder. The point of the category is that it makes standing
+   * next to somebody a decision, which is also what `move` is for - a piece of
+   * equipment nobody wants to hold and everybody wants to stand near.
+   */
+  aura?: { stat: StatName; amount: number }
   /** Pet only: chance out of 6 that the pet loses its nerve and does nothing */
   skittish?: number
   /** Gear/Ride/Pet may carry an ability the holder can trigger while equipped. */
@@ -503,6 +510,11 @@ export type Intent =
   | { k: 'minigameMove'; cell: number }
   | { k: 'useItem'; char: InstanceId; iid: InstanceId; targetChar?: InstanceId }
   | { k: 'swap'; activeChar: InstanceId; benchChar: InstanceId }
+  /** Move one of your own Active Characters to another slot. If somebody is
+   *  already standing there the two trade places. Who stands next to whom is
+   *  what every adjacency aura and Team-Up in the deck reads, so this is a real
+   *  play rather than tidying up. */
+  | { k: 'move'; char: InstanceId; slot: Slot }
   | { k: 'recoverStatus'; char: InstanceId; status: StatusName }
   | { k: 'interfere'; iid: InstanceId; targetChar?: InstanceId }
   | { k: 'passInterference' }

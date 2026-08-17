@@ -2,6 +2,7 @@ import type {
   CharacterDef, StuffDef, AffairDef, Effect, Ability, Tag, StatName,
 } from '../types'
 import { RELATIONSHIP_TAGS, PERSONALITY_TAGS } from '../types'
+import { CHARACTERS } from './characters'
 
 // ---------------------------------------------------------------------------
 // CARD SCHEMA & POWER BUDGET
@@ -404,12 +405,26 @@ export function validateAffair(a: AffairDef): Issue[] {
   }
 
   // §29: Affairs should hit several characters, and should never whiff entirely.
-  const targeted = flat.some((e) => 'target' in e && (e as any).target?.scope?.startsWith('all'))
+  // `stealStuff` and `destroyStuff` carry their target under `from`, which the
+  // old check could not see - so an Affair that emptied every Ride on the board
+  // was being reported as hitting nobody.
+  const spec = (e: any) => e.target ?? e.from
+  const targeted = flat.some((e) => spec(e)?.scope?.startsWith('all'))
   if (!targeted) warn('effects', 'Nothing targets a whole group. Affairs are meant to hit several Characters.')
 
-  const tagGated = flat.every((e) => 'target' in e && (e as any).target?.withTag)
-  if (tagGated && flat.length > 0) {
-    warn('effects', 'Every effect is gated behind a tag - this Affair does nothing if that tag is absent. Add a fallback.')
+  // Gated behind a tag is only a problem when the tag is rare. Adult sits on
+  // two thirds of the deck and an Affair aimed at Adults always lands; Kid sits
+  // on one Character and an Affair aimed at Kids is a blank Round. Measuring
+  // that instead of assuming it takes this from four warnings to one, and the
+  // one left is real.
+  const RARE = 0.15
+  const tagShare = (t: string) => CHARACTERS.filter((c) => (c.tags as string[]).includes(t)).length / CHARACTERS.length
+  const tagGated = flat.length > 0 && flat.every((e) => {
+    const t = spec(e)?.withTag
+    return !!t && tagShare(t) < RARE
+  })
+  if (tagGated) {
+    warn('effects', 'Every effect is gated behind a tag that almost nobody has - this Affair is a blank Round most games. Add a fallback.')
   }
 
   return out

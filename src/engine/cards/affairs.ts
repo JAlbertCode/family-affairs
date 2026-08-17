@@ -74,9 +74,9 @@ export const AFFAIRS: AffairDef[] = [
   },
   {
     kind: 'affair', id: 'onlyoneburger', name: "There's Only One Burger", duration: 'immediate', color: C,
-    text: 'Every Kid Character becomes Confused fighting over it. Every Foodie gains +1 Food and +1 Attack this Round.',
+    text: 'One burger, everybody at the table. The whole room is Confused arguing about it, and the Foodies are the only ones who come away having eaten.',
     effects: [
-      { k: 'status', target: { scope: 'allActiveEveryone', withTag: 'Kid' }, status: 'Confused', duration: 1 },
+      { k: 'status', target: { scope: 'allActiveEveryone' }, status: 'Confused', duration: 1 },
       { k: 'limit', target: { scope: 'allActiveEveryone', withTag: 'Foodie' }, track: 'food', amount: 1 },
       { k: 'statMod', target: { scope: 'allActiveEveryone', withTag: 'Foodie' }, stat: 'attack', amount: 1, duration: 'round' },
     ],

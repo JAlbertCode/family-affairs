@@ -580,6 +580,25 @@ export function consumeCard(state: GameState, ch: CharacterInstance, iid: Instan
     }
   }
 
+  // Dorian and the energy drinks. His sheet says he levels up by drinking one,
+  // and this is the half of Level Up that the ability cannot express: the
+  // ability is him going and getting one, this is somebody handing him one.
+  // Free, because it cost whoever passed it a card.
+  if ((def.id === 'redbull' || def.id === 'sugarfree') && chDef.id === 'dorian') {
+    const n = ((ch.cooldowns['#uses:Level Up'] ?? 0)) + 1
+    ch.cooldowns['#uses:Level Up'] = Math.min(3, n)
+    if (n <= 3) {
+      applyStatMod(state, ch, 'attack', 1, 'permanent', 'Level')
+      log(state, `Dorian levels up. ${Math.min(3, n)} of 3.`, 'status')
+      if (n >= 3 && !hasStatus(ch, 'Powered Up')) {
+        applyStatus(state, ch, 'Powered Up', -1, innerCtx)
+        log(state, 'Dorian is POWERED UP. Somebody should have stopped him at two.', 'status')
+      }
+    } else {
+      log(state, 'Dorian is already Powered Up. He drinks it anyway.', 'status')
+    }
+  }
+
   // Teremana. The first Item in the deck that reads differently depending on
   // who picks it up: same bottle, three different nights. This lives here
   // rather than in the card's effects because the DSL targets Characters, and

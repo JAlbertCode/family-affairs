@@ -73,7 +73,7 @@ for (let i = 0; i < STEPS; i++) {
   // pass-and-play handoff, battles and Affairs all gate the board
   if (await click(page.locator('.handoff button'))) continue
   if (await click(page.getByRole('button', { name: /^Pass |^Continue$/ }))) { battles++; continue }
-  if (await click(page.getByRole('button', { name: 'Draw a card' }))) continue
+  if (await click(page.getByRole('button', { name: /^Draw / }))) continue
   if (await click(page.locator('.mg-throw:not([disabled])'))) { minigames++; continue }
   if (await click(page.locator('.mg-cell:not([disabled])'))) { minigames++; continue }
   if (await page.locator('.mg').count()) { await page.waitForTimeout(60); continue }
