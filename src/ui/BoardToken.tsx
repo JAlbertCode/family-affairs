@@ -49,7 +49,7 @@ export function BoardToken({
         {ch.statuses.length > 0 && (
           <span className="tok-status">
             {ch.statuses.slice(0, 3).map((s) => (
-              <i key={s.name} className={`sdot ${s.name === 'Fired Up' ? 'good' : 'bad'}`} title={s.name} />
+              <i key={s.name} className={`sdot ${s.name === 'Fired Up' || s.name === 'Powered Up' ? 'good' : 'bad'}`} title={s.name} />
             ))}
           </span>
         )}

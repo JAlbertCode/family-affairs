@@ -31,6 +31,7 @@ export type StatusName =
   | 'Away'       // off-field, untargetable, not adjacent
   | 'Charmed'    // cannot attack the charmer
   | 'Fired Up'   // +2 attack
+  | 'Powered Up' // +2 attack, and the gate on an Ultimate
   | 'Bad Luck'   // natural 1 triggers a Bad Luck roll
 
 export interface StatusInstance {
@@ -116,7 +117,10 @@ export interface TargetSpec {
 export type Effect =
   | { k: 'damage'; target: TargetSpec; amount: number; ignoreDefense?: boolean }
   | { k: 'heal'; target: TargetSpec; amount: number }
-  | { k: 'statMod'; target: TargetSpec; stat: StatName; amount: number; duration: StatMod['duration'] }
+  /** `note` labels the modifier so the engine and the stat breakdown can tell
+   *  one source of +1 Attack from another. Dorian's Levels are counted this
+   *  way rather than kept in a field only he would ever use. */
+  | { k: 'statMod'; target: TargetSpec; stat: StatName; amount: number; duration: StatMod['duration']; note?: string }
   /** Trade Attack and Defense for the Round. Expressed as a swap rather than
    *  two statMods because the amounts depend on the Character it lands on. */
   | { k: 'swapStats'; target: TargetSpec }
@@ -162,8 +166,14 @@ export interface Ability {
   effects: Effect[]
   /** requires the character be at/above these limit levels */
   requiresLimit?: Partial<Record<LimitTrack, number>>
+  /** requires the character be carrying this status. How an Ultimate is locked
+   *  behind the state a Character has to build up to first. */
+  requiresStatus?: StatusName
   /** once per game */
   oncePerGame?: boolean
+  /** total uses per game. A ladder a Character climbs rather than a switch:
+   *  `oncePerGame` is the same idea with the number left at one. */
+  maxUses?: number
   /** rounds between uses */
   cooldown?: number
 }

@@ -778,6 +778,12 @@ function useAbility(
       }
     }
   }
+  if (ability.requiresStatus && !hasStatus(ch, ability.requiresStatus)) {
+    return `${def.name} has to be ${ability.requiresStatus} first.`
+  }
+  if (ability.maxUses && uses(ch, ability.name) >= ability.maxUses) {
+    return `${ability.name} is ${ability.maxUses} times a game, and that was the last one.`
+  }
 
   const need = needsTarget(ability.effects)
   if (need && !targetChar) return `${ability.name} needs a target.`
@@ -798,6 +804,7 @@ function useAbility(
 
   if (ability.oncePerGame) ch.cooldowns[ability.name] = -1
   else if (ability.cooldown) ch.cooldowns[ability.name] = state.round + ability.cooldown
+  if (ability.maxUses) ch.cooldowns[USES + ability.name] = uses(ch, ability.name) + 1
 
   runEffects(state, ability.effects, {
     controller: pid,
@@ -805,7 +812,21 @@ function useAbility(
     eventTarget: targetChar ?? charIid,
     chosen: targetChar ? [targetChar] : [],
   })
+
+  // The third Level is the one that matters. Everything before it is just
+  // Attack; this is what unlocks the phone call.
+  if (def.id === 'dorian' && ability.name === 'Level Up' && uses(ch, ability.name) >= 3 && !hasStatus(ch, 'Powered Up')) {
+    applyStatus(state, ch, 'Powered Up', -1, { controller: pid })
+    log(state, 'Dorian is POWERED UP. Somebody should have stopped him at two.', 'status')
+  }
   return
+}
+
+/** Use counts live alongside cooldowns, under a prefix no ability name can
+ *  collide with, so nothing new has to be added to a Character to hold them. */
+const USES = '#uses:'
+export function uses(ch: CharacterInstance, abilityName: string): number {
+  return ch.cooldowns[USES + abilityName] ?? 0
 }
 
 // ---------------------------------------------------------------------------

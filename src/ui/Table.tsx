@@ -1043,9 +1043,13 @@ function CharacterActions({
       : (ab.cooldown ? (ch.cooldowns[ab.name] ?? -99) > state.round : false)
     const limitOk = !ab.requiresLimit
       || Object.entries(ab.requiresLimit).every(([t, m]) => ch.limits[t as 'food'] >= (m as number))
+    // An Ultimate locked behind a status is worth naming: "Needs more" tells
+    // you nothing, and the whole point of building up to Powered Up is knowing
+    // what you are building towards.
+    const statusOk = !ab.requiresStatus || ch.statuses.some((s: { name: string }) => s.name === ab.requiresStatus)
     const need = needsTarget(ab.effects)
     const noTarget = !haveTargets(need)
-    const disabled = !act.ok || me.actionsLeft < ab.actionCost || onCd || !limitOk || noTarget
+    const disabled = !act.ok || me.actionsLeft < ab.actionCost || onCd || !limitOk || !statusOk || noTarget
     return (
       <button className={`chip ${which === 'powerMove' ? 'power' : ''}`} disabled={disabled}
         onClick={() => {
@@ -1054,6 +1058,7 @@ function CharacterActions({
         }}>
         <b>{which === 'powerMove' ? '★' : '✦'} {ab.name}</b>
         <i>{onCd ? 'On cooldown'
+          : !statusOk ? `Needs ${ab.requiresStatus}`
           : noTarget ? (need === 'enemy' ? 'Nobody to aim at' : 'Nobody to use it on')
           : !limitOk ? 'Needs more'
           : ab.text.slice(0, 46) + (ab.text.length > 46 ? '…' : '')}</i>

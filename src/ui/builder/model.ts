@@ -19,7 +19,7 @@ export const SUBTYPES: StuffType[] = ['Food', 'Drink', 'Smoke', 'Gear', 'Ride', 
 export const ALL_TAGS: Tag[] = [...RELATIONSHIP_TAGS, ...PERSONALITY_TAGS] as Tag[]
 
 export const STATUSES: StatusName[] = [
-  'Confused', 'Asleep', 'Busy', 'Away', 'Charmed', 'Fired Up', 'Bad Luck',
+  'Confused', 'Asleep', 'Busy', 'Away', 'Charmed', 'Fired Up', 'Powered Up', 'Bad Luck',
 ]
 
 /** Attack and Defense are one budget, so the form only ever asks for one. */

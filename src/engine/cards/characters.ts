@@ -68,45 +68,54 @@ export const CHARACTERS: CharacterDef[] = [
   },
 
   // --------------------------------------------------------------- DORIAN --
+  // The deck's only Power Scaler. Everybody else is handed their curve by
+  // whatever the table does to them; Dorian is the one Character built out of
+  // three separate resources he has to go and collect - the plate, the blunt
+  // and the energy drinks - each of which makes him better up to a point and
+  // then turns on him. Get all the way to the top of all three and he can make
+  // one phone call that ends somebody.
   {
     kind: 'character',
     id: 'dorian',
     name: 'Dorian',
-    title: 'The Garbage Plate Devourer',
+    title: 'The Garbage Plate King',
     archetype: 'Bruiser',
-    stats: { hp: 15, attack: 5, defense: 3 },
-    tags: ['Brother', 'Foodie', 'Caretaker', 'Heavyweight'],
-    tolerance: T(3, 3, 4), // Bottomless Pit (§53)
+    // Even split rather than the usual lean. He is a wall and a hammer, and
+    // which one depends entirely on how much he has eaten this Round.
+    stats: { hp: 15, attack: 4, defense: 4 },
+    tags: ['Brother', 'Foodie', 'Heavyweight', 'Stoner', 'Collector'],
+    tolerance: T(3, 3, 4), // the fourth plate is his, and it is also his flaw
     color: '#e0a43c',
     art: 'dorian.webp',
     startsWith: ['donutcrown'],
     passive: {
-      name: 'Bottomless Pit',
-      text: 'Dorian may reach Food 4. He does not become Stuffed until Food 4.',
-      hooks: ['tolerance'],
+      name: 'Eat To Grow',
+      text: 'Dorian may reach Food 4 before he is Stuffed. Each plate makes him harder to move, then dangerous, then Chunky.',
+      hooks: ['tolerance', 'eatToGrow'],
     },
     ability: {
-      name: 'Clean Your Plate',
-      text: 'Consume one Food attached to Dorian. He gains +1 Attack this Turn on top of the Food’s normal effect.',
+      name: 'Level Up',
+      text: 'Another energy drink. Three Levels is the ceiling, and the third one leaves Dorian Powered Up.',
       actionCost: 1,
+      maxUses: 3,
       effects: [
-        { k: 'forceConsume', target: { scope: 'self' }, subtype: 'Food' },
-        { k: 'statMod', target: { scope: 'self' }, stat: 'attack', amount: 1, duration: 'turn' },
+        { k: 'statMod', target: { scope: 'self' }, stat: 'attack', amount: 1, duration: 'permanent', note: 'Level' },
       ],
     },
     powerMove: {
-      name: 'Garbage Plate Rampage',
-      text: 'Requires Food 2+. Gain +3 Attack this Turn, then +1 Food. If that exceeds his tolerance he enters Food Coma and falls Asleep.',
+      name: 'Call The Truth',
+      text: 'Dorian makes one phone call. The Truth grabs a Character, slams them through the floor and leaves.',
       actionCost: 1,
-      requiresLimit: { food: 2 },
+      oncePerGame: true,
+      requiresStatus: 'Powered Up',
       effects: [
-        { k: 'statMod', target: { scope: 'self' }, stat: 'attack', amount: 3, duration: 'turn' },
-        { k: 'limit', target: { scope: 'self' }, track: 'food', amount: 1 },
+        { k: 'damage', target: { scope: 'chosenEnemyActive' }, amount: 6, ignoreDefense: true },
+        { k: 'status', target: { scope: 'chosenEnemyActive' }, status: 'Asleep', duration: 1 },
       ],
     },
     flaw: {
-      name: 'Food Coma',
-      text: 'If Dorian exceeds his Food tolerance he becomes Asleep until his controller’s next Turn.',
+      name: 'Too Full',
+      text: 'One plate past Stuffed and Dorian is done. Asleep until his controller\u2019s next Turn.',
       hooks: ['foodComa'],
     },
     achievement: {

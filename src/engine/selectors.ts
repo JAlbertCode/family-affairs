@@ -92,6 +92,7 @@ function limitStatDelta(ch: CharacterInstance): Record<StatName, number> {
   const isLarry = id === 'larry'
   const isChris = id === 'chris'
   const isAdrian = id === 'adrian'
+  const isDorian = id === 'dorian'
 
   // Alcohol (§21)
   const a = limitTier(ch, 'alcohol')
@@ -181,6 +182,13 @@ function limitStatDelta(ch: CharacterInstance): Record<StatName, number> {
     // without giving back the Defense everyone else gets.
     if (w === 1) d.attack -= 1
     if (w >= 2) d.attack -= 2
+  } else if (isDorian) {
+    // BLUNT FOCUS. One or two settles him and he swings harder. He is the only
+    // Character who buys Attack with weed rather than Defense, and the only one
+    // whose sweet spot is a window rather than a ceiling: the third one is not
+    // more of the same, it is everybody else's curve arriving at once.
+    if (w === 1 || w === 2) d.attack += 1
+    if (w >= 3) { d.attack -= 2; d.defense += 2 }
   } else {
     if (w === 1) d.defense += 1
     if (w === 2) { d.defense += 2; d.attack -= 1 }
@@ -210,6 +218,15 @@ function limitStatDelta(ch: CharacterInstance): Record<StatName, number> {
     // He wants substances and vibes, not a food coma. No Defense to collect
     // here, and Stuffed sends him to sleep the same way Zooted does.
     if (f >= 2) d.attack -= 1
+  } else if (isDorian) {
+    // EAT TO GROW. The plate is a ladder rather than a tax: first he gets
+    // harder to move, then he starts hitting back, then he is CHUNKY - all the
+    // Attack in the deck and slower for it. Tolerance 4 is what buys the third
+    // rung; everyone else is Stuffed and asleep by then, which is exactly where
+    // his fourth plate puts him too.
+    if (f === 1) d.defense += 1
+    if (f === 2) { d.defense += 1; d.attack += 1 }
+    if (f >= 3) { d.attack += 2; d.defense -= 1 }
   } else {
     if (f === 2) d.defense += 1
     if (f === 3) { d.defense += 1; d.attack -= 1 }
@@ -250,6 +267,7 @@ export function effectiveStat(state: GameState, ch: CharacterInstance, stat: Sta
 
   // statuses
   if (stat === 'attack' && hasStatus(ch, 'Fired Up')) v += 2
+  if (stat === 'attack' && hasStatus(ch, 'Powered Up')) v += 2
 
   // ---- auras from allies adjacent to this character ----
   for (const ally of adjacentAllies(state, ch.iid)) {
@@ -555,6 +573,18 @@ export function explainStat(state: GameState, ch: CharacterInstance, stat: StatN
     if (bw >= 2 && stat === 'attack') {
       parts.push({ label: '🌿 Too Distracted', amount: -2, kind: 'limit' })
     }
+  } else if (who === 'dorian') {
+    const dw = limitTier(ch, 'weed')
+    if ((dw === 1 || dw === 2) && stat === 'attack') parts.push({ label: '🌿 Blunt Focus', amount: 1, kind: 'limit' })
+    if (dw >= 3) parts.push({ label: '🌿 Smoked Too Much', amount: stat === 'attack' ? -2 : 2, kind: 'limit' })
+    const df = limitTier(ch, 'food')
+    if (df === 1 && stat === 'defense') parts.push({ label: '🍔 Eat To Grow', amount: 1, kind: 'limit' })
+    if (df === 2) parts.push({ label: '🍔 Eat To Grow', amount: 1, kind: 'limit' })
+    if (df >= 3) parts.push({ label: '🍔 Chunky', amount: stat === 'attack' ? 2 : -1, kind: 'limit' })
+    if (a >= 1) {
+      if (stat === 'attack') parts.push({ label: a === 1 ? '🍺 Buzzed' : a === 3 ? '🍺 Wasted' : '🍺 Drunk', amount: a === 1 ? 1 : 2, kind: 'limit' })
+      if (a >= 2 && stat === 'defense') parts.push({ label: a === 3 ? '🍺 Wasted' : '🍺 Drunk', amount: -1, kind: 'limit' })
+    }
   } else if (who === 'elias') {
     if (a >= 1 && stat === 'attack') {
       parts.push({ label: '🎬 Drunken Flow', amount: a === 1 ? 1 : a === 2 ? 2 : 3, kind: 'limit' })
@@ -569,7 +599,7 @@ export function explainStat(state: GameState, ch: CharacterInstance, stat: StatN
   }
   // Kevin's Weed and Food rows are written above, in his own branch; running
   // the standard ones as well would report every tier twice.
-  if (who !== 'kevin' && who !== 'carlitos') {
+  if (who !== 'kevin' && who !== 'carlitos' && who !== 'dorian') {
     // Bry's Weed row is written in her own branch, but her Food curve is the
     // standard one, so only the Weed half is skipped here.
     if (who !== 'bry' && who !== 'larry' && who !== 'chris' && who !== 'adrian') {
@@ -588,6 +618,9 @@ export function explainStat(state: GameState, ch: CharacterInstance, stat: StatN
     }
   }
 
+  if (stat === 'attack' && hasStatus(ch, 'Powered Up')) {
+    parts.push({ label: '⚡ Powered Up', amount: 2, kind: 'status' })
+  }
   if (stat === 'attack' && hasStatus(ch, 'Fired Up')) {
     parts.push({ label: '🔥 Fired Up', amount: 2, kind: 'status' })
   }
@@ -703,6 +736,7 @@ export const STATUS_RULES: Record<string, string> = {
   Away: 'Off the field. Cannot be targeted and counts as nobody\'s neighbour.',
   Charmed: 'Cannot attack whoever charmed them. Everyone else is fair game.',
   'Fired Up': '+2 Attack while it lasts.',
+  'Powered Up': '+2 Attack, and The Truth is one phone call away.',
   'Bad Luck': 'A natural 1 on any roll sets off a Bad Luck roll, and those range from mildly bad to being hit by a car.',
 }
 

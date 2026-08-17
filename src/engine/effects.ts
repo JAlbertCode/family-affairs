@@ -410,9 +410,10 @@ export function applyLimit(
 }
 
 export function applyStatMod(
-  state: GameState, target: CharacterInstance, stat: StatName, amount: number, duration: 'turn' | 'round' | 'permanent',
+  state: GameState, target: CharacterInstance, stat: StatName, amount: number,
+  duration: 'turn' | 'round' | 'permanent', note?: string,
 ) {
-  target.mods.push({ stat, amount, duration })
+  target.mods.push(note ? { stat, amount, duration, note } : { stat, amount, duration })
   fx(state, {
     k: 'buff', target: target.iid, amount,
     label: `${stat === 'attack' ? '⚔' : '🛡'}${amount > 0 ? '+' : ''}${amount}`,
@@ -628,7 +629,7 @@ function runEffect(state: GameState, e: Effect, ctx: EffectCtx) {
       break
     }
     case 'statMod': {
-      for (const t of resolveTargets(state, e.target, ctx)) applyStatMod(state, t, e.stat, e.amount, e.duration)
+      for (const t of resolveTargets(state, e.target, ctx)) applyStatMod(state, t, e.stat, e.amount, e.duration, e.note)
       break
     }
     case 'status': {

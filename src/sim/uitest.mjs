@@ -50,6 +50,16 @@ let played = 0, attacks = 0, battles = 0, turns = 0, abilities = 0, minigames = 
 
 for (let i = 0; i < STEPS; i++) {
   if (await page.locator('.winner').count()) { console.log('GAME OVER reached'); break }
+  // The first-run coach is a modal with a cut-out that swallows clicks
+  // everywhere else on the page. It is only shown once per browser, so it
+  // never appears in a manual retest of a game already in progress - and a
+  // harness that silently sits behind it reports a perfectly healthy game in
+  // which nobody ever does anything, which is exactly the failure this file's
+  // header warns about. It went unnoticed for a whole session.
+  if (await page.locator('.coach').count()) {
+    await click(page.locator('.coach-actions .btn.ghost'))
+    continue
+  }
   // Every branch below `continue`s, so progress has to be counted here or a
   // loop that opens and closes the same sheet forever looks like a healthy run.
   idle++

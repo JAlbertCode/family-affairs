@@ -6,7 +6,7 @@ import {
 } from '../engine/selectors'
 import { needsTarget } from '../engine/effects'
 import { effectsCost } from '../engine/cards/schema'
-import { HAND_LIMIT } from '../engine/state'
+import { HAND_LIMIT, uses } from '../engine/state'
 
 /**
  * A deliberately simple greedy bot. Its job is not to play well - it is to
@@ -148,6 +148,8 @@ export function botIntent(state: GameState, pid: PlayerId): Intent | null {
           }
           if (!ok) continue
         }
+        if (ab.requiresStatus && !hasStatus(ch, ab.requiresStatus)) continue
+        if (ab.maxUses && uses(ch, ab.name) >= ab.maxUses) continue
         const need = needsTarget(ab.effects)
         let intent: Intent | null = null
         if (!need) intent = { k: 'useAbility', char: ch.iid, which }
