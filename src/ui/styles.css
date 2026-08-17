@@ -60,8 +60,11 @@ button:disabled { cursor: not-allowed; }
    get right. Cropped to a band and faded into the background it reads as a
    landing image instead of an obstacle. object-position sits above centre
    because that is where the faces are. */
+/* `flex: none` because .lobby is a flex column: a height on a flex item is a
+   suggestion, and this one was being shrunk to two pixels tall. The picture
+   that tells a stranger what the game is had never once been on screen. */
 .hero {
-  position: relative; height: 172px; margin-bottom: -6px;
+  position: relative; flex: none; height: 172px; margin-bottom: -6px;
   border-radius: var(--radius); overflow: hidden; border: 1px solid var(--line);
   box-shadow: 0 8px 26px rgba(0,0,0,.45);
 }
@@ -71,6 +74,28 @@ button:disabled { cursor: not-allowed; }
   background: linear-gradient(180deg, rgba(16,6,14,0) 45%, rgba(16,6,14,.9) 100%);
 }
 @media (max-height: 700px) { .hero { height: 120px; } }
+/* Three steps, before the buttons, because the question a newcomer has is not
+   "which of these" - it is "what is supposed to happen here". */
+.howitworks {
+  list-style: none; counter-reset: step; margin: 2px 0 0; padding: 12px 14px;
+  background: #170a17; border: 1px solid var(--line); border-radius: var(--radius);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.howitworks li {
+  counter-increment: step; position: relative; padding-left: 30px;
+  color: var(--muted); font-size: .88rem; line-height: 1.45;
+}
+.howitworks li b { color: var(--text); font-weight: 800; }
+.howitworks li::before {
+  content: counter(step); position: absolute; left: 0; top: -1px;
+  width: 21px; height: 21px; border-radius: 50%;
+  background: var(--pink); color: #2a0a18;
+  font-size: .72rem; font-weight: 900; display: flex; align-items: center; justify-content: center;
+}
+.orline { display: flex; align-items: center; gap: 10px; margin: 4px 0 -2px; }
+.orline::before, .orline::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+.orline span { font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+
 .lobby-tag { color: var(--muted); font-size: .92rem; line-height: 1.55; }
 
 .card-panel {

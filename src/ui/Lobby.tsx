@@ -220,8 +220,19 @@ export function Lobby({
       </div>
       <div className="lobby-tag">
         Build a ridiculous family, feed them, get them drunk, and fight everyone else's family.
-        2–6 players on separate phones. {deck.total} cards, {deck.affairs} Family Affairs.
       </div>
+
+      {/* Somebody who has never seen this lands on a name box and four buttons
+          and has no way to know whether they are supposed to Host or Join. It
+          is three steps and it takes eight words to say, so say it before the
+          buttons rather than in a paragraph underneath them. */}
+      {screen === 'home' && !urlRoom && (
+        <ol className="howitworks">
+          <li><b>One person starts a game</b> and reads out the four-letter code.</li>
+          <li><b>Everyone else taps “I have a code”</b> and types it in.</li>
+          <li><b>Play on your own phones</b>, around the same table. 2–6 people, about 45 minutes.</li>
+        </ol>
+      )}
 
       <div className="card-panel">
         <span className="field-label">Your name</span>
@@ -252,23 +263,36 @@ export function Lobby({
 
       {screen === 'home' ? (
         <>
-          <button className="btn" disabled={!name.trim() || busy} onClick={() => onHost(name.trim())}>
-            {busy ? 'Opening room…' : 'Host a game'}
+          {/* "Host" is jargon to everybody who has not played one of these
+              before, and a greyed-out button that will not say why it is grey
+              is worse than no button. */}
+          <button className="btn gold" disabled={!name.trim() || busy} onClick={() => onHost(name.trim())}>
+            {busy ? 'Opening room…' : 'Start a game'}
           </button>
-          <button className="btn ghost" disabled={!name.trim()} onClick={() => setScreen('join')}>
-            Join with a code
+          <button className="btn" disabled={!name.trim()} onClick={() => setScreen('join')}>
+            I have a code
           </button>
+          {/* Said once, under both, instead of replacing two labels with the
+              same sentence and taking away what the buttons are for. */}
+          {!name.trim() && (
+            <div className="lobby-tag subtle" style={{ marginTop: -4, color: 'var(--gold)' }}>
+              Put your name in above and these light up.
+            </div>
+          )}
+
+          <div className="orline"><span>or, if you are on your own</span></div>
+
           <button className="btn ghost" data-testid="local-mode" onClick={() => setScreen('local')}>
-            Play on this device
+            Try it on this phone
           </button>
-          <button className="btn ghost" data-testid="build-mode" onClick={onBuild}>
+          <div className="lobby-tag subtle" style={{ marginTop: -4 }}>
+            Runs every player on this one screen and you take each turn in order. Nobody else
+            needed, and it is the fastest way to see how it plays.
+          </div>
+
+          <button className="btn ghost narrow" data-testid="build-mode" onClick={onBuild}>
             Make your own cards
           </button>
-          <div className="lobby-tag">
-            <strong style={{ color: 'var(--gold)' }}>Just want to see how it plays?</strong> Pick
-            “Play on this device”. It runs every player on this one screen and you take each turn
-            in order - no second phone, nobody else needed.
-          </div>
           <div className="lobby-tag subtle">
             Games connect your phones directly to each other, so it depends on your network more
             than on the game.{' '}
