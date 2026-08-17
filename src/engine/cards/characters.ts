@@ -1233,6 +1233,69 @@ export const CHARACTERS: CharacterDef[] = [
       key: 'freshman20',
     },
   },
+
+  // -------------------------------------------------------- TITI EVELYN --
+  // The deck's first pure Support, and the only Character whose numbers are a
+  // function of how many people turned up. Everybody else is a fight; she is a
+  // party, and the party is the mechanic - the fuller the table, the harder she
+  // is to get through, and the whole thing switches off the moment she has had
+  // one too many and stops hosting.
+  //
+  // Her pot pie has been in the deck since the beginning. She had not.
+  {
+    kind: 'character',
+    id: 'titievelyn',
+    name: 'Titi Evelyn',
+    title: 'The Family CFO',
+    archetype: 'Support',
+    stats: { hp: 14, attack: 3, defense: 5 },
+    // Mom as well as Aunt, because she is Mom to Jay and Nani and because Mom
+    // sat on exactly one Character in twenty-three while two cards aimed at it.
+    tags: ['Mom', 'Aunt', 'Cook', 'Caretaker', 'Party Animal'],
+    // She has been surrounded by food her whole life and it takes more than
+    // most to fill her. The margaritas are a different story - see the ladder.
+    tolerance: T(3, 3, 4),
+    color: '#e2708f',
+    art: 'titievelyn.webp',
+    startsWith: ['potpie'],
+    passive: {
+      name: 'Hostess With The Mostest',
+      text: 'The more people are here, the harder Titi Evelyn is to get through. +1 Defense for every two other Characters on the table, up to +3.',
+      hooks: ['hostess'],
+    },
+    ability: {
+      name: "Dinner At Titi's",
+      text: 'Everybody eats. Your whole Active Family gains Food and heals - which is a gift to some of them and a problem for the rest.',
+      actionCost: 1,
+      effects: [
+        { k: 'limit', target: { scope: 'allMyActive' }, track: 'food', amount: 1 },
+        { k: 'heal', target: { scope: 'allMyActive' }, amount: 2 },
+      ],
+    },
+    powerMove: {
+      name: "Everybody's Coming Over",
+      text: 'She hosts the whole family. Every one of your Active Characters is fed, patched up and better for the Round, and you draw a card for the trouble.',
+      actionCost: 1,
+      oncePerGame: true,
+      effects: [
+        { k: 'statMod', target: { scope: 'allMyActive' }, stat: 'attack', amount: 1, duration: 'round' },
+        { k: 'statMod', target: { scope: 'allMyActive' }, stat: 'defense', amount: 1, duration: 'round' },
+        { k: 'heal', target: { scope: 'allMyActive' }, amount: 3 },
+        { k: 'draw', player: 'controller', n: 1 },
+      ],
+    },
+    flaw: {
+      name: 'Too Much Fun',
+      text: 'The first Skinny Margarita makes her better and the second starts the party. The third and she has stopped hosting: no Defense from the room, and the usual Wasted mess.',
+      hooks: ['tolerance', 'partyMode'],
+    },
+    achievement: {
+      name: 'Everybody Ate',
+      text: 'Have all three of your Active Characters carrying Food at once. +1 Clout.',
+      clout: 1,
+      key: 'everybodyAte',
+    },
+  },
 ]
 
 export const CHARACTERS_BY_ID: Record<string, CharacterDef> = Object.fromEntries(

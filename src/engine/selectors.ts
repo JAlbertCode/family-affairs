@@ -93,6 +93,7 @@ function limitStatDelta(ch: CharacterInstance): Record<StatName, number> {
   const isChris = id === 'chris'
   const isAdrian = id === 'adrian'
   const isDorian = id === 'dorian'
+  const isEvelyn = id === 'titievelyn'
 
   // Alcohol (§21)
   const a = limitTier(ch, 'alcohol')
@@ -134,6 +135,14 @@ function limitStatDelta(ch: CharacterInstance): Record<StatName, number> {
     if (a === 1) d.attack += 1
     if (a === 2) d.attack += 2
     if (a === 3) { d.attack += 2; d.defense += 1 }
+  } else if (isEvelyn) {
+    // SKINNY MARGARITA. The first one loosens her up and the second starts the
+    // party - she is the only Character in the deck who gets better at holding
+    // the room by drinking. The third is where she stops hosting: the usual
+    // Wasted mess, and her whole aura goes off with it (see effectiveStat).
+    if (a === 1) d.defense += 1
+    if (a === 2) { d.attack += 1; d.defense += 1 }
+    if (a >= 3) { d.attack += 2; d.defense -= 1 }
   } else if (isKevin) {
     // I Don't Even Drink. Everyone else buys swing with a drink; Kevin's whole
     // build is Defense and alcohol takes it apart.
@@ -218,6 +227,12 @@ function limitStatDelta(ch: CharacterInstance): Record<StatName, number> {
     // He wants substances and vibes, not a food coma. No Defense to collect
     // here, and Stuffed sends him to sleep the same way Zooted does.
     if (f >= 2) d.attack -= 1
+  } else if (isEvelyn) {
+    // She has been feeding this family her whole life. A plate does nothing to
+    // her until it is a real plate, and it never costs her the way it costs
+    // everyone else - which is what makes Dinner At Titi's safe to point at
+    // herself and dangerous to point at anybody with a normal appetite.
+    if (f >= 2) d.defense += 1
   } else if (isDorian) {
     // EAT TO GROW. The plate is a ladder rather than a tax: first he gets
     // harder to move, then he starts hitting back, then he is CHUNKY - all the
@@ -279,20 +294,25 @@ function atLevel(ch: CharacterInstance, track: LimitTrack, level: number): Chara
   return { ...ch, limits: { ...ch.limits, [track]: level } }
 }
 
-export function limitLadder(ch: CharacterInstance, track: LimitTrack): LimitRung[] {
+export function limitLadder(state: GameState, ch: CharacterInstance, track: LimitTrack): LimitRung[] {
   const def = getCharacterDef(ch.defId)
   const tol = def.tolerance[track]
-  const base = limitStatDelta(atLevel(ch, track, 0))
+  // Diffed through `effectiveStat` rather than the Limit curve alone, because
+  // the curve is not the whole story for everybody: Titi Evelyn's Defense comes
+  // mostly from the room, and the room walks out when she has had one too many.
+  // Reading only the curve made her third margarita look like an upgrade.
+  const zero = atLevel(ch, track, 0)
+  const baseA = effectiveStat(state, zero, 'attack')
+  const baseD = effectiveStat(state, zero, 'defense')
   const out: LimitRung[] = []
   for (let level = 1; level <= tol + 1; level++) {
     const probe = atLevel(ch, track, level)
-    const d = limitStatDelta(probe)
     out.push({
       level,
       tier: limitTier(probe, track),
       name: LIMIT_TIER_NAMES[track][limitTier(probe, track)],
-      attack: d.attack - base.attack,
-      defense: d.defense - base.defense,
+      attack: effectiveStat(state, probe, 'attack') - baseA,
+      defense: effectiveStat(state, probe, 'defense') - baseD,
       over: level > tol,
     })
   }
@@ -302,17 +322,16 @@ export function limitLadder(ch: CharacterInstance, track: LimitTrack): LimitRung
 /** What one more of something would do to them, right now. Null when it would
  *  change nothing at all, which is itself worth not saying. */
 export function limitForecast(
-  ch: CharacterInstance, track: LimitTrack, amount = 1,
+  state: GameState, ch: CharacterInstance, track: LimitTrack, amount = 1,
 ): { attack: number; defense: number; from: string; to: string; over: boolean } | null {
   const def = getCharacterDef(ch.defId)
   const cap = def.tolerance[track] + 1
   const next = Math.max(0, Math.min(cap, ch.limits[track] + amount))
   if (next === ch.limits[track]) return null
-  const now = limitStatDelta(ch)
-  const then = limitStatDelta(atLevel(ch, track, next))
+  const probe = atLevel(ch, track, next)
   return {
-    attack: then.attack - now.attack,
-    defense: then.defense - now.defense,
+    attack: effectiveStat(state, probe, 'attack') - effectiveStat(state, ch, 'attack'),
+    defense: effectiveStat(state, probe, 'defense') - effectiveStat(state, ch, 'defense'),
     from: limitTierName(ch, track),
     to: LIMIT_TIER_NAMES[track][limitTier(atLevel(ch, track, next), track)],
     over: next > def.tolerance[track],
@@ -331,6 +350,16 @@ export function attachedStuff(state: GameState, ch: CharacterInstance): StuffIns
 export function effectiveStat(state: GameState, ch: CharacterInstance, stat: StatName): number {
   const def = getCharacterDef(ch.defId)
   let v = def.stats[stat]
+
+  // HOSTESS WITH THE MOSTEST. The only Character in the deck whose numbers are
+  // a function of how many people turned up: two more bodies on the table is
+  // another point of Defense, to a ceiling, and the whole thing switches off
+  // the moment she has had one too many and stops hosting. Counted across the
+  // whole table rather than her own Family, because it is a gathering.
+  if (stat === 'defense' && def.id === 'titievelyn' && limitTier(ch, 'alcohol') < 3) {
+    const room = allActiveEveryone(state).filter((c) => c.iid !== ch.iid).length
+    v += Math.min(3, Math.floor(room / 2))
+  }
 
   // equipped Gear / Rides
   for (const s of attachedStuff(state, ch)) {
@@ -354,6 +383,17 @@ export function effectiveStat(state: GameState, ch: CharacterInstance, stat: Sta
   if (stat === 'attack' && hasStatus(ch, 'Powered Up')) v += 2
 
   // ---- auras from allies adjacent to this character ----
+  // PARTY MODE. Two margaritas in, the music is on and it is everybody's
+  // problem - her whole Active Family swings harder, not just the neighbours,
+  // because a party is not an adjacency.
+  if (stat === 'attack') {
+    for (const a of activeCharacters(state, ch.owner)) {
+      if (a.iid === ch.iid) continue
+      if (getCharacterDef(a.defId).id !== 'titievelyn') continue
+      if (limitTier(a, 'alcohol') === 2) v += 1
+    }
+  }
+
   for (const ally of adjacentAllies(state, ch.iid)) {
     const ad = getCharacterDef(ally.defId)
     if (ad.id === 'mikeymoe' && stat === 'defense') v += 1      // Twin Energy
@@ -676,6 +716,18 @@ export function explainStat(state: GameState, ch: CharacterInstance, stat: StatN
       if (stat === 'attack') parts.push({ label: a === 1 ? '🍺 Buzzed' : a === 3 ? '🍺 Wasted' : '🍺 Drunk', amount: a === 1 ? 1 : 2, kind: 'limit' })
       if (a >= 2 && stat === 'defense') parts.push({ label: a === 3 ? '🍺 Wasted' : '🍺 Drunk', amount: -1, kind: 'limit' })
     }
+  } else if (who === 'titievelyn') {
+    if (a === 1 && stat === 'defense') parts.push({ label: '🍸 Skinny Margarita', amount: 1, kind: 'limit' })
+    if (a === 2) parts.push({ label: '🍸 Party Mode', amount: 1, kind: 'limit' })
+    if (a >= 3) parts.push({ label: '🍸 Stopped Hosting', amount: stat === 'attack' ? 2 : -1, kind: 'limit' })
+    const ef = limitTier(ch, 'food')
+    if (ef >= 2 && stat === 'defense') parts.push({ label: '🍔 Used To It', amount: 1, kind: 'limit' })
+    const ew = limitTier(ch, 'weed')
+    if (ew === 1 && stat === 'defense') parts.push({ label: '🌿 High', amount: 1, kind: 'limit' })
+    if (ew >= 2) {
+      if (stat === 'defense') parts.push({ label: ew === 3 ? '🌿 Zooted' : '🌿 Stoned', amount: 2, kind: 'limit' })
+      if (stat === 'attack') parts.push({ label: ew === 3 ? '🌿 Zooted' : '🌿 Stoned', amount: ew === 3 ? -2 : -1, kind: 'limit' })
+    }
   } else if (who === 'elias') {
     if (a >= 1 && stat === 'attack') {
       parts.push({ label: '🎬 Drunken Flow', amount: a === 1 ? 1 : a === 2 ? 2 : 3, kind: 'limit' })
@@ -690,7 +742,7 @@ export function explainStat(state: GameState, ch: CharacterInstance, stat: StatN
   }
   // Kevin's Weed and Food rows are written above, in his own branch; running
   // the standard ones as well would report every tier twice.
-  if (who !== 'kevin' && who !== 'carlitos' && who !== 'dorian') {
+  if (who !== 'kevin' && who !== 'carlitos' && who !== 'dorian' && who !== 'titievelyn') {
     // Bry's Weed row is written in her own branch, but her Food curve is the
     // standard one, so only the Weed half is skipped here.
     if (who !== 'bry' && who !== 'larry' && who !== 'chris' && who !== 'adrian') {
@@ -720,6 +772,19 @@ export function explainStat(state: GameState, ch: CharacterInstance, stat: StatN
 
   if (stat === 'attack' && hasStatus(ch, 'Powered Up')) {
     parts.push({ label: '⚡ Powered Up', amount: 2, kind: 'status' })
+  }
+
+  if (stat === 'defense' && who === 'titievelyn' && limitTier(ch, 'alcohol') < 3) {
+    const room = allActiveEveryone(state).filter((c) => c.iid !== ch.iid).length
+    const n = Math.min(3, Math.floor(room / 2))
+    if (n > 0) parts.push({ label: `🏠 ${room} people here`, amount: n, kind: 'aura' })
+  }
+  if (stat === 'attack') {
+    for (const a2 of activeCharacters(state, ch.owner)) {
+      if (a2.iid === ch.iid) continue
+      if (getCharacterDef(a2.defId).id !== 'titievelyn') continue
+      if (limitTier(a2, 'alcohol') === 2) parts.push({ label: '🍸 Party Mode', amount: 1, kind: 'aura' })
+    }
   }
   if (stat === 'attack' && hasStatus(ch, 'Fired Up')) {
     parts.push({ label: '🔥 Fired Up', amount: 2, kind: 'status' })
@@ -849,6 +914,12 @@ export function auraSummary(state: GameState, ch: CharacterInstance): string[] {
   if (def.id === 'amanda') out.push('Takes a hit for a neighbour')
   if (def.id === 'elias') out.push('Better alone, worse beside a stoner')
   if (def.id === 'carlitos') out.push('Hands his drinks to a neighbour')
+  if (def.id === 'titievelyn') {
+    out.push(limitTier(ch, 'alcohol') >= 3
+      ? 'Has stopped hosting'
+      : `Harder to break the fuller the room gets`)
+    if (limitTier(ch, 'alcohol') === 2) out.push('PARTY MODE: your family +1 Attack')
+  }
   for (const s of attachedStuff(state, ch)) {
     const sd = getStuffDef(s.defId)
     if (sd.aura) out.push(`Neighbours get ${sd.aura.amount > 0 ? '+' : ''}${sd.aura.amount} ${sd.aura.stat === 'attack' ? 'Attack' : 'Defense'}`)

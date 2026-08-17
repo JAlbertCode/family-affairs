@@ -418,7 +418,12 @@ export function validateAffair(a: AffairDef): Issue[] {
   // that instead of assuming it takes this from four warnings to one, and the
   // one left is real.
   const RARE = 0.15
-  const tagShare = (t: string) => CHARACTERS.filter((c) => (c.tags as string[]).includes(t)).length / CHARACTERS.length
+  // Mirrors `hasTag`: Adult is derived from not being a child rather than
+  // written on the card, so counting the literal tag says nobody is one and
+  // every Affair aimed at the grown-ups looks like a blank Round.
+  const tagShare = (t: string) => CHARACTERS.filter((c) => (t === 'Adult'
+    ? !(c.tags as string[]).includes('Kid') && !(c.tags as string[]).includes('Grandkid')
+    : (c.tags as string[]).includes(t))).length / CHARACTERS.length
   const tagGated = flat.length > 0 && flat.every((e) => {
     const t = spec(e)?.withTag
     return !!t && tagShare(t) < RARE

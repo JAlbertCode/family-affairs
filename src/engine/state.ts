@@ -1447,6 +1447,8 @@ function achievementMet(state: GameState, ch: CharacterInstance, key: string): b
         c.iid !== ch.iid && (limitTier(c, 'alcohol') >= 2 || limitTier(c, 'weed') >= 2))
       return messy.length >= 3
     }
+    case 'everybodyAte':
+      return mine.length === 3 && mine.every((c) => c.limits.food >= 1)
     case 'freshman20':
       return limitTier(ch, 'food') >= 3 && ch.attached.length >= 3
     case 'holyRoller':

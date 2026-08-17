@@ -368,7 +368,7 @@ export function Table({
     let anyTrack = false
     for (const [track, amt] of Object.entries(gains)) {
       anyTrack = true
-      const f = limitForecast(ch, track as 'alcohol' | 'weed' | 'food', amt)
+      const f = limitForecast(state, ch, track as 'alcohol' | 'weed' | 'food', amt)
       // No forecast means the meter will not move - already at the floor, or
       // already at the ceiling. Say that rather than showing nothing, because
       // a blank token during targeting reads as "not worked out" and the whole
@@ -983,7 +983,7 @@ function CardSheet({
  * right now - which is why a rung can jump when they are already lit on
  * something else.
  */
-function LimitLadders({ ch }: { ch: any }) {
+function LimitLadders({ state, ch }: { state: GameState; ch: any }) {
   const rows: { track: 'alcohol' | 'weed' | 'food'; glyph: string }[] = [
     { track: 'alcohol', glyph: '🍺' },
     { track: 'weed', glyph: '🌿' },
@@ -992,7 +992,7 @@ function LimitLadders({ ch }: { ch: any }) {
   return (
     <div className="ladders">
       {rows.map(({ track, glyph }) => {
-        const rungs = limitLadder(ch, track)
+        const rungs = limitLadder(state, ch, track)
         const at = ch.limits[track]
         return (
           <div key={track} className="ladder">
@@ -1043,7 +1043,7 @@ function CharacterNumbers({ state, ch }: { state: GameState; ch: any }) {
           <i>{limitTierName(ch, 'weed')}</i>
           <i>{limitTierName(ch, 'food')}</i>
         </div>
-        <LimitLadders ch={ch} />
+        <LimitLadders state={state} ch={ch} />
         <p className="limitnote">
           What each rung is worth <em>to them</em>, against being clean on that
           track. Worked out from where they are standing right now, so a rung
