@@ -17,19 +17,19 @@ export const STUFF: StuffDef[] = [
   // ------------------------------------------------------------------ FOOD --
   {
     kind: 'stuff', id: 'burger', name: 'Burger', subtype: 'Food', copies: 3, giftable: true, icon: '🍔', color: FOOD,
-    text: 'Heal 2 HP. +1 Food.',
+    text: 'Heal 2 HP.',
     limitGain: { food: 1 },
     effects: [{ k: 'heal', target: { scope: 'eventTarget' }, amount: 2 }],
   },
   {
     kind: 'stuff', id: 'cake', name: 'Cake', subtype: 'Food', copies: 2, giftable: true, icon: '🍰', color: FOOD,
-    text: 'Heal 3 HP. +1 Food.',
+    text: 'Heal 3 HP.',
     limitGain: { food: 1 },
     effects: [{ k: 'heal', target: { scope: 'eventTarget' }, amount: 3 }],
   },
   {
     kind: 'stuff', id: 'garbageplate', name: 'Garbage Plate', subtype: 'Food', copies: 2, giftable: true, icon: '🍽️', color: FOOD,
-    text: 'Heal 3 HP. +2 Food. +2 Attack this Turn.',
+    text: 'Heal 3 HP. +2 Attack this Turn.',
     limitGain: { food: 2 },
     effects: [
       { k: 'heal', target: { scope: 'eventTarget' }, amount: 3 },
@@ -44,7 +44,7 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'pizzacake', name: 'Pizza Cake', subtype: 'Food', copies: 2, giftable: true, icon: '🍕', color: FOOD,
-    text: 'Heal 2 HP. +1 Food. +1 Attack this Turn.',
+    text: 'Heal 2 HP. +1 Attack this Turn.',
     limitGain: { food: 1 },
     effects: [
       { k: 'heal', target: { scope: 'eventTarget' }, amount: 2 },
@@ -53,7 +53,7 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'chickenwings', name: 'Chicken Wings', subtype: 'Food', copies: 2, giftable: true, icon: '🍗', color: FOOD,
-    text: 'Heal 1 HP. +1 Food. +2 Defense this Round.',
+    text: 'Heal 1 HP. +2 Defense this Round.',
     limitGain: { food: 1 },
     effects: [
       { k: 'heal', target: { scope: 'eventTarget' }, amount: 1 },
@@ -62,7 +62,7 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'pineapple', name: 'Pineapple', subtype: 'Food', copies: 2, giftable: true, icon: '🍍', color: FOOD,
-    text: 'Eat it: heal 2 HP and +1 Food. Or throw it: 3 damage to an Active enemy.',
+    text: 'Somebody cut it up hours ago and it is still the best thing on the table.',
     limitGain: { food: 1 },
     effects: [{ k: 'heal', target: { scope: 'eventTarget' }, amount: 2 }],
   },
@@ -78,7 +78,7 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'beer', name: 'Beer', subtype: 'Drink', copies: 3, giftable: true, icon: '🍺', color: DRINK,
-    text: '+1 Alcohol. Heal 1 HP.',
+    text: '+1 Alcohol.',
     limitGain: { alcohol: 1 },
     effects: [{ k: 'heal', target: { scope: 'eventTarget' }, amount: 1 }],
   },
@@ -98,7 +98,7 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'mocktail', name: 'Mocktail', subtype: 'Drink', copies: 2, icon: '🍹', color: DRINK,
-    text: 'Reduce Alcohol by 2. Heal 2 HP. No Alcohol gained.',
+    text: 'Reduce Alcohol by 2. No Alcohol gained.',
     effects: [
       { k: 'limit', target: { scope: 'eventTarget' }, track: 'alcohol', amount: -2 },
       { k: 'heal', target: { scope: 'eventTarget' }, amount: 2 },
@@ -114,7 +114,7 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'edible', name: 'Edible', subtype: 'Smoke', copies: 2, giftable: true, icon: '🍪', color: SMOKE,
-    text: '+1 Food and +1 Weed. Heal 1 HP.',
+    text: '+1 Food and +1 Weed.',
     limitGain: { weed: 1, food: 1 },
     effects: [{ k: 'heal', target: { scope: 'eventTarget' }, amount: 1 }],
   },
@@ -140,7 +140,7 @@ export const STUFF: StuffDef[] = [
 
   {
     kind: 'stuff', id: 'nerdedibles', name: 'The Nerd Edibles', subtype: 'Smoke', copies: 3, giftable: true, icon: '🍬', color: '#6d9f52',
-    text: 'Unexpectedly strong. +2 Weed. This Character loses their next Turn contemplating life.',
+    text: 'Unexpectedly strong. This Character loses their next Turn contemplating life.',
     limitGain: { weed: 2 },
     effects: [{ k: 'status', target: { scope: 'eventTarget' }, status: 'Asleep', duration: 1 }],
   },
@@ -148,50 +148,50 @@ export const STUFF: StuffDef[] = [
   // ------------------------------------------------------------------ GEAR --
   {
     kind: 'stuff', id: 'chancla', name: 'Chancla', subtype: 'Gear', copies: 2, icon: '🩴', color: GEAR,
-    text: 'Equip. +2 Attack. A swift strike with ultimate abuela power.',
+    text: 'Equip. A swift strike with ultimate abuela power.',
     equipMods: [{ stat: 'attack', amount: 2 }],
     effects: [],
   },
   {
     kind: 'stuff', id: 'woodenspoon', name: 'Wooden Spoon', subtype: 'Gear', copies: 2, icon: '🥄', color: GEAR,
-    text: 'Equip. +1 Attack, +1 Defense. Her sacred weapon.',
+    text: 'Equip. Her sacred weapon.',
     equipMods: [{ stat: 'attack', amount: 1 }, { stat: 'defense', amount: 1 }],
     effects: [],
   },
   {
     kind: 'stuff', id: 'shades', name: 'Shades', subtype: 'Gear', copies: 2, icon: '🕶️', color: GEAR,
-    text: 'Equip. +2 Defense. Nobody knows what you are looking at.',
+    text: 'Equip. Nobody knows what you are looking at.',
     equipMods: [{ stat: 'defense', amount: 2 }],
     effects: [],
   },
   {
     kind: 'stuff', id: 'pan', name: 'Pan', subtype: 'Gear', copies: 1, icon: '🍳', color: GEAR,
-    text: 'Equip. +3 Attack, -1 Defense. Heavy, loud, and swung with feeling.',
+    text: 'Equip. Heavy, loud, and swung with feeling.',
     equipMods: [{ stat: 'attack', amount: 3 }, { stat: 'defense', amount: -1 }],
     effects: [],
   },
   {
     kind: 'stuff', id: 'pineapplegloves', name: 'Pineapple Gloves', subtype: 'Gear', copies: 1, icon: '🥊', color: GEAR,
-    text: 'Equip. +2 Attack, +1 Defense. Reduces damage taken by 1.',
+    text: 'Equip. Reduces damage taken by 1.',
     equipMods: [{ stat: 'attack', amount: 2 }, { stat: 'defense', amount: 1 }],
     effects: [],
   },
   {
     kind: 'stuff', id: 'bigsexychain', name: 'Big Sexy Chain', subtype: 'Gear', copies: 1, icon: '📿', color: GEAR,
-    text: 'Equip. +1 Attack. Adjacent allies gain +1 Attack. The chain of greatness.',
+    text: 'Equip. Adjacent allies gain +1 Attack. The chain of greatness.',
     equipMods: [{ stat: 'attack', amount: 1 }],
     effects: [],
   },
   {
     kind: 'stuff', id: 'guitar', name: 'Guitar', subtype: 'Gear', copies: 1, icon: '🎸', color: GEAR,
-    text: 'Equip. +2 Attack. Life rolls different when you play your own song.',
+    text: 'Equip. Life rolls different when you play your own song.',
     equipMods: [{ stat: 'attack', amount: 2 }],
     effects: [],
   },
 
   {
     kind: 'stuff', id: 'walkingstick', name: "Manny's Walking Stick", subtype: 'Gear', copies: 2, icon: '🦯', color: GEAR,
-    text: 'Equip. +2 Attack. Trip somebody: spend an Action to make an Active enemy Busy for a Round.',
+    text: 'Equip. Trip somebody: spend an Action to make an Active enemy Busy for a Round.',
     equipMods: [{ stat: 'attack', amount: 2 }],
     activated: {
       name: 'Trip Them',
@@ -204,7 +204,7 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'smartwatch', name: 'Smart Watch', subtype: 'Gear', copies: 2, icon: '⌚', color: GEAR,
-    text: 'Equip. +1 Attack, +1 Defense. Check your rings: spend an Action to draw a card.',
+    text: 'Equip. Check your rings: spend an Action to draw a card.',
     equipMods: [{ stat: 'attack', amount: 1 }, { stat: 'defense', amount: 1 }],
     activated: {
       name: 'Close Your Rings',
@@ -217,7 +217,7 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'oculus', name: 'The Oculus', subtype: 'Gear', copies: 2, icon: '🥽', color: GEAR,
-    text: 'Equip. +2 Defense, -1 Attack. Hand it to somebody: spend an Action to make an Active enemy Confused.',
+    text: 'Equip. Hand it to somebody: spend an Action to make an Active enemy Confused.',
     equipMods: [{ stat: 'defense', amount: 2 }, { stat: 'attack', amount: -1 }],
     activated: {
       name: 'You Have To Try This',
@@ -230,7 +230,7 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'spatula', name: 'The Spatula', subtype: 'Gear', copies: 2, icon: '🍳', color: GEAR,
-    text: 'Equip. +1 Attack, +1 Defense. Serve somebody: spend an Action to force any Character to eat a Food they are holding.',
+    text: 'Equip. Serve somebody: spend an Action to force any Character to eat a Food they are holding.',
     equipMods: [{ stat: 'attack', amount: 1 }, { stat: 'defense', amount: 1 }],
     activated: {
       name: 'Eat Something',
@@ -242,7 +242,7 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'bentpan', name: "Liv's Bent Pan", subtype: 'Gear', copies: 1, icon: '🥘', color: GEAR,
-    text: 'Equip. +3 Attack, -1 Defense. Permanently deformed. Nobody has ever explained what happened, and Liv is not going to start now.',
+    text: 'Equip. Permanently deformed. Nobody has ever explained what happened, and Liv is not going to start now.',
     equipMods: [{ stat: 'attack', amount: 3 }, { stat: 'defense', amount: -1 }],
     activated: {
       name: 'Swing It Again',
@@ -257,37 +257,37 @@ export const STUFF: StuffDef[] = [
   // ------------------------------------------------------------------ RIDE --
   {
     kind: 'stuff', id: 'skateboard', name: 'Skateboard', subtype: 'Ride', copies: 2, icon: '🛹', color: RIDE,
-    text: 'Ride. +1 Attack, +1 Defense. Roll up on somebody.',
+    text: 'Ride. Roll up on somebody.',
     equipMods: [{ stat: 'attack', amount: 1 }, { stat: 'defense', amount: 1 }],
     effects: [],
   },
   {
     kind: 'stuff', id: 'wheelchair', name: 'Wheelchair', subtype: 'Ride', copies: 2, icon: '🦽', color: RIDE,
-    text: 'Ride. +2 Defense. Wheels beat legs.',
+    text: 'Ride. Wheels beat legs.',
     equipMods: [{ stat: 'defense', amount: 2 }],
     effects: [],
   },
   {
     kind: 'stuff', id: 'rocketwheelchair', name: 'Rocket Wheelchair', subtype: 'Ride', copies: 1, icon: '🚀', color: RIDE,
-    text: 'Ride. +2 Attack, +1 Defense. Absolutely not street legal.',
+    text: 'Ride. Absolutely not street legal.',
     equipMods: [{ stat: 'attack', amount: 2 }, { stat: 'defense', amount: 1 }],
     effects: [],
   },
   {
     kind: 'stuff', id: 'momvan', name: 'Mom Van', subtype: 'Ride', copies: 1, icon: '🚐', color: RIDE,
-    text: 'Ride. +1 Defense. Adjacent allies gain +1 Defense. Everybody gets in.',
+    text: 'Ride. Adjacent allies gain +1 Defense. Everybody gets in.',
     equipMods: [{ stat: 'defense', amount: 1 }],
     effects: [],
   },
   {
     kind: 'stuff', id: 'shoppingcart', name: 'Shopping Cart', subtype: 'Ride', copies: 1, icon: '🛒', color: RIDE,
-    text: 'Ride. +2 Attack, -1 Defense. It has one bad wheel.',
+    text: 'Ride. It has one bad wheel.',
     equipMods: [{ stat: 'attack', amount: 2 }, { stat: 'defense', amount: -1 }],
     effects: [],
   },
   {
     kind: 'stuff', id: 'bike', name: 'Bike', subtype: 'Ride', copies: 1, icon: '🚲', color: RIDE,
-    text: 'Ride. +1 Attack, +1 Defense.',
+    text: 'Ride.',
     equipMods: [{ stat: 'attack', amount: 1 }, { stat: 'defense', amount: 1 }],
     effects: [],
   },
@@ -295,7 +295,7 @@ export const STUFF: StuffDef[] = [
   // ------------------------------------------------------------------ PET --
   {
     kind: 'stuff', id: 'cash', name: 'Cash The Dog', subtype: 'Pet', copies: 2, icon: '🐕', color: '#c98d4a',
-    text: 'Pet. +2 Attack, +1 Defense. Cash is brave right up until he is not - on a roll of 1 he hides and gives nothing this battle.',
+    text: 'Pet. Cash is brave right up until he is not - on a roll of 1 he hides and gives nothing this battle.',
     equipMods: [{ stat: 'attack', amount: 2 }, { stat: 'defense', amount: 1 }],
     skittish: 1,
     effects: [],
@@ -303,7 +303,7 @@ export const STUFF: StuffDef[] = [
 
   {
     kind: 'stuff', id: 'elephant', name: 'The Elephant', subtype: 'Ride', copies: 1, icon: '🐘', color: '#4aa3d8',
-    text: 'Ride. +3 Attack, -1 Defense. Enormous, unhurried, and impossible to argue with.',
+    text: 'Ride. Enormous, unhurried, and impossible to argue with.',
     equipMods: [{ stat: 'attack', amount: 3 }, { stat: 'defense', amount: -1 }],
     effects: [],
   },
@@ -429,7 +429,7 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'scoobysnacks', name: 'Twin Scooby Snacks', subtype: 'Food', copies: 2, giftable: true, icon: '🍪', color: FOOD,
-    text: '+1 Food. Heal 2 HP. The Character beside them gets one too - there are always exactly two.',
+    text: '+1 Food. The Character beside them gets one too - there are always exactly two.',
     limitGain: { food: 1 },
     effects: [
       { k: 'heal', target: { scope: 'eventTarget' }, amount: 2 },
@@ -493,7 +493,7 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'walker', name: "Grandpa's Walker", subtype: 'Gear', copies: 2, icon: '🦼', color: GEAR,
-    text: 'Equip. +2 Defense, -1 Attack. Nobody is knocking this over and nobody is getting anywhere fast. He has modified it: Walker Cannon fires a tennis ball at somebody across the room for 3, and Defense is not going to help.',
+    text: 'Equip. Nobody is knocking this over and nobody is getting anywhere fast. He has modified it: Walker Cannon fires a tennis ball at somebody across the room for 3, and Defense is not going to help.',
     equipMods: [{ stat: 'defense', amount: 2 }, { stat: 'attack', amount: -1 }],
     activated: {
       name: 'Walker Cannon',
@@ -509,7 +509,7 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'gospelrecord', name: 'The Gospel Record', subtype: 'Gear', copies: 2, onlyFor: ['grandpa'], icon: '📀', color: GEAR,
-    text: 'The one he will not let anybody else touch. Equip. +1 Defense. Holy Remix: everybody in your family takes +1 Attack for the Round, because he finally put something good on.',
+    text: 'The one he will not let anybody else touch. Equip. Holy Remix: everybody in your family takes +1 Attack for the Round, because he finally put something good on.',
     equipMods: [{ stat: 'defense', amount: 1 }],
     activated: {
       name: 'Holy Remix',
@@ -539,7 +539,7 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'potpie', name: "Titi Evelyn's Chicken Pot Pie", subtype: 'Food', copies: 3, giftable: true, icon: '🥧', color: FOOD,
-    text: 'Nobody makes it like Titi Evelyn. Heal 3 HP, +1 Food. She will not say what is in it, but it is +1 Weed too.',
+    text: 'Nobody makes it like Titi Evelyn. She will not say what is in it, but it is +1 Weed too.',
     limitGain: { food: 1, weed: 1 },
     effects: [{ k: 'heal', target: { scope: 'self' }, amount: 3 }],
   },
@@ -558,7 +558,7 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'basketball', name: 'The Basketball', subtype: 'Gear', copies: 2, icon: '🏀', color: GEAR,
-    text: 'Equip. +1 Attack. Call somebody out and play them for it - winner lands 3 damage.',
+    text: 'Equip. Call somebody out and play them for it - winner lands 3 damage.',
     equipMods: [{ stat: 'attack', amount: 1 }],
     activated: {
       name: 'Game of 21',
@@ -587,7 +587,7 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'baseball', name: 'The Baseball', subtype: 'Gear', copies: 2, icon: '⚾', color: GEAR,
-    text: 'Equip. +2 Attack. Somebody is getting hit and everyone will agree it was an accident.',
+    text: 'Equip. Somebody is getting hit and everyone will agree it was an accident.',
     equipMods: [{ stat: 'attack', amount: 2 }],
     effects: [],
   },
@@ -686,7 +686,7 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'timbs', name: 'Timbs', subtype: 'Gear', copies: 2, icon: '🥾', color: GEAR,
-    text: 'Equip. +1 Attack, +1 Defense. Nobody is stepping on your foot twice.',
+    text: 'Equip. Nobody is stepping on your foot twice.',
     equipMods: [{ stat: 'attack', amount: 1 }, { stat: 'defense', amount: 1 }],
     effects: [],
   },
@@ -710,7 +710,7 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'headband', name: 'The Headband', subtype: 'Gear', copies: 2, icon: '🎽', color: GEAR,
-    text: 'Equip. +1 Attack. An Athlete wearing it means business: +2 instead.',
+    text: 'Equip. An Athlete wearing it means business: +2 instead.',
     equipMods: [{ stat: 'attack', amount: 1 }],
     activated: {
       name: 'Tighten It',
@@ -764,7 +764,7 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'tvremote', name: "Grandpa's TV Remote", subtype: 'Gear', copies: 2, icon: '📺', color: GEAR,
-    text: 'Equip. Nobody else touches it. +1 Defense. Change the channel on somebody and they lose the thread: Confused for the Round.',
+    text: 'Equip. Nobody else touches it. Change the channel on somebody and they lose the thread: Confused for the Round.',
     equipMods: [{ stat: 'defense', amount: 1 }],
     activated: {
       name: 'Change The Channel',
@@ -777,7 +777,7 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'ninjastars', name: "Amanda's Ninja Star Cookies", subtype: 'Food', copies: 3, giftable: true, icon: '🍪', color: FOOD,
-    text: 'Baked with points on them, on purpose. Heal 2 and +1 Food - or throw one at a rival for 2 damage. Nobody has ever asked why.',
+    text: 'Baked with points on them, on purpose. Nobody has ever asked why.',
     limitGain: { food: 1 },
     effects: [{ k: 'heal', target: { scope: 'self' }, amount: 2 }],
   },
@@ -800,13 +800,13 @@ export const STUFF: StuffDef[] = [
   // ------------------------------------------------- THE DRINKS TROLLEY --
   {
     kind: 'stuff', id: 'mimosa', name: 'Mimosas', subtype: 'Drink', copies: 3, giftable: true, icon: '🥂', color: DRINK,
-    text: 'It is basically juice, which is how everybody ends up having four. +1 Alcohol and heal 2.',
+    text: 'It is basically juice, which is how everybody ends up having four.',
     limitGain: { alcohol: 1 },
     effects: [{ k: 'heal', target: { scope: 'self' }, amount: 2 }],
   },
   {
     kind: 'stuff', id: 'budlight', name: 'Bud Light', subtype: 'Drink', copies: 3, giftable: true, icon: '🍺', color: DRINK,
-    text: 'Cold, wet, and there are thirty of them. +1 Alcohol.',
+    text: 'Cold, wet, and there are thirty of them.',
     limitGain: { alcohol: 1 },
     effects: [],
   },
@@ -824,7 +824,7 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'thenotebook', name: 'The Notebook', subtype: 'Gear', copies: 2, onlyFor: ['hoza'], icon: '📓', color: GEAR,
-    text: 'Half a manuscript, and about nine pages of it are notes on this family. Equip. +1 Defense. Run It Back: draw a card and shake off Confused, because he has already worked out what happened.',
+    text: 'Half a manuscript, and about nine pages of it are notes on this family. Equip. Run It Back: draw a card and shake off Confused, because he has already worked out what happened.',
     equipMods: [{ stat: 'defense', amount: 1 }],
     activated: {
       name: 'Run It Back',
@@ -849,13 +849,13 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'birkenstocks', name: 'The Birkenstocks', subtype: 'Gear', copies: 3, icon: '🩴', color: GEAR,
-    text: 'Footgear. +2 Defense. Worn with socks, and he will explain why if you let him.',
+    text: 'Footgear. Worn with socks, and he will explain why if you let him.',
     equipMods: [{ stat: 'defense', amount: 2 }],
     effects: [],
   },
   {
     kind: 'stuff', id: 'mushroomhat', name: 'The Mushroom Hat', subtype: 'Gear', copies: 2, onlyFor: ['adrian'], icon: '🍄', color: GEAR,
-    text: 'Equip. +1 Defense. Come Back Down: clear 1 Weed, for the Adrian who has gone one puff past the sweet spot and needs to be somewhere else.',
+    text: 'Equip. Come Back Down: clear 1 Weed, for the Adrian who has gone one puff past the sweet spot and needs to be somewhere else.',
     equipMods: [{ stat: 'defense', amount: 1 }],
     activated: {
       name: 'Come Back Down',
@@ -887,7 +887,7 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'toolbelt', name: 'The Tool Belt', subtype: 'Gear', copies: 2, onlyFor: ['chris'], icon: '🧰', color: GEAR,
-    text: 'He is not carrying weapons. He simply happens to be carrying a great many things that work extremely well as weapons. Equip. +2 Attack. Hammer Time: 3 damage to a chosen enemy.',
+    text: 'He is not carrying weapons. He simply happens to be carrying a great many things that work extremely well as weapons. Equip. Hammer Time: 3 damage to a chosen enemy.',
     equipMods: [{ stat: 'attack', amount: 2 }],
     activated: {
       name: 'Hammer Time',
@@ -906,7 +906,7 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'makeshiftbed', name: 'The Makeshift Bed', subtype: 'Gear', copies: 2, icon: '🛏️', color: GEAR,
-    text: 'Two pallets and a mattress that came from somewhere. Equip. +1 Defense. Sleep It Off: heal a chosen ally 3 and shake off Asleep, Confused and Busy.',
+    text: 'Two pallets and a mattress that came from somewhere. Equip. Sleep It Off: heal a chosen ally 3 and shake off Asleep, Confused and Busy.',
     equipMods: [{ stat: 'defense', amount: 1 }],
     activated: {
       name: 'Sleep It Off',
@@ -929,7 +929,7 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'powerdrill', name: 'The Power Drill', subtype: 'Gear', copies: 2, icon: '🪛', color: GEAR,
-    text: 'Equip. +1 Attack. Drill Through: 3 damage to a chosen enemy, and Defense does not come into it.',
+    text: 'Equip. Drill Through: 3 damage to a chosen enemy, and Defense does not come into it.',
     equipMods: [{ stat: 'attack', amount: 1 }],
     activated: {
       name: 'Drill Through',
@@ -942,7 +942,7 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'boricua', name: 'The Boricua Outfit', subtype: 'Gear', copies: 2, onlyFor: ['larry'], icon: '🇵🇷', color: GEAR,
-    text: 'Guayabera, straw hat, flag on everything. He is six foot four and the whitest man at the party, and somehow it works. Equip. +1 Defense. Blend In: go Away until your next Turn, untargetable and out of the conversation.',
+    text: 'Guayabera, straw hat, flag on everything. He is six foot four and the whitest man at the party, and somehow it works. Equip. Blend In: go Away until your next Turn, untargetable and out of the conversation.',
     equipMods: [{ stat: 'defense', amount: 1 }],
     activated: {
       name: 'Blend In',
@@ -1009,7 +1009,7 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'firecrackerblunt', name: 'The Firecracker Blunt', subtype: 'Smoke', copies: 2, icon: '🧨', color: SMOKE,
-    text: 'Somebody rolled a firecracker into it and handed it over like nothing was wrong. +1 Weed. It goes off in the middle of the other side: 5 damage to a chosen enemy and 2 to the Characters beside them. The person holding it takes 2 as well, obviously.',
+    text: 'Somebody rolled a firecracker into it and handed it over like nothing was wrong. It goes off in the middle of the other side: 5 damage to a chosen enemy and 2 to the Characters beside them. The person holding it takes 2 as well, obviously.',
     limitGain: { weed: 1 },
     effects: [
       { k: 'damage', target: { scope: 'chosenEnemyActive' }, amount: 5 },
@@ -1045,13 +1045,13 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'chichisundae', name: "Chi Chi's Sundae", subtype: 'Food', copies: 3, giftable: true, icon: '🍨', color: FOOD,
-    text: 'Built at midnight out of whatever was in the freezer. Heal 3 and +1 Food.',
+    text: 'Built at midnight out of whatever was in the freezer.',
     limitGain: { food: 1 },
     effects: [{ k: 'heal', target: { scope: 'self' }, amount: 3 }],
   },
   {
     kind: 'stuff', id: 'garbageplate', name: "Dorian's Garbage Plate", subtype: 'Food', copies: 2, giftable: true, icon: '🍽️', color: FOOD,
-    text: 'Everything on one plate, on purpose. +2 Food and heal 4. Straight to Stuffed for almost anybody.',
+    text: 'Everything on one plate, on purpose. Straight to Stuffed for almost anybody.',
     limitGain: { food: 2 },
     effects: [{ k: 'heal', target: { scope: 'self' }, amount: 4 }],
   },
@@ -1087,7 +1087,7 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'thebelt', name: 'The Belt', subtype: 'Gear', copies: 2, icon: '🩹', color: GEAR,
-    text: 'Good old fashioned. Equip. +2 Attack. It comes off the loops and the room goes quiet.',
+    text: 'Good old fashioned. Equip. It comes off the loops and the room goes quiet.',
     equipMods: [{ stat: 'attack', amount: 2 }],
     effects: [],
   },
@@ -1099,7 +1099,7 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'poolstick', name: "Papito Carlitos' Pool Stick", subtype: 'Gear', copies: 2, icon: '🎱', color: GEAR,
-    text: 'Nobody else is allowed to touch it. Equip. +2 Attack, +1 Defense. He knows exactly where it is at all times.',
+    text: 'Nobody else is allowed to touch it. Equip. He knows exactly where it is at all times.',
     equipMods: [{ stat: 'attack', amount: 2 }, { stat: 'defense', amount: 1 }],
     effects: [],
   },
@@ -1138,7 +1138,7 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'dadbod', name: "Chris's Dad Bod", subtype: 'Gear', copies: 2, icon: '🫃', color: GEAR,
-    text: 'Equip. +3 Defense. Built over years of consistent effort in the opposite direction.',
+    text: 'Equip. Built over years of consistent effort in the opposite direction.',
     equipMods: [{ stat: 'defense', amount: 3 }],
     effects: [],
   },
@@ -1197,13 +1197,13 @@ export const STUFF: StuffDef[] = [
   // clothing slots exist. Until then each one stands on its own.
   {
     kind: 'stuff', id: 'poloshirt', name: 'The Polo Shirt', subtype: 'Gear', copies: 3, icon: '👕', color: GEAR,
-    text: 'Collar up, obviously. Equip. +1 Attack, +1 Defense. Part of the fit.',
+    text: 'Collar up, obviously. Equip. Part of the fit.',
     equipMods: [{ stat: 'attack', amount: 1 }, { stat: 'defense', amount: 1 }],
     effects: [],
   },
   {
     kind: 'stuff', id: 'puffervest', name: 'The Puffer Vest', subtype: 'Gear', copies: 2, icon: '🧥', color: GEAR,
-    text: 'Equip. +3 Defense. It is padded, it is warm, and nothing is getting through it. Part of the fit.',
+    text: 'Equip. It is padded, it is warm, and nothing is getting through it. Part of the fit.',
     equipMods: [{ stat: 'defense', amount: 3 }],
     effects: [],
   },
@@ -1225,31 +1225,31 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'quarterzip', name: 'The Quarter Zip', subtype: 'Gear', copies: 2, icon: '🩱', color: GEAR,
-    text: 'Equip. +2 Defense. Smart enough for the good chair, comfortable enough to fall asleep in. Part of the fit.',
+    text: 'Equip. Smart enough for the good chair, comfortable enough to fall asleep in. Part of the fit.',
     equipMods: [{ stat: 'defense', amount: 2 }],
     effects: [],
   },
   {
     kind: 'stuff', id: 'bearsweater', name: 'The Bear Sweater', subtype: 'Gear', copies: 2, icon: '🧸', color: GEAR,
-    text: 'Equip. +2 Attack, +1 Defense. Everyone has an opinion about it and everyone is wrong. Part of the fit.',
+    text: 'Equip. Everyone has an opinion about it and everyone is wrong. Part of the fit.',
     equipMods: [{ stat: 'attack', amount: 2 }, { stat: 'defense', amount: 1 }],
     effects: [],
   },
   {
     kind: 'stuff', id: 'loafers', name: 'The Loafers', subtype: 'Gear', copies: 2, icon: '👞', color: GEAR,
-    text: 'Footgear. +1 Attack, +2 Defense. No socks. It is a whole thing. Part of the fit.',
+    text: 'Footgear. No socks. It is a whole thing. Part of the fit.',
     equipMods: [{ stat: 'attack', amount: 1 }, { stat: 'defense', amount: 2 }],
     effects: [],
   },
   {
     kind: 'stuff', id: 'rugbyshirt', name: 'The Rugby Shirt', subtype: 'Gear', copies: 2, icon: '🏉', color: GEAR,
-    text: 'Equip. +3 Attack, -1 Defense. Built for grabbing and being grabbed. Part of the fit.',
+    text: 'Equip. Built for grabbing and being grabbed. Part of the fit.',
     equipMods: [{ stat: 'attack', amount: 3 }, { stat: 'defense', amount: -1 }],
     effects: [],
   },
   {
     kind: 'stuff', id: 'compressionshirt', name: 'The Compression Shirt', subtype: 'Gear', copies: 2, icon: '💪', color: GEAR,
-    text: 'The muscles are sewn in. Equip. +4 Attack, -2 Defense. Everyone believes it right up until somebody hits you.',
+    text: 'The muscles are sewn in. Equip. Everyone believes it right up until somebody hits you.',
     equipMods: [{ stat: 'attack', amount: 4 }, { stat: 'defense', amount: -2 }],
     effects: [],
   },
@@ -1277,13 +1277,13 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'airmax', name: 'Nike Air Max', subtype: 'Gear', copies: 3, icon: '👟', color: GEAR,
-    text: 'Footgear. +2 Attack and +1 Defense. You move different in a fresh pair and everybody can tell.',
+    text: 'Footgear. You move different in a fresh pair and everybody can tell.',
     equipMods: [{ stat: 'attack', amount: 2 }, { stat: 'defense', amount: 1 }],
     effects: [],
   },
   {
     kind: 'stuff', id: 'weedchain', name: 'The Weed Chain', subtype: 'Gear', copies: 2, icon: '📿', color: GEAR,
-    text: 'Equip. +3 Defense. Heavy enough to stop something and loud enough that nobody tries.',
+    text: 'Equip. Heavy enough to stop something and loud enough that nobody tries.',
     equipMods: [{ stat: 'defense', amount: 3 }],
     effects: [],
   },
@@ -1322,7 +1322,7 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'ginastire', name: "Gina's Tire", subtype: 'Ride', copies: 2, icon: '🛞', color: RIDE,
-    text: 'Equip. +1 Defense. There is a bite out of it and everybody knows whose. Bite it yourself: +2 Attack for the Round and +2 Food, because a tire is not a meal.',
+    text: 'Equip. There is a bite out of it and everybody knows whose. Bite it yourself: +2 Attack for the Round and +2 Food, because a tire is not a meal.',
     equipMods: [{ stat: 'defense', amount: 1 }],
     activated: {
       name: 'Bite The Tire',
@@ -1354,7 +1354,7 @@ export const STUFF: StuffDef[] = [
   },
   {
     kind: 'stuff', id: 'soccerball', name: 'The Soccer Ball', subtype: 'Gear', copies: 2, icon: '⚽', color: GEAR,
-    text: 'Equip. +1 Defense. Start a game in the driveway - whoever wins comes back inside with something.',
+    text: 'Equip. Start a game in the driveway - whoever wins comes back inside with something.',
     equipMods: [{ stat: 'defense', amount: 1 }],
     activated: {
       name: 'Driveway Match',
